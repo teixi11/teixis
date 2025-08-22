@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fábrica 3D (spawn dentro + techo cerrado)</title>
+  <style>
+    body { margin:0; overflow:hidden; font-family:Arial, sans-serif; }
+    canvas { display:block; }
+    #infoBox{
+      position:absolute; top:12px; left:12px;
+      background:rgba(255,255,255,0.95);
+      border:1px solid #333; border-radius:8px;
+      padding:10px; width:260px; display:none;
+      box-shadow:0 6px 16px rgba(0,0,0,.2);
+    }
+    #infoBox h3{ margin:0 0 6px; font-size:16px;}
+    #infoBox img{ width:100%; height:auto; border:1px solid #aaa; border-radius:4px; }
+    #minimap{
+      position:absolute; top:12px; right:12px;
+      width:240px; height:240px; border:2px solid #222; background:#fff;
+      border-radius:8px; box-shadow:0 6px 16px rgba(0,0,0,.2);
+    }
+  </style>
+</head>
+<body>
+  <div id="infoBox">
+    <h3 id="tornoTitle"></h3>
+    <img src="torno.jpg" alt="Torno">
+    <p id="tornoDesc" style="margin:6px 0 0 0;"></p>
+  </div>
+  <canvas id="minimap" width="240" height="240"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+  <script>
+    // =============== Datos originales ===============
+    const silueta = [
+      {"x":7.7,"y":140.9},{"x":7.7,"y":254.4},{"x":70.5,"y":280.8},{"x":125.5,"y":283},
+      {"x":126.6,"y":310.5},{"x":214.7,"y":311.6},{"x":215.8,"y":363.4},{"x":515.3,"y":490},
+      {"x":809.4,"y":490},{"x":808.3,"y":610},{"x":916.2,"y":662.9},{"x":1118.8,"y":664},
+      {"x":1118.8,"y":768.6},{"x":1440.3,"y":767.5},{"x":1497.6,"y":671.7},{"x":1497.6,"y":495.5},
+      {"x":1420.5,"y":496.6},{"x":1422.7,"y":288.5},{"x":1406.2,"y":288.5},{"x":1404,"y":65},
+      {"x":1292.8,"y":65},{"x":1290.6,"y":95.8},{"x":1023,"y":95.8},{"x":1021.9,"y":58.4},
+      {"x":953.6,"y":55.1},{"x":954.7,"y":69.4},{"x":920.6,"y":71.6},{"x":917.3,"y":85.9},
+      {"x":705.8,"y":84.8},{"x":707,"y":56.2},{"x":625.5,"y":56.2},{"x":621.1,"y":84.8},
+      {"x":192.7,"y":85.9},{"x":189.4,"y":2.2},{"x":104.6,"y":2.2},{"x":103.5,"y":140.9}
+    ];
+
+    const tornos = [
+      {"num":"226","x":54,"y":192.7},{"num":"70","x":88.1,"y":193.8},{"num":"117","x":121.1,"y":196},
+      {"num":"124","x":154.2,"y":194.9},{"num":"135","x":186.1,"y":192.7},{"num":"143","x":218,"y":194.9},
+      {"num":"181","x":318.2,"y":196},{"num":"168","x":353.5,"y":196},{"num":"174","x":385.4,"y":196},
+      {"num":"187","x":417.3,"y":194.9},{"num":"193","x":450.4,"y":194.9},{"num":"198","x":481.2,"y":196},
+      {"num":"214","x":518.7,"y":194.9},{"num":"228","x":553.9,"y":196},{"num":"216","x":55.1,"y":214.7},
+      {"num":"59","x":85.9,"y":215.8},{"num":"82","x":121.1,"y":215.8},{"num":"114","x":155.3,"y":214.7},
+      {"num":"107","x":186.1,"y":215.8},{"num":"160","x":218,"y":213.6},{"num":"166","x":251.1,"y":213.6},
+      {"num":"167","x":288.5,"y":211.4},{"num":"237","x":319.3,"y":215.8},{"num":"176","x":353.5,"y":215.8},
+      {"num":"139","x":385.4,"y":218},{"num":"164","x":417.3,"y":214.7},{"num":"169","x":451.5,"y":218},
+      {"num":"175","x":483.4,"y":215.8},{"num":"221","x":520.9,"y":215.8},{"num":"207","x":552.8,"y":219.1},
+      {"num":"235","x":771.9,"y":126.6},{"num":"236","x":771.9,"y":148.7},{"num":"215","x":770.8,"y":168.5},
+      {"num":"165","x":771.9,"y":188.3},{"num":"246","x":771.9,"y":250},{"num":"230","x":805,"y":128.8},
+      {"num":"231","x":805,"y":149.8},{"num":"232","x":806.1,"y":169.6},{"num":"234","x":803.9,"y":190.5},
+      {"num":"248","x":802.8,"y":208.1},{"num":"183","x":802.8,"y":229},{"num":"225","x":806.1,"y":252.2},
+      {"num":"208","x":904.1,"y":128.8},{"num":"194","x":903,"y":148.7},{"num":"197","x":905.2,"y":170.7},
+      {"num":"200","x":905.2,"y":188.3},{"num":"202","x":903,"y":209.2},{"num":"204","x":905.2,"y":229},
+      {"num":"206","x":903,"y":248.9},{"num":"191","x":939.3,"y":127.7},{"num":"196","x":938.2,"y":148.7},
+      {"num":"199","x":938.2,"y":170.7},{"num":"201","x":937.1,"y":191.6},{"num":"203","x":937.1,"y":208.1},
+      {"num":"205","x":939.3,"y":227.9},{"num":"209","x":937.1,"y":246.7},{"num":"213","x":1047.2,"y":126.6},
+      {"num":"212","x":1079.1,"y":128.8},{"num":"217","x":1045,"y":148.7},{"num":"218","x":1047.2,"y":168.5},
+      {"num":"179","x":1047.2,"y":188.3},{"num":"180","x":1046.1,"y":208.1},{"num":"242","x":1081.3,"y":150.9},
+      {"num":"170","x":1080.2,"y":170.7},{"num":"177","x":1079.1,"y":191.6},{"num":"178","x":1078,"y":210.3},
+      {"num":"182","x":1079.1,"y":229},{"num":"245","x":1170.5,"y":127.7},{"num":"190","x":1168.3,"y":168.5},
+      {"num":"161","x":1168.3,"y":189.4},{"num":"155","x":1167.2,"y":207},{"num":"156","x":1167.2,"y":229},
+      {"num":"159","x":1168.3,"y":250},{"num":"224","x":1202.5,"y":127.7},{"num":"239","x":1201.4,"y":169.6},
+      {"num":"153","x":1201.4,"y":189.4},{"num":"157","x":1202.5,"y":208.1},{"num":"152","x":1202.5,"y":227.9},
+      {"num":"154","x":1202.5,"y":250},{"num":"151","x":1202.5,"y":270.9},{"num":"243","x":1289.5,"y":127.7},
+      {"num":"240","x":1289.5,"y":149.8},{"num":"227","x":1289.5,"y":167.4},{"num":"249","x":1291.7,"y":208.1},
+      {"num":"136","x":1290.6,"y":229},{"num":"140","x":1290.6,"y":248.9},{"num":"184","x":1323.6,"y":127.7},
+      {"num":"188","x":1325.8,"y":148.7},{"num":"189","x":1324.7,"y":170.7},{"num":"247","x":1324.7,"y":189.4},
+      {"num":"222","x":1320.3,"y":207},{"num":"223","x":1321.4,"y":229},{"num":"133","x":1321.4,"y":247.8},
+      {"num":"210","x":1079.1,"y":374.4},{"num":"171","x":1024.1,"y":395.3},{"num":"163","x":1057.1,"y":395.3},
+      {"num":"173","x":1092.4,"y":396.4},{"num":"185","x":1024.1,"y":416.2},{"num":"172","x":1057.1,"y":414},
+      {"num":"162","x":1092.4,"y":415.1},{"num":"241","x":980,"y":394.2},{"num":"238","x":980,"y":415.1},
+      {"num":"244","x":1179.4,"y":394.2},{"num":"233","x":1214.6,"y":394.2},{"num":"229","x":1214.6,"y":412.9},
+      {"num":"141","x":1243.2,"y":393.1},{"num":"138","x":1245.4,"y":411.8},{"num":"147","x":1280.7,"y":393.1},
+      {"num":"144","x":1280.7,"y":414},{"num":"150","x":1313.7,"y":392},{"num":"142","x":1311.5,"y":412.9},
+      {"num":"129","x":1345.6,"y":390.9},{"num":"158","x":1343.4,"y":415.1},{"num":"186","x":1378.7,"y":394.2},
+      {"num":"131","x":1376.5,"y":414},{"num":"91","x":1179.4,"y":494.4},{"num":"35","x":1213.5,"y":493.3},
+      {"num":"101","x":1181.6,"y":512},{"num":"74","x":1213.5,"y":512},{"num":"124","x":1300.5,"y":492.2},
+      {"num":"220","x":1333.5,"y":491.1},{"num":"84","x":1367.7,"y":490},{"num":"125","x":1300.5,"y":510.9},
+      {"num":"219","x":1333.5,"y":514.2},{"num":"85","x":1366.6,"y":510.9},{"num":"80","x":959.1,"y":608.9},
+      {"num":"68","x":959.1,"y":632.1},{"num":"81","x":991.1,"y":608.9},{"num":"40","x":990,"y":631},
+      {"num":"65","x":1027.4,"y":607.8},{"num":"96","x":1024.1,"y":629.9},{"num":"90","x":1059.3,"y":612.3},
+      {"num":"64","x":1059.3,"y":629.9},{"num":"61","x":1090.2,"y":608.9},{"num":"78","x":1092.4,"y":631},
+      {"num":"62","x":1124.3,"y":610},{"num":"52","x":1124.3,"y":631},{"num":"103","x":1155.1,"y":610},
+      {"num":"50","x":1157.3,"y":631},{"num":"75","x":1189.3,"y":607.8},{"num":"79","x":1190.4,"y":631},
+      {"num":"72","x":1222.3,"y":608.9},{"num":"66","x":1223.4,"y":631},{"num":"57","x":1255.3,"y":611.1},
+      {"num":"47","x":1255.3,"y":632.1},{"num":"94","x":1290.6,"y":611.1},{"num":"63","x":1288.4,"y":633.2},
+      {"num":"102","x":1323.6,"y":608.9},{"num":"104","x":1320.3,"y":631},{"num":"92","x":1355.5,"y":611.1},
+      {"num":"83","x":1356.6,"y":629.9},{"num":"100","x":1388.6,"y":611.1},{"num":"93","x":1389.7,"y":629.9},
+      {"num":"56","x":1422.7,"y":607.8},{"num":"99","x":1420.5,"y":631},{"num":"86","x":1454.6,"y":611.1},
+      {"num":"71","x":1454.6,"y":631}
+    ];
+
+    // =============== Utilidades geométricas ===============
+    function polygonAreaCentroid(pts){
+      // pts: [{x,z}]
+      let a = 0, cx = 0, cz = 0;
+      for(let i=0;i<pts.length;i++){
+        const p = pts[i], q = pts[(i+1)%pts.length];
+        const cross = p.x*q.z - q.x*p.z;
+        a += cross;
+        cx += (p.x + q.x) * cross;
+        cz += (p.z + q.z) * cross;
+      }
+      a *= 0.5;
+      if (Math.abs(a) < 1e-6) return {x:0,z:0};
+      cx /= (6*a); cz /= (6*a);
+      return {x:cx, z:cz};
+    }
+    function pointInPolygon(pt, poly){
+      // Ray casting; poly: [{x,z}]
+      let inside = false;
+      for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+        const xi=poly[i].x, zi=poly[i].z;
+        const xj=poly[j].x, zj=poly[j].z;
+        const intersect = ((zi>pt.z)!==(zj>pt.z)) &&
+                          (pt.x < (xj - xi) * (pt.z - zi) / (zj - zi + 1e-12) + xi);
+        if(intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    // =============== Escena básica ===============
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xBFC6CC);
+
+    const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 10000);
+    const renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(innerWidth, innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Centrado y bounds
+    const cx = silueta.reduce((s,p)=>s+p.x,0)/silueta.length;
+    const cz = silueta.reduce((s,p)=>s+p.y,0)/silueta.length;
+    const offX = -cx, offZ = -cz;
+
+    const poly = silueta.map(p=>({x:p.x+offX, z:p.y+offZ}));
+    let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;
+    poly.forEach(p=>{ if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x;
+                      if(p.z<minZ)minZ=p.z; if(p.z>maxZ)maxZ=p.z; });
+    const width = maxX-minX, depth = maxZ-minZ;
+
+    // Luces
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const foco1 = new THREE.SpotLight(0xffffff, 1.0, 4000, Math.PI/3);
+    foco1.position.set(minX + width*0.25, 260, (minZ+maxZ)/2);
+    scene.add(foco1);
+    const foco2 = new THREE.SpotLight(0xffffff, 1.0, 4000, Math.PI/3);
+    foco2.position.set(minX + width*0.75, 260, (minZ+maxZ)/2);
+    scene.add(foco2);
+
+    // Texturas
+    const loader = new THREE.TextureLoader();
+    const sueloTex = loader.load("suelo.jpg", t=>{ t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(20,20); });
+    // Base de pared: no fijamos repeat aquí; se ajusta por tramo
+    const paredTexBase = loader.load("pared.jpg", t=>{
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    });
+    const tornoTex = loader.load("torno.jpg");
+
+    // Suelo grande (tapete)
+    const suelo = new THREE.Mesh(
+      new THREE.PlaneGeometry(Math.max(2000, width+600), Math.max(2000, depth+600)),
+      new THREE.MeshPhongMaterial({ map: sueloTex, color:0x999999 })
+    );
+    suelo.rotation.x = -Math.PI/2;
+    scene.add(suelo);
+
+    // Muros como segmentos box (FIX anti-distorsión de textura)
+    const wallHeight = 140, wallThick = 6;
+    const collisionObjects = [];
+
+    for(let i=0;i<poly.length;i++){
+      const p1 = poly[i], p2 = poly[(i+1)%poly.length];
+      const dx = p2.x - p1.x, dz = p2.z - p1.z;
+      const len = Math.hypot(dx, dz) || 1;
+
+      const wallGeom = new THREE.BoxGeometry(len, wallHeight, wallThick);
+
+      // Clon de textura por pared, ajustando repeat según largo y altura
+      const wallTex = paredTexBase.clone();
+      wallTex.image = paredTexBase.image;
+      wallTex.needsUpdate = true;
+      wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
+
+      // Ajusta estas constantes a tu escala visual
+      const U_SCALE = 80;  // más bajo => más repeticiones a lo largo
+      const V_SCALE = 40;  // más bajo => más repeticiones en altura
+      wallTex.repeat.set(Math.max(1, len / U_SCALE), Math.max(1, wallHeight / V_SCALE));
+      wallTex.anisotropy = renderer.capabilities.getMaxAnisotropy?.() || 8;
+
+      const wallMat = new THREE.MeshPhongMaterial({ map: wallTex, color:0x888888 });
+
+      const wall = new THREE.Mesh(wallGeom, wallMat);
+      wall.position.set((p1.x+p2.x)/2, wallHeight/2, (p1.z+p2.z)/2);
+      wall.rotation.y = -Math.atan2(dz, dx);
+      scene.add(wall);
+      collisionObjects.push(wall);
+    }
+
+    // Techo CERRADO con la silueta (no se ve cielo)
+    const ceilingY = wallHeight;
+    const roofShape = new THREE.Shape();
+    poly.forEach((p,i)=> i===0 ? roofShape.moveTo(p.x, p.z) : roofShape.lineTo(p.x, p.z));
+    roofShape.closePath();
+    const roofGeom = new THREE.ShapeGeometry(roofShape);
+    const roof = new THREE.Mesh(
+      roofGeom,
+      new THREE.MeshPhongMaterial({ map: paredTexBase, color:0xdddddd, side: THREE.DoubleSide })
+    );
+    roof.rotation.x = Math.PI/2;  // XY -> XZ
+    roof.position.y = ceilingY;
+    scene.add(roof);
+    // Nota: El techo no se añade a colisiones para no estorbar (está muy arriba)
+
+    // Fluorescentes distribuidos
+    const stepX = Math.max(250, width/5), stepZ = Math.max(250, depth/5);
+    for(let x=minX+stepX/2; x<=maxX-stepX/2; x+=stepX){
+      for(let z=minZ+stepZ/2; z<=maxZ-stepZ/2; z+=stepZ){
+        const barra = new THREE.Mesh(
+          new THREE.CylinderGeometry(2,2,120,12),
+          new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0x666666 })
+        );
+        barra.rotation.z = Math.PI/2;
+        barra.position.set(x, ceilingY-5, z);
+        scene.add(barra);
+
+        const bulb = new THREE.PointLight(0xffffff, 0.9, 900);
+        bulb.position.set(x, ceilingY-6, z);
+        scene.add(bulb);
+      }
+    }
+
+    // Tornos
+    const tornoMat = new THREE.MeshPhongMaterial({ map: tornoTex, color:0xcccccc });
+    const tornoGeo = new THREE.BoxGeometry(18, 30, 18);
+    const tornoMeshes = [];
+    tornos.forEach(t=>{
+      const m = new THREE.Mesh(tornoGeo, tornoMat);
+      m.position.set(t.x + offX, 15, t.y + offZ);
+      m.userData = { num: t.num };
+      scene.add(m);
+      collisionObjects.push(m);
+      tornoMeshes.push(m);
+    });
+
+    // ----- Spawn DENTRO del polígono -----
+    let angle = 0;
+    (function chooseSpawn(){
+      // 1) centroid del polígono
+      const c = polygonAreaCentroid(poly);
+      let pos = new THREE.Vector3(c.x, 14, c.z);
+
+      // 2) si choca o cae fuera (por concavidades), buscamos un punto libre
+      function willCollide(next){
+        const r = 6;
+        for(const obj of collisionObjects){
+          const box = new THREE.Box3().setFromObject(obj).expandByScalar(2);
+          if (
+            next.x > box.min.x - r && next.x < box.max.x + r &&
+            next.y > box.min.y - r && next.y < box.max.y + r &&
+            next.z > box.min.z - r && next.z < box.max.z + r
+          ) return true;
+        }
+        return false;
+      }
+
+      if(!pointInPolygon({x:pos.x, z:pos.z}, poly) || willCollide(pos)){
+        // barrido radial hasta encontrar un punto válido
+        let found = false;
+        for(let rad=10; rad<=300 && !found; rad+=10){
+          for(let a=0; a<Math.PI*2; a+=Math.PI/8){
+            const cand = new THREE.Vector3(c.x + rad*Math.cos(a), 14, c.z + rad*Math.sin(a));
+            if(pointInPolygon({x:cand.x, z:cand.z}, poly) && !willCollide(cand)){ pos=cand; found=true; break; }
+          }
+        }
+      }
+      camera.position.copy(pos);
+      lookAhead();
+    })();
+
+    function lookAhead(){
+      camera.lookAt(
+        camera.position.x - Math.sin(angle),
+        camera.position.y,
+        camera.position.z - Math.cos(angle)
+      );
+    }
+
+    // Movimiento + colisiones
+    const keys = {};
+    addEventListener('keydown', e=>keys[e.code]=true);
+    addEventListener('keyup',   e=>keys[e.code]=false);
+
+    function willCollide(next){
+      const r = 6;
+      for(const obj of collisionObjects){
+        const box = new THREE.Box3().setFromObject(obj).expandByScalar(2);
+        if (
+          next.x > box.min.x - r && next.x < box.max.x + r &&
+          next.y > box.min.y - r && next.y < box.max.y + r &&
+          next.z > box.min.z - r && next.z < box.max.z + r
+        ) return true;
+      }
+      return false;
+    }
+
+    // Raycaster (click en torno → popup)
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    addEventListener('click', (e)=>{
+      mouse.x =  (e.clientX / innerWidth)  * 2 - 1;
+      mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      const hit = raycaster.intersectObjects(tornoMeshes, true);
+      if(hit.length){
+        const d = hit[0].object.userData;
+        document.getElementById('tornoTitle').innerText = 'Torno ' + d.num;
+        document.getElementById('tornoDesc').innerText  = 'Características del torno ' + d.num;
+        document.getElementById('infoBox').style.display = 'block';
+      }
+    });
+
+    // Minimapa
+    const mm = document.getElementById('minimap');
+    const ctx = mm.getContext('2d');
+    const PAD = 12;
+    const scale = Math.min((mm.width-2*PAD)/width, (mm.height-2*PAD)/depth);
+
+    function worldToMini(x,z){
+      const mx = PAD + (x - minX) * scale;
+      const my = PAD + (maxZ - z) * scale;
+      return {mx,my};
+    }
+
+    function drawMinimap(){
+      ctx.clearRect(0,0,mm.width,mm.height);
+      ctx.fillStyle = '#f8f9fb';
+      ctx.fillRect(0,0,mm.width,mm.height);
+
+      // silueta
+      ctx.strokeStyle = '#222'; ctx.lineWidth = 2; ctx.beginPath();
+      for(let i=0;i<poly.length;i++){
+        const p = poly[i]; const {mx,my} = worldToMini(p.x,p.z);
+        if(i===0) ctx.moveTo(mx,my); else ctx.lineTo(mx,my);
+      }
+      ctx.closePath(); ctx.stroke();
+
+      // tornos
+      ctx.fillStyle = '#e74c3c';
+      tornos.forEach(t=>{
+        const {mx,my} = worldToMini(t.x+offX, t.y+offZ);
+        ctx.fillRect(mx-2, my-2, 4, 4);
+      });
+
+      // persona (flecha)
+      const p = worldToMini(camera.position.x, camera.position.z);
+      ctx.fillStyle = '#1e90ff'; ctx.beginPath();
+      const size = 6, dirx = -Math.sin(angle), diry = -Math.cos(angle);
+      ctx.moveTo(p.mx + dirx*size, p.my + diry*size);
+      ctx.lineTo(p.mx + (-diry)*size*0.6, p.my + (dirx)*size*0.6);
+      ctx.lineTo(p.mx + (diry)*size*0.6,  p.my + (-dirx)*size*0.6);
+      ctx.closePath(); ctx.fill();
+    }
+
+    // Loop
+    function animate(){
+      requestAnimationFrame(animate);
+
+      // giro
+      if(keys['ArrowLeft'])  angle += 0.035;
+      if(keys['ArrowRight']) angle -= 0.035;
+
+      // avance/retroceso
+      const speed = 2.0;
+      const dir = new THREE.Vector3( -Math.sin(angle), 0, -Math.cos(angle) );
+      const next = camera.position.clone();
+      if(keys['ArrowUp'])   next.addScaledVector(dir,  speed);
+      if(keys['ArrowDown']) next.addScaledVector(dir, -speed);
+      if(!willCollide(next)) camera.position.copy(next);
+
+      lookAhead();
+      renderer.render(scene, camera);
+      drawMinimap();
+    }
+    animate();
+
+    // Resize
+    addEventListener('resize', ()=>{
+      camera.aspect = innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
+</body>
+</html>
