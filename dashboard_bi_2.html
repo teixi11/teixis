@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dashboard BI – Costes y Márgenes</title>
+<style>
+:root {
+  --bg:#0b1020; --panel:#0e1633; --panel2:#0d1430; --txt:#e6e9f2; --muted:#9aa3b2;
+  --line:#273256; --chip:#162046; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; --brand:#4f67ff;
+}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Carlito',sans-serif}
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh} @media(max-width:940px){.app{grid-template-columns:1fr} .sidebar{position:static;width:auto}}
+.sidebar{background:linear-gradient(180deg,var(--panel) 0%, var(--panel2) 100%);border-right:1px solid var(--line);padding:14px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;margin-bottom:16px}
+.brand .dot{width:10px;height:10px;border-radius:50%;background:var(--brand);box-shadow:0 0 10px var(--brand)}
+.nav h4{margin:14px 0 8px 0;color:var(--muted);font-size:12px;letter-spacing:.6px;text-transform:uppercase}
+.nav a{display:block;padding:10px 12px;border-radius:10px;color:var(--txt);text-decoration:none;border:1px solid transparent}
+.nav a.active,.nav a:hover{background:var(--chip);border-color:var(--line)}
+.content{padding:16px;}
+.topbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.h1{font-weight:700;letter-spacing:.2px}
+.small{color:var(--muted);font-size:12px}
+
+.grid{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:940px){.grid{grid-template-columns:300px 1fr}}
+
+.card{background:linear-gradient(180deg,var(--panel) 0%, var(--panel2) 100%);border:1px solid var(--line);border-radius:14px;box-shadow:0 3px 16px rgba(0,0,0,.25)}
+.panel{padding:14px}
+.section{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:6px 0 10px}
+
+.select,.input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0b1230;color:var(--txt);outline:none}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;background:var(--chip);border:1px solid var(--line);color:var(--muted)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px} 
+@media(max-width:1100px){.kpis{grid-template-columns:1fr 1fr}}
+.kpi{padding:14px}
+.kpi .lbl{font-size:12px;color:var(--muted)}
+.kpi .val{font-size:20px;font-weight:700;margin-top:6px}
+.kpi .trend{font-size:12px;color:var(--muted)}
+
+.svgbox{padding:10px}
+.table{width:100%;border-collapse:collapse} 
+.table th,.table td{padding:8px 10px;border-bottom:1px solid var(--line);font-size:13px}
+.table th{text-align:left;color:var(--muted);font-weight:600;cursor:pointer;user-select:none}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+
+.legend .chip{padding:4px 8px;border-radius:999px;border:1px solid var(--line);background:var(--chip);font-size:12px}
+
+.color-ok{color:var(--ok)} .color-warn{color:var(--warn)} .color-bad{color:var(--bad)}
+.fill-ok{fill:var(--ok)} .fill-warn{fill:var(--warn)} .fill-bad{fill:var(--bad)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="dot"></div><div>BI Studio (offline)</div></div>
+    <div class="nav">
+      <h4>Ventas</h4>
+      <a class="active" href="#">Dashboard</a>
+      <a href="#">Evolución</a>
+      <a href="#">Clientes</a>
+      <a href="#">Detalle</a>
+      <h4>Otros</h4>
+      <a href="#">Ajustes</a>
+      <a href="#">Cerrar</a>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <div class="row">
+        <div class="h1">Dashboard de costes y márgenes</div>
+        <div class="small" id="gen">Generado: 2025-08-28 18:15</div>
+      </div>
+      <div class="row">
+        <span class="badge">Offline • HTML único</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Panel filtros -->
+      <div class="card panel">
+        <div class="section">Filtros</div>
+        <div style="display:grid;gap:10px">
+          <div>
+            <div class="small">Cliente</div>
+            <select id="f-cli" class="select">
+              <option value="">Todos</option>
+              <option>bosch</option><option>conti</option><option>mci</option><option>tremac</option>
+            </select>
+          </div>
+          <div>
+            <div class="small">Indicador</div>
+            <select id="f-indic" class="select">
+              <option value="">Todos</option>
+              <option>bosch</option><option>conti</option><option>mci</option><option>tremac</option>
+            </select>
+          </div>
+          <div>
+            <div class="small">Referencia</div>
+            <input id="f-ref" class="input" placeholder="Buscar por referencia..."/>
+          </div>
+          <div class="row" style="justify-content:space-between;margin-top:8px">
+            <span class="badge">Semáforo margen: OK ≥ 10.0% • Ámbar ≥ 5.0%</span>
+            <button id="btn-clear" class="badge" style="cursor:pointer">Limpiar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel principal -->
+      <div class="card panel">
+        <div class="section">Resumen</div>
+        <div class="kpis">
+          <div class="card kpi">
+            <div class="lbl">Última revisión (máx.)</div>
+            <div class="val" id="kpi-rev">-</div>
+          </div>
+          <div class="card kpi">
+            <div class="lbl">Margen medio</div>
+            <div class="val" id="kpi-margen">-</div>
+          </div>
+          <div class="card kpi">
+            <div class="lbl">Precio medio</div>
+            <div class="val" id="kpi-preu">-</div>
+          </div>
+          <div class="card kpi">
+            <div class="lbl">Coste revisado medio</div>
+            <div class="val" id="kpi-cost">-</div>
+          </div>
+        </div>
+
+        <div class="section" style="margin-top:16px">Clientes por indicador (donut)</div>
+        <div class="card svgbox"><svg id="donut" width="100%" height="220"></svg></div>
+
+        <div class="section" style="margin-top:16px">Margen medio por mes</div>
+        <div class="card svgbox"><svg id="line" width="100%" height="240"></svg></div>
+
+        <div class="section" style="margin-top:16px">Precio vs Coste (Top 12 referencias)</div>
+        <div class="card svgbox"><svg id="bars" width="100%" height="320"></svg></div>
+
+        <div class="section" style="margin-top:16px">Matriz Volumen–Ingresos (cuadrantes)</div>
+        <div class="card svgbox">
+          <svg id="quad" width="100%" height="340"></svg>
+          <div class="small" id="quad-note" style="margin-top:6px;color:var(--muted)"></div>
+        </div>
+
+        <div class="section" style="margin-top:16px">Detalle</div>
+        <div class="chips legend">
+          <span class="chip" style="border-color:var(--ok);color:var(--ok)">Margen OK</span>
+          <span class="chip" style="border-color:var(--warn);color:var(--warn)">Ámbar</span>
+          <span class="chip" style="border-color:var(--bad);color:var(--bad)">Bajo</span>
+        </div>
+        <div style="overflow:auto;margin-top:8px">
+          <table class="table" id="tbl">
+            <thead>
+              <tr>
+                <th data-k="ref">Referencia</th>
+                <th data-k="cli">Cliente</th>
+                <th data-k="rev">Revisión</th>
+                <th data-k="preu">Precio</th>
+                <th data-k="cost_revisat">Coste</th>
+                <th data-k="marge">Margen</th>
+                <th data-k="marge_net">Margen neto</th>
+                <th data-k="indic">Indic.</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const DATA = [{"ref": "QS7640", "cli": "tremac", "any": "2017", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "tremac", "cost_ft": 1729.0, "cost_revisat": 1857.0, "cost_scrap": 1977.448, "preu": 2096.0, "dif_eur": 248.4480000000001, "dif_pct": 14.37, "marge": 6.66, "comissio": 0.05, "marge_net": 1.2, "qty": 210000.0, "ingresos": 440160000.0}, {"ref": "QS7641", "cli": "bosch", "any": "2025", "ft": "2022-03-16 00:00:00", "rev": "2023-07-26 00:00:00", "rev_iso": "2023-07-26", "indic": "bosch", "cost_ft": 2500.0, "cost_revisat": 1857.0, "cost_scrap": 2700.0, "preu": 3000.0, "dif_eur": 200.0, "dif_pct": 0.08, "marge": 10.0, "comissio": 0.05, "marge_net": 9.95, "qty": 220000.0, "ingresos": 660000000.0}, {"ref": "QS7642", "cli": "mci", "any": "2018", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "mci", "cost_ft": 3000.0, "cost_revisat": 1857.0, "cost_scrap": 3200.0, "preu": 3600.0, "dif_eur": 200.0, "dif_pct": 0.06666666666666667, "marge": 11.0, "comissio": 0.05, "marge_net": 10.95, "qty": 230000.0, "ingresos": 828000000.0}, {"ref": "QS7643", "cli": "conti", "any": "2019", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "conti", "cost_ft": 2000.0, "cost_revisat": 1857.0, "cost_scrap": 2100.0, "preu": 1800.0, "dif_eur": 100.0, "dif_pct": 0.05, "marge": -1.7, "comissio": 0.05, "marge_net": -1.75, "qty": 240000.0, "ingresos": 432000000.0}, {"ref": "QS7644", "cli": "conti", "any": "2019.5", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "conti", "cost_ft": 2635.3135, "cost_revisat": 1857.0, "cost_scrap": 1977.448, "preu": 2551.6, "dif_eur": -657.8655000000001, "dif_pct": -0.24963462601318592, "marge": 23.0, "comissio": 0.05, "marge_net": 22.95, "qty": 250000.0, "ingresos": 637900000.0}, {"ref": "QS7645", "cli": "conti", "any": "2019.4", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "conti", "cost_ft": 2766.5016, "cost_revisat": 1857.0, "cost_scrap": 2066.66666666667, "preu": 2522.56, "dif_eur": -699.8349333333299, "dif_pct": -0.25296747825243615, "marge": 18.0, "comissio": 0.05, "marge_net": 17.95, "qty": 260000.0, "ingresos": 655865600.0}, {"ref": "QS7646", "cli": "conti", "any": "2019.3", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "conti", "cost_ft": 2897.6897, "cost_revisat": 1857.0, "cost_scrap": 1766.66666666667, "preu": 2493.52, "dif_eur": -1131.02303333333, "dif_pct": -0.3903188920930112, "marge": 29.0, "comissio": 0.05, "marge_net": 28.95, "qty": 270000.0, "ingresos": 673250400.0}, {"ref": "QS7647", "cli": "conti", "any": "2019.2", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "conti", "cost_ft": 3028.8778, "cost_revisat": 1857.0, "cost_scrap": 1466.66666666667, "preu": 2464.48, "dif_eur": -1562.2111333333303, "dif_pct": -0.5157722551016519, "marge": 40.0, "comissio": 0.05, "marge_net": 39.95, "qty": 280000.0, "ingresos": 690054400.0}, {"ref": "QS7648", "cli": "conti", "any": "2019.1", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "conti", "cost_ft": 3160.0659, "cost_revisat": 1857.0, "cost_scrap": 1977.448, "preu": 2435.44, "dif_eur": -1182.6179, "dif_pct": -0.3742383663581193, "marge": 19.0, "comissio": 0.05, "marge_net": 18.95, "qty": 290000.0, "ingresos": 706277600.0}, {"ref": "QS7649", "cli": "conti", "any": "2019", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "conti", "cost_ft": 3291.254, "cost_revisat": 1857.0, "cost_scrap": 1166.66666666667, "preu": 2406.4, "dif_eur": -2124.58733333333, "dif_pct": -0.645525180777093, "marge": 52.0, "comissio": 0.05, "marge_net": 51.95, "qty": 300000.0, "ingresos": 721920000.0}, {"ref": "QS7650", "cli": "conti", "any": "2018.9", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "conti", "cost_ft": 3422.4421, "cost_revisat": 1857.0, "cost_scrap": 866.666666666667, "preu": 2377.36, "dif_eur": -2555.7754333333332, "dif_pct": -0.7467695168117915, "marge": 64.0, "comissio": 0.05, "marge_net": 63.95, "qty": 310000.0, "ingresos": 736981600.0}, {"ref": "QS7651", "cli": "conti", "any": "2018.8", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "conti", "cost_ft": 3553.6302, "cost_revisat": 1857.0, "cost_scrap": 566.666666666667, "preu": 2348.32, "dif_eur": -2986.963533333333, "dif_pct": -0.8405386506827112, "marge": 76.0, "comissio": 0.05, "marge_net": 75.95, "qty": 320000.0, "ingresos": 751462400.0}, {"ref": "QS7652", "cli": "tremac", "any": "2018.7", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "tremac", "cost_ft": 3684.8183, "cost_revisat": 1857.0, "cost_scrap": 1977.448, "preu": 2319.28, "dif_eur": -1707.3702999999998, "dif_pct": -0.46335264346684335, "marge": 15.0, "comissio": 0.05, "marge_net": 14.95, "qty": 330000.0, "ingresos": 765362400.0000001}, {"ref": "QS7653", "cli": "tremac", "any": "2018.6", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "tremac", "cost_ft": 3816.0064, "cost_revisat": 1857.0, "cost_scrap": 266.666666666667, "preu": 2290.24, "dif_eur": -3549.3397333333332, "dif_pct": -0.930118915244307, "marge": 88.0, "comissio": 0.05, "marge_net": 87.95, "qty": 340000.0, "ingresos": 778681599.9999999}, {"ref": "QS7654", "cli": "tremac", "any": "2018.5", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "tremac", "cost_ft": 3947.1945, "cost_revisat": 1857.0, "cost_scrap": -33.3333333333335, "preu": 2261.2, "dif_eur": -3980.5278333333335, "dif_pct": -1.0084448165230604, "marge": 101.0, "comissio": 0.05, "marge_net": 100.95, "qty": 350000.0, "ingresos": 791419999.9999999}, {"ref": "QS7655", "cli": "conti", "any": "2018.4", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "conti", "cost_ft": 4078.3826, "cost_revisat": 1857.0, "cost_scrap": -333.333333333333, "preu": 2232.16, "dif_eur": -4411.715933333333, "dif_pct": -1.0817317466324354, "marge": 115.0, "comissio": 0.05, "marge_net": 114.95, "qty": 360000.0, "ingresos": 803577600.0}, {"ref": "QS7656", "cli": "tremac", "any": "2018.3", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "tremac", "cost_ft": 4209.5707, "cost_revisat": 1857.0, "cost_scrap": 1977.448, "preu": 2203.12, "dif_eur": -2232.1227, "dif_pct": -0.530249486010533, "marge": 10.0, "comissio": 0.05, "marge_net": 9.95, "qty": 370000.0, "ingresos": 815154400.0}, {"ref": "QS7657", "cli": "bosch", "any": "2018.2", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "bosch", "cost_ft": 4340.7588, "cost_revisat": 1857.0, "cost_scrap": -633.333333333333, "preu": 2174.08, "dif_eur": -4974.092133333333, "dif_pct": -1.1459038298403803, "marge": 129.0, "comissio": 0.05, "marge_net": 128.95, "qty": 380000.0, "ingresos": 826150400.0}, {"ref": "QS7658", "cli": "mci", "any": "2018.1", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "mci", "cost_ft": 4471.9469, "cost_revisat": 1857.0, "cost_scrap": -933.333333333333, "preu": 2145.04, "dif_eur": -5405.280233333333, "dif_pct": -1.2087085008396081, "marge": 144.0, "comissio": 0.05, "marge_net": 143.95, "qty": 390000.0, "ingresos": 836565600.0}, {"ref": "QS7659", "cli": "conti", "any": "2018", "ft": "2022-03-16 00:00:00", "rev": "2022-05-26 00:00:00", "rev_iso": "2022-05-26", "indic": "conti", "cost_ft": 4603.135, "cost_revisat": 1857.0, "cost_scrap": -1233.33333333333, "preu": 2116.0, "dif_eur": -5836.4683333333305, "dif_pct": -1.267933339633387, "marge": 158.0, "comissio": 0.05, "marge_net": 157.95, "qty": 400000.0, "ingresos": 846400000.0}, {"ref": "QS7640", "cli": "tremac", "any": "2017", "ft": "2022-03-16 00:00:00", "rev": "2022-08-29 00:00:00", "rev_iso": "2022-08-29", "indic": "tremac", "cost_ft": 1823.0, "cost_revisat": 1860.0, "cost_scrap": 1980.448, "preu": 2103.0, "dif_eur": 157.4480000000001, "dif_pct": 14.37, "marge": 6.9, "comissio": 0.05, "marge_net": 1.3, "qty": 410000.0, "ingresos": 862230000.0}];
+const UMBRAL_OK = 10.0;
+const UMBRAL_WARN = 5.0;
+
+const $ = sel => document.querySelector(sel);
+const fmtMoney = v => isNaN(v) ? "-" : (Number(v).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}) + "€");
+const fmtPct   = v => isNaN(v) ? "-" : (Number(v).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}) + "%");
+const colorMargin = v => isNaN(v) ? "#9aa3b2" : (v>=UMBRAL_OK ? "var(--ok)" : (v>=UMBRAL_WARN ? "var(--warn)" : "var(--bad)"));
+
+const fCli = $("#f-cli"), fIndic = $("#f-indic"), fRef = $("#f-ref"), btnClear = $("#btn-clear");
+const TBody = $("#tbl tbody");
+let sortKey = "ref", sortAsc = true;
+
+function applyFilters() {
+  let rows = DATA.slice();
+  const cli = fCli.value.trim();
+  const ind = fIndic.value.trim();
+  const ref = fRef.value.trim().toLowerCase();
+  if (cli) rows = rows.filter(r => String(r.cli) === cli);
+  if (ind) rows = rows.filter(r => String(r.indic).trim() === ind);
+  if (ref) rows = rows.filter(r => String(r.ref).toLowerCase().includes(ref));
+  // ordenar
+  rows.sort((a,b) => {
+    const A = a[sortKey], B = b[sortKey];
+    const nA = parseFloat(A), nB = parseFloat(B);
+    if (!isNaN(nA) && !isNaN(nB)) return sortAsc? (nA-nB):(nB-nA);
+    return sortAsc? String(A).localeCompare(String(B)) : String(B).localeCompare(String(A));
+  });
+  renderTable(rows);
+  renderKPIs(rows);
+  renderDonut(rows);
+  renderLine(rows);
+  renderBars(rows);
+  renderQuadrant(rows);
+}
+
+function renderTable(rows){
+  TBody.innerHTML = "";
+  for(const r of rows){
+    const tr = document.createElement("tr");
+    const add = (text, color=null) => {
+      const td=document.createElement("td");
+      td.textContent = text; if(color) td.style.color=color; tr.appendChild(td);
+    };
+    add(r.ref||"-");
+    add(r.cli||"-");
+    add(r.rev||"-");
+    add(isNaN(r.preu)?"-":fmtMoney(r.preu));
+    add(isNaN(r.cost_revisat)?"-":fmtMoney(r.cost_revisat));
+    add(isNaN(r.marge)?"-":fmtPct(r.marge), colorMargin(r.marge));
+    add(isNaN(r.marge_net)?"-":fmtPct(r.marge_net));
+    add((r.indic||"").trim());
+    TBody.appendChild(tr);
+  }
+}
+
+function renderKPIs(rows){
+  // Media ponderada por FACTURACIÓN (ingresos = precio * cantidad).
+  const vals = rows.map(r => parseFloat(r.marge));
+  const ws   = rows.map(r => {
+    const ing = parseFloat(r.ingresos);
+    const pre = parseFloat(r.preu);
+    // Si no hay ingresos válidos, usa precio como peso
+    return (!isNaN(ing) && ing > 0) ? ing : (!isNaN(pre) && pre > 0 ? pre : NaN);
+  });
+  let num=0, den=0;
+  for (let i=0;i<vals.length;i++) {
+    const v=vals[i], w=ws[i];
+    if (!isNaN(v) && !isNaN(w) && w>0) { num += v*w; den += w; }
+  }
+  const mpond = den>0 ? (num/den) : NaN;
+
+  // Otros KPIs (medias simples)
+  const nums = k => rows.map(r=>parseFloat(r[k])).filter(v=>!isNaN(v));
+  const mean = a => a.length ? (a.reduce((x,y)=>x+y,0)/a.length) : NaN;
+
+  $("#kpi-margen").textContent = fmtPct(mpond);
+  $("#kpi-preu").textContent   = fmtMoney(mean(nums("preu")));
+  $("#kpi-cost").textContent   = fmtMoney(mean(nums("cost_revisat")));
+
+  const revs = rows.map(r=>r.rev).filter(Boolean);
+  $("#kpi-rev").textContent = revs.length ? revs.sort().slice(-1)[0] : "-";
+}
+
+// ---- Donut INDIC. ----
+function renderDonut(rows){
+  const svg = $("#donut");
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const width = svg.clientWidth || svg.parentNode.clientWidth || 800, height = 220;
+  svg.setAttribute("height", height);
+  const cx = width/2, cy = height/2, r = Math.min(width, height)/3;
+  const counts = {};
+  rows.forEach(r=>{ const k=(r.indic||'').trim()||'—'; counts[k]=(counts[k]||0)+1; });
+  const entries = Object.entries(counts);
+  const total = entries.reduce((a,[_k,v])=>a+v,0) || 1;
+  let start=0;
+  const colors = ["#4f67ff","#22c55e","#f59e0b","#ef4444","#a855f7","#06b6d4","#eab308"];
+  entries.forEach(([k,v],i)=>{
+    const frac = v/total, end = start + frac*2*Math.PI;
+    const x1=cx + r*Math.cos(start), y1=cy + r*Math.sin(start);
+    const x2=cx + r*Math.cos(end),   y2=cy + r*Math.sin(end);
+    const large = end-start > Math.PI ? 1:0;
+    const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+    const d = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
+    path.setAttribute("d", d);
+    path.setAttribute("fill", colors[i%colors.length]);
+    svg.appendChild(path);
+    start = end;
+  });
+  // agujero
+  const hole = document.createElementNS("http://www.w3.org/2000/svg","circle");
+  hole.setAttribute("cx",cx); hole.setAttribute("cy",cy); hole.setAttribute("r",r*0.55);
+  hole.setAttribute("fill","var(--panel2)"); svg.appendChild(hole);
+  // leyenda
+  let y=16, x=12;
+  entries.forEach(([k,v],i)=>{
+    const rect = document.createElementNS("http://www.w3.org/2000/svg","rect");
+    rect.setAttribute("x", x); rect.setAttribute("y", y-8); rect.setAttribute("width", 12); rect.setAttribute("height", 12);
+    rect.setAttribute("fill",colors[i%colors.length]); svg.appendChild(rect);
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x", x+18); t.setAttribute("y", y+2); t.setAttribute("fill","#cbd5e1"); t.setAttribute("font-size","12");
+    t.textContent = `${k} (${Math.round(v/total*100)}%)`; svg.appendChild(t);
+    y += 16;
+  });
+}
+
+// ---- Línea margen medio por mes (ponderado por ingresos) ----
+function renderLine(rows){
+  const svg = $("#line");
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const width = svg.clientWidth || svg.parentNode.clientWidth || 800, height = 240;
+  svg.setAttribute("height", height);
+  const padL=40, padR=10, padT=10, padB=26;
+  const W = width - padL - padR, H = height - padT - padB;
+
+  const grp = {};
+  rows.forEach(r=>{
+    if(!r.rev_iso) return;
+    const ym = r.rev_iso.slice(0,7);
+    const v = parseFloat(r.marge);
+    const w_ing = parseFloat(r.ingresos);
+    const w_pre = parseFloat(r.preu);
+    const w = (!isNaN(w_ing) && w_ing>0) ? w_ing : (!isNaN(w_pre) && w_pre>0 ? w_pre : NaN);
+    if (isNaN(v) || isNaN(w)) return;
+    if (!grp[ym]) grp[ym] = {num:0, den:0};
+    grp[ym].num += v*w;
+    grp[ym].den += w;
+  });
+  const yms = Object.keys(grp).sort();
+  if(!yms.length) return;
+  const pts = yms.map((k,i)=>({x:i, y: grp[k].den>0 ? (grp[k].num/grp[k].den) : NaN}));
+  const maxY = Math.max(...pts.map(p=>p.y).filter(v=>!isNaN(v)), 10);
+  const minY = Math.min(...pts.map(p=>p.y).filter(v=>!isNaN(v)), 0);
+  const scaleX = i => padL + (i/(pts.length-1||1))*W;
+  const scaleY = v => padT + H - ((v-minY)/(maxY-minY||1))*H;
+
+  // grid
+  for(let i=0;i<=4;i++){
+    const y = padT + (i/4)*H;
+    const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1", padL); line.setAttribute("y1", y);
+    line.setAttribute("x2", padL+W); line.setAttribute("y2", y);
+    line.setAttribute("stroke", "#263055"); line.setAttribute("stroke-width","1");
+    svg.appendChild(line);
+  }
+
+  // path
+  let d = pts.map((p,i)=>`${i?'L':'M'} ${scaleX(i)} ${scaleY(p.y)}`).join(" ");
+  const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute("d", d); path.setAttribute("fill","none"); path.setAttribute("stroke","#4f67ff"); path.setAttribute("stroke-width","2");
+  svg.appendChild(path);
+
+  // points
+  pts.forEach((p,i)=>{
+    if (isNaN(p.y)) return;
+    const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("cx", scaleX(i)); c.setAttribute("cy", scaleY(p.y)); c.setAttribute("r","3");
+    c.setAttribute("fill","#4f67ff"); svg.appendChild(c);
+  });
+
+  // labels X
+  yms.forEach((k,i)=>{
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x", scaleX(i)); t.setAttribute("y", height-8); t.setAttribute("fill","#9aa3b2"); t.setAttribute("font-size","11");
+    t.setAttribute("text-anchor","middle"); t.textContent = k;
+    svg.appendChild(t);
+  });
+}
+
+// ---- Barras Precio vs Coste (Top 12) ----
+function renderBars(rows){
+  const svg = $("#bars");
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const width = svg.clientWidth || svg.parentNode.clientWidth || 800, height = 320;
+  svg.setAttribute("height", height);
+  const padL=70, padR=12, padT=10, padB=26, W=width-padL-padR, H=height-padT-padB;
+  const arr = rows.filter(r=>!isNaN(r.preu)).sort((a,b)=>b.preu-a.preu).slice(0,12);
+  if(!arr.length) return;
+  const maxV = Math.max(...arr.map(r=>Math.max(r.preu||0, r.cost_revisat||0)));
+  const step = H/arr.length;
+
+  arr.forEach((r,i)=>{
+    const y = padT + i*step + step/2;
+    const label = document.createElementNS("http://www.w3.org/2000/svg","text");
+    label.setAttribute("x", 6); label.setAttribute("y", y+4);
+    label.setAttribute("fill", "#9aa3b2"); label.setAttribute("font-size","11");
+    label.textContent = r.ref || ("Item "+(i+1)); svg.appendChild(label);
+
+    const wPreu = Math.max(0,(r.preu||0)/maxV*W);
+    const wCost = Math.max(0,(r.cost_revisat||0)/maxV*W);
+
+    const barPreu = document.createElementNS("http://www.w3.org/2000/svg","rect");
+    barPreu.setAttribute("x", padL); barPreu.setAttribute("y", y-10);
+    barPreu.setAttribute("width", wPreu); barPreu.setAttribute("height", 8);
+    barPreu.setAttribute("fill", "#4f67ff"); svg.appendChild(barPreu);
+
+    const barCost = document.createElementNS("http://www.w3.org/2000/svg","rect");
+    barCost.setAttribute("x", padL); barCost.setAttribute("y", y+2);
+    barCost.setAttribute("width", wCost); barCost.setAttribute("height", 8);
+    barCost.setAttribute("fill", "#7e8aa6"); svg.appendChild(barCost);
+  });
+
+  for (let i=0;i<=4;i++) {
+    const x = padL + (i/4)*W; const v = maxV*i/4;
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x", x); t.setAttribute("y", height-8); t.setAttribute("fill","#9aa3b2"); t.setAttribute("font-size","11");
+    t.setAttribute("text-anchor","middle"); t.textContent = v.toLocaleString('es-ES', {maximumFractionDigits:0});
+    svg.appendChild(t);
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1", x); line.setAttribute("y1", padT);
+    line.setAttribute("x2", x); line.setAttribute("y2", height-padB);
+    line.setAttribute("stroke", "#263055"); line.setAttribute("stroke-width", "1");
+    svg.appendChild(line);
+  }
+}
+
+// ---- Matriz Volumen–Ingresos (cuadrantes) ----
+function median(arr){
+  const a = arr.filter(v=>!isNaN(v)).sort((x,y)=>x-y);
+  if(!a.length) return NaN;
+  const m = Math.floor(a.length/2);
+  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+}
+
+function renderQuadrant(rows){
+  const svg = document.querySelector("#quad");
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const width = svg.clientWidth || svg.parentNode.clientWidth || 800, height = 340;
+  svg.setAttribute("height", height);
+
+  const padL=60, padR=16, padT=20, padB=40;
+  const W = width - padL - padR, H = height - padT - padB;
+
+  const pts = rows.map(r => ({
+    ref: String(r.ref||""),
+    cli: String(r.cli||""),
+    qty: parseFloat(r.qty),          // Volumen (X)
+    rev: parseFloat(r.ingresos),     // Ingresos (Y)
+    marge: parseFloat(r.marge),
+  })).filter(p => !isNaN(p.qty) && !isNaN(p.rev));
+
+  const note = document.querySelector("#quad-note");
+  note.textContent = (!pts.length)
+    ? "Sin datos suficientes: asegúrate de tener Precio y (opcional) Cantidad."
+    : "";
+
+  if(!pts.length) return;
+
+  const xCut = median(pts.map(p=>p.qty));
+  const yCut = median(pts.map(p=>p.rev));
+
+  const xMax = Math.max(...pts.map(p=>p.qty), xCut);
+  const yMax = Math.max(...pts.map(p=>p.rev), yCut);
+  const xMin = 0, yMin = 0;
+
+  const sx = v => padL + ( (v - xMin) / ((xMax - xMin)||1) ) * W;
+  const sy = v => padT + H - ( (v - yMin) / ((yMax - yMin)||1) ) * H;
+
+  // Ejes
+  const axisX = document.createElementNS("http://www.w3.org/2000/svg","line");
+  axisX.setAttribute("x1", padL); axisX.setAttribute("y1", padT+H);
+  axisX.setAttribute("x2", padL+W); axisX.setAttribute("y2", padT+H);
+  axisX.setAttribute("stroke", "#263055"); axisX.setAttribute("stroke-width", "1.5");
+  svg.appendChild(axisX);
+
+  const axisY = document.createElementNS("http://www.w3.org/2000/svg","line");
+  axisY.setAttribute("x1", padL); axisY.setAttribute("y1", padT);
+  axisY.setAttribute("x2", padL); axisY.setAttribute("y2", padT+H);
+  axisY.setAttribute("stroke", "#263055"); axisY.setAttribute("stroke-width", "1.5");
+  svg.appendChild(axisY);
+
+  // Líneas de corte
+  const cutX = document.createElementNS("http://www.w3.org/2000/svg","line");
+  cutX.setAttribute("x1", sx(xCut)); cutX.setAttribute("y1", padT);
+  cutX.setAttribute("x2", sx(xCut)); cutX.setAttribute("y2", padT+H);
+  cutX.setAttribute("stroke", "#3a4670"); cutX.setAttribute("stroke-dasharray","4 4");
+  svg.appendChild(cutX);
+
+  const cutY = document.createElementNS("http://www.w3.org/2000/svg","line");
+  cutY.setAttribute("x1", padL); cutY.setAttribute("y1", sy(yCut));
+  cutY.setAttribute("x2", padL+W); cutY.setAttribute("y2", sy(yCut));
+  cutY.setAttribute("stroke", "#3a4670"); cutY.setAttribute("stroke-dasharray","4 4");
+  svg.appendChild(cutY);
+
+  // Etiquetas cuadrantes
+  const qLabel = (x,y,text) => {
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x", x); t.setAttribute("y", y);
+    t.setAttribute("fill","#9aa3b2"); t.setAttribute("font-size","11");
+    t.textContent = text; svg.appendChild(t);
+  };
+  qLabel(padL+8,        padT+16,      "Altos ingresos / Bajo volumen");
+  qLabel(padL+W-180,    padT+16,      "Altos ingresos / Alto volumen");
+  qLabel(padL+8,        padT+H-8,     "Bajos ingresos / Bajo volumen");
+  qLabel(padL+W-170,    padT+H-8,     "Bajos ingresos / Alto volumen");
+
+  // Ticks
+  const tickX = v => v.toLocaleString('es-ES', {maximumFractionDigits:0});
+  const tickY = v => v.toLocaleString('es-ES', {maximumFractionDigits:0});
+  for(let i=0;i<=4;i++){
+    const xv = xMin + (i/4)*(xMax-xMin);
+    const textx = document.createElementNS("http://www.w3.org/2000/svg","text");
+    textx.setAttribute("x", sx(xv)); textx.setAttribute("y", padT+H+18);
+    textx.setAttribute("fill","#9aa3b2"); textx.setAttribute("font-size","11");
+    textx.setAttribute("text-anchor","middle"); textx.textContent = tickX(xv);
+    svg.appendChild(textx);
+
+    const yv = yMin + (i/4)*(yMax-yMin);
+    const texty = document.createElementNS("http://www.w3.org/2000/svg","text");
+    texty.setAttribute("x", padL-8); texty.setAttribute("y", sy(yv)+4);
+    texty.setAttribute("fill","#9aa3b2"); texty.setAttribute("font-size","11");
+    texty.setAttribute("text-anchor","end"); texty.textContent = tickY(yv);
+    svg.appendChild(texty);
+  }
+
+  // Puntos
+  pts.forEach(p=>{
+    const cx = sx(p.qty), cy = sy(p.rev);
+    const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.setAttribute("r", 4);
+    c.setAttribute("fill", colorMargin(p.marge));
+    c.setAttribute("opacity","0.9");
+    c.addEventListener("mouseenter", () => {
+      c.setAttribute("r","6"); c.setAttribute("stroke","#fff"); c.setAttribute("stroke-width","1");
+    });
+    c.addEventListener("mouseleave", () => {
+      c.setAttribute("r","4"); c.removeAttribute("stroke"); c.removeAttribute("stroke-width");
+    });
+    svg.appendChild(c);
+
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x", cx+6); t.setAttribute("y", cy-6);
+    t.setAttribute("fill","#cbd5e1"); t.setAttribute("font-size","10");
+    t.textContent = p.ref; svg.appendChild(t);
+  });
+}
+
+function initSorting(){
+  document.querySelectorAll("th[data-k]").forEach(th => {
+    th.addEventListener("click", () => {
+      const k = th.getAttribute("data-k");
+      if (sortKey === k) sortAsc = !sortAsc; else { sortKey = k; sortAsc = true; }
+      applyFilters();
+    });
+  });
+}
+
+btnClear.addEventListener("click", ()=>{ fCli.value=""; fIndic.value=""; fRef.value=""; applyFilters(); });
+[fCli,fIndic,fRef].forEach(el => el.addEventListener("input", applyFilters));
+
+initSorting();
+applyFilters();
+</script>
+</body>
+</html>
