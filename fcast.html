@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Forecast Local — HTML (sin servidor)</title>
+  <!-- Bootstrap + DataTables CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <style>
+    :root{
+      --page:#e6f2ff; --card:#2b6cb0; --card-strong:#1e40af;
+      --text:#ffffff; --muted:#dbeafe; --accent:#60a5fa; --border:#93c5fd;
+    }
+    *{box-sizing:border-box}
+    body{background:var(--page); color:var(--text)}
+    h1,h5, label, .sub, .kpi, .btn, .card, .table, .form-control, .form-select { color:var(--text) !important; }
+    .card{background:var(--card);border:none;border-radius:16px;box-shadow:0 10px 28px rgba(0,0,0,.18)}
+    .kpi{font-size:1.8rem;font-weight:800}
+    .sub{color:var(--muted) !important; font-size:.9rem}
+    .table-wrap{overflow:auto}
+    .form-label{font-weight:600}
+    .btn-accent{background:var(--accent);color:var(--text);font-weight:700;border:none}
+    .form-control, .form-select { background-color:#215f9b !important; border-color:var(--border) !important; color:var(--text) !important; }
+    .form-control::placeholder{color:#e5f0ff !important;opacity:.9}
+    select[multiple] { min-height: 140px; }
+    table.dataTable thead th{background:var(--card-strong) !important;color:var(--text) !important}
+    table.dataTable, table.dataTable th, table.dataTable td { color:var(--text) !important; }
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate { color:var(--text) !important; }
+    .dataTables_wrapper .dataTables_filter input,
+    .dataTables_wrapper .dataTables_length select{
+      color:var(--text) !important; background:#215f9b !important; border-color:var(--border) !important;
+    }
+    canvas{width:100% !important;height:340px !important}
+    .heat td,.heat th{padding:.4rem .5rem;text-align:right}
+    .heat th.sticky{position:sticky;left:0;background:var(--card-strong);z-index:1}
+    .btn-outline-light{border-color:#ffffff55 !important;color:#fff !important}
+    .btn-outline-light:hover{background:#ffffff22 !important}
+  </style>
+</head>
+<body class="p-3 p-md-4">
+  <div class="container-fluid">
+    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+      <h1 class="h3 m-0">Forecast Local (G, AM, BV, BW, BX, BZ, CA)</h1>
+      <div class="text-end">
+        <label class="btn btn-sm btn-accent mb-0">
+          Cargar Excel <input id="file" type="file" accept=".xlsx,.xls" hidden>
+        </label>
+        <button id="exportCsv" class="btn btn-sm btn-outline-light ms-2" disabled>Exportar CSV</button>
+        <div class="sub mt-1" id="fileName">Sin archivo</div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-lg-3"><div class="card p-3"><div class="sub">Total cantidad</div><div id="kpi_total" class="kpi">–</div></div></div>
+      <div class="col-6 col-lg-3"><div class="card p-3"><div class="sub">Rango de fechas</div><div id="kpi_rango" class="kpi">–</div></div></div>
+      <div class="col-6 col-lg-3"><div class="card p-3"><div class="sub">Referencias únicas</div><div id="kpi_refs" class="kpi">–</div></div></div>
+      <div class="col-6 col-lg-3"><div class="card p-3"><div class="sub">Plantas únicas</div><div id="kpi_plants" class="kpi">–</div></div></div>
+    </div>
+
+    <div class="card p-3 mb-3">
+      <div class="row g-3 align-items-end">
+        <div class="col-12 col-lg-3">
+          <label class="form-label">Cliente (col. G)</label>
+          <select id="cliente" class="form-select" multiple></select>
+        </div>
+        <div class="col-12 col-lg-3">
+          <label class="form-label">Planta</label>
+          <select id="planta" class="form-select" multiple></select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label">Año</label>
+          <select id="anio" class="form-select" multiple></select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label">Mes</label>
+          <select id="mes" class="form-select" multiple>
+            <option value="1">Ene</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Abr</option>
+            <option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Ago</option>
+            <option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dic</option>
+          </select>
+        </div>
+        <div class="col-12 col-lg-2">
+          <label class="form-label">Ref. Teixidó</label>
+          <select id="ref" class="form-select" multiple></select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label">Desde</label>
+          <input id="dmin" class="form-control" type="date">
+        </div>
+        <div class="col-6 col-lg-2">
+          <label class="form-label">Hasta</label>
+          <input id="dmax" class="form-control" type="date">
+        </div>
+        <div class="col-12">
+          <button id="apply" class="btn btn-accent mt-2" disabled>Aplicar</button>
+          <button id="clear" class="btn btn-outline-light mt-2 ms-2" disabled>Limpiar filtros</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12">
+        <div class="card p-3">
+          <h5 class="mb-3">Detalle (G, AM, BV, BW, BX, BZ, CA)</h5>
+          <div class="table-wrap">
+            <table id="tbl" class="display nowrap" style="width:100%"></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-xl-4">
+        <div class="card p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="m-0">Top referencias</h5>
+            <select id="topn" class="form-select form-select-sm" style="width:auto">
+              <option>10</option><option selected>25</option><option>50</option><option>100</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table id="tblRef" class="display" style="width:100%"></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-xl-8">
+        <div class="card p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="m-0">Serie temporal</h5>
+            <div class="btn-group">
+              <button class="btn btn-sm btn-outline-light freq" data-f="D">Diario</button>
+              <button class="btn btn-sm btn-outline-light freq" data-f="W">Semanal</button>
+              <button class="btn btn-sm btn-outline-light freq active" data-f="M">Mensual</button>
+            </div>
+          </div>
+          <canvas id="chartSerie" class="mt-2"></canvas>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card p-3">
+          <h5 class="mb-2">Heatmap mensual (Año × Mes)</h5>
+          <div class="table-responsive">
+            <table id="heat" class="table table-sm table-borderless align-middle heat">
+              <thead><tr><th class="sticky">Año</th>
+                <th>Ene</th><th>Feb</th><th>Mar</th><th>Abr</th><th>May</th><th>Jun</th>
+                <th>Jul</th><th>Ago</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dic</th>
+                <th>Total</th>
+              </tr></thead><tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center mt-4 sub">HTML puro + SheetJS + DataTables + Chart.js</div>
+  </div>
+
+  <!-- Dependencias JS -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    Chart.defaults.color = '#ffffff';
+    Chart.defaults.borderColor = 'rgba(255,255,255,.2)';
+    const nf = new Intl.NumberFormat('es-ES');
+
+    let RAW = [], DATA = [];
+    let dt, dtRef, chartSerie;
+    const MES_LABELS = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'};
+
+    function colLetterToIndex(letter){
+      let s = letter.toUpperCase(), n = 0;
+      for (let i=0;i<s.length;i++) n = n*26 + (s.charCodeAt(i)-64);
+      return n-1;
+    }
+    function parseExcelToRows(wb){
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      return XLSX.utils.sheet_to_json(ws, {header:1, raw:true});
+    }
+    function pickColumnsByLetters(rows){
+      const map = {
+        cliente: colLetterToIndex('G'),
+        cantidad: colLetterToIndex('AM'),
+        ref: colLetterToIndex('BV'),
+        planta: colLetterToIndex('BW'),
+        fecha: colLetterToIndex('BX'),
+        anio: colLetterToIndex('BZ'),
+        mes: colLetterToIndex('CA'),
+      };
+      const out = [];
+      for (let i=1;i<rows.length;i++){
+        const r = rows[i] || [];
+        let cliente = r[map.cliente];
+        let cantidad = r[map.cantidad];
+        let ref = r[map.ref];
+        let planta = r[map.planta];
+        let fecha = r[map.fecha];
+        let anio = r[map.anio];
+        let mes = r[map.mes];
+
+        if (fecha !== undefined && fecha !== null && fecha !== ''){
+          if (typeof fecha === 'number'){
+            const fobj = XLSX.SSF.parse_date_code(fecha);
+            if (fobj){ fecha = new Date(Date.UTC(fobj.y, (fobj.m||1)-1, fobj.d||1)); }
+          } else {
+            const try1 = new Date(fecha);
+            if (!isNaN(try1)) fecha = try1;
+          }
+        }
+        if (!(fecha instanceof Date) || isNaN(fecha)) fecha = null;
+
+        if (cantidad === '' || cantidad === undefined || cantidad === null) cantidad = null;
+        else cantidad = Number(cantidad);
+
+        if ((anio === undefined || anio === null || anio==='') && fecha) anio = fecha.getFullYear();
+        if ((mes === undefined || mes === null || mes==='') && fecha)  mes = fecha.getMonth()+1;
+
+        if ([cliente,cantidad,ref,planta,fecha,anio,mes].some(v=>v!==undefined && v!==null && v!=='')){
+          out.push({cliente, cantidad, ref: String(ref??''), planta, fecha, anio: anio?Number(anio):null, mes: mes?Number(mes):null});
+        }
+      }
+      return out;
+    }
+    function uniqueSorted(arr, key){
+      const s = new Set(arr.map(o => String(o[key]??'')).filter(v=>v!=='')); return Array.from(s).sort();
+    }
+    function populateFilters(records){
+      const years = Array.from(new Set(records.map(r => r.anio).filter(Boolean))).sort((a,b)=>a-b);
+      const refs = uniqueSorted(records, 'ref');
+      const clientes = uniqueSorted(records, 'cliente');
+      const plantas = uniqueSorted(records, 'planta');
+      const fill = (id, arr) => {
+        const el = document.getElementById(id); el.innerHTML = '';
+        arr.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o); });
+      };
+      fill('anio', years); fill('ref', refs); fill('cliente', clientes); fill('planta', plantas);
+      document.getElementById('apply').disabled = false;
+      document.getElementById('clear').disabled = false;
+      document.getElementById('exportCsv').disabled = false;
+    }
+    function getMulti(id){
+      const sel = document.getElementById(id);
+      return Array.from(sel.selectedOptions).map(o=>o.value).filter(Boolean);
+    }
+    function applyFilters(){
+      let recs = RAW.slice();
+      const clientes = getMulti('cliente');
+      const plantas  = getMulti('planta');
+      const anios    = getMulti('anio').map(Number);
+      const meses    = getMulti('mes').map(Number);
+      const refs     = getMulti('ref').map(String);
+      const dmin     = document.getElementById('dmin').value;
+      const dmax     = document.getElementById('dmax').value;
+
+      if (clientes.length) recs = recs.filter(r => clientes.includes(String(r.cliente)));
+      if (plantas.length)  recs = recs.filter(r => plantas.includes(String(r.planta)));
+      if (anios.length)    recs = recs.filter(r => r.anio && anios.includes(Number(r.anio)));
+      if (meses.length)    recs = recs.filter(r => r.mes && meses.includes(Number(r.mes)));
+      if (refs.length)     recs = recs.filter(r => refs.includes(String(r.ref)));
+
+      if (dmin){ const d0 = new Date(dmin+'T00:00:00'); recs = recs.filter(r => r.fecha && r.fecha >= d0); }
+      if (dmax){ const d1 = new Date(dmax+'T23:59:59'); recs = recs.filter(r => r.fecha && r.fecha <= d1); }
+
+      DATA = recs;
+    }
+    function formatDate(d){
+      if (!(d instanceof Date) || isNaN(d)) return '';
+      const dd = String(d.getDate()).padStart(2,'0'), mm = String(d.getMonth()+1).padStart(2,'0'), yy = d.getFullYear();
+      return `${dd}/${mm}/${yy}`;
+    }
+    function updateKPIs(){
+      const total = DATA.reduce((s,r)=> s + (isFinite(r.cantidad)? Number(r.cantidad):0), 0);
+      const fechas = DATA.map(r=> r.fecha).filter(d=> d instanceof Date && !isNaN(d)).sort((a,b)=>a-b);
+      let rango = '—'; if (fechas.length){ rango = `${formatDate(fechas[0])} — ${formatDate(fechas[fechas.length-1])}`; }
+      const refs = new Set(DATA.map(r=> String(r.ref||'')).filter(v=>v!=='')); const plants = new Set(DATA.map(r=> String(r.planta||'')).filter(v=>v!==''));
+      document.getElementById('kpi_total').textContent = nf.format(total);
+      document.getElementById('kpi_rango').textContent = rango;
+      document.getElementById('kpi_refs').textContent = nf.format(refs.size);
+      document.getElementById('kpi_plants').textContent = nf.format(plants.size);
+    }
+    function rebuildTable(){
+      const rows = DATA.map(r => ({ cliente:String(r.cliente??''), cantidad:r.cantidad??null, ref:String(r.ref??''), planta:String(r.planta??''), fecha:formatDate(r.fecha), anio:r.anio??'', mes:r.mes??'' }));
+      const columns = [
+        {title:'cliente', data:'cliente'},
+        {title:'cantidad', data:'cantidad', render:v=> v!=null && !isNaN(v) ? nf.format(v) : ''},
+        {title:'ref', data:'ref'},
+        {title:'planta', data:'planta'},
+        {title:'fecha', data:'fecha'},
+        {title:'anio', data:'anio', render:v=> v? nf.format(v): ''},
+        {title:'mes', data:'mes', render:v=> v? nf.format(v): ''},
+      ];
+      if (dt){ dt.clear().destroy(); }
+      dt = new DataTable('#tbl', { data: rows, columns, pageLength: 50, responsive: true, scrollX: true, order: [[4,'asc']] });
+    }
+    function rebuildTopRefs(){
+      const agg = new Map();
+      for (const r of DATA){ const key = String(r.ref||''); const val = isFinite(r.cantidad)? Number(r.cantidad):0; agg.set(key, (agg.get(key)||0)+val); }
+      const arr = Array.from(agg.entries()).map(([ref, cantidad]) => ({ref, cantidad})).sort((a,b)=> b.cantidad - a.cantidad);
+      const top = parseInt(document.getElementById('topn').value || '25', 10);
+      const topArr = arr.slice(0, top);
+      if (dtRef){ dtRef.clear().destroy(); }
+      dtRef = new DataTable('#tblRef', { data: topArr, columns: [{title:'Ref. Teixidó', data:'ref'}, {title:'Suma cantidad', data:'cantidad', render:v=> nf.format(v)}], pageLength: 15, order:[[1,'desc']] });
+    }
+    function groupBy(arr, keyFn){
+      const m = new Map();
+      for (const r of arr){ const k = keyFn(r); if (k==null) continue; m.set(k, (m.get(k)||0) + (isFinite(r.cantidad)? Number(r.cantidad):0)); }
+      return m;
+    }
+    function rebuildSeries(freq='M'){
+      let lab = [], values = [];
+      if (freq === 'D'){
+        const m = groupBy(DATA.filter(r=> r.fecha instanceof Date), r => formatDate(r.fecha));
+        const keys = Array.from(m.keys()).sort((a,b)=>{ const [da,ma,ya]=a.split('/').map(Number); const [db,mb,yb]=b.split('/').map(Number); return new Date(ya,ma-1,da) - new Date(yb,mb-1,db); });
+        lab = keys; values = keys.map(k=> m.get(k));
+      } else if (freq === 'W'){
+        function isoWeekKey(d){
+          const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+          tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay()||7));
+          const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(),0,1));
+          const weekNo = Math.ceil((((tmp - yearStart) / 86400000) + 1)/7);
+          return `Sem ${String(weekNo).padStart(2,'0')} ${tmp.getUTCFullYear()}`;
+        }
+        const m = groupBy(DATA.filter(r=> r.fecha instanceof Date), r => isoWeekKey(r.fecha));
+        const keys = Array.from(m.keys()).sort((a,b)=>{ const [_, wa, ya] = a.split(' '); const [__, wb, yb] = b.split(' '); return Number(ya)-Number(yb) || Number(wa)-Number(wb); });
+        lab = keys; values = keys.map(k=> m.get(k));
+      } else {
+        const m = groupBy(DATA.filter(r=> r.fecha instanceof Date), r => { const y = r.fecha.getFullYear(); const mm = String(r.fecha.getMonth()+1).padStart(2,'0'); return `${y}-${mm}`; });
+        const keys = Array.from(m.keys()).sort(); lab = keys; values = keys.map(k=> m.get(k));
+      }
+      const ctx = document.getElementById('chartSerie').getContext('2d');
+      if (chartSerie) chartSerie.destroy();
+      chartSerie = new Chart(ctx, {
+        type:'bar',
+        data:{ labels: lab, datasets:[{ label:`Cantidad (${freq})`, data: values }] },
+        options:{
+          maintainAspectRatio:false,
+          scales:{ x:{ ticks:{ color:'#fff' }, grid:{ color:'rgba(255,255,255,.12)' } },
+                   y:{ beginAtZero:true, ticks:{ color:'#fff', callback:(v)=> nf.format(v) }, grid:{ color:'rgba(255,255,255,.12)' } } },
+          plugins:{ legend:{ labels:{ color:'#fff' } },
+                    tooltip:{ backgroundColor:'rgba(15,23,42,.95)', titleColor:'#fff', bodyColor:'#fff', callbacks:{ label:(ctx)=> nf.format(ctx.parsed.y) } } }
+        }
+      });
+    }
+    function rebuildHeat(){
+      const m = new Map(); let vmax = 0;
+      for (const r of DATA){
+        const y = r.anio, mm = r.mes; if (!y || !mm) continue;
+        const key = `${y}-${mm}`; const add = isFinite(r.cantidad)? Number(r.cantidad):0;
+        const cur = (m.get(key)||0) + add; m.set(key, cur); if (cur > vmax) vmax = cur;
+      }
+      const years = Array.from(new Set(DATA.map(r=>r.anio).filter(Boolean))).sort((a,b)=>a-b);
+      const tbody = document.querySelector('#heat tbody'); tbody.innerHTML = '';
+      for (const y of years){
+        let total = 0; const tr = document.createElement('tr'); const th = document.createElement('th'); th.className='sticky'; th.textContent = y; tr.appendChild(th);
+        for (let mm=1; mm<=12; mm++){
+          const key = `${y}-${mm}`; const val = m.get(key)||0; total += val;
+          const td = document.createElement('td'); td.textContent = val? nf.format(val): '';
+          const ratio = vmax ? Math.min(1, val / vmax) : 0; td.style.background = `rgba(96,165,250, ${0.18 + 0.32*ratio})`; td.style.color = '#fff';
+          tr.appendChild(td);
+        }
+        const tdT = document.createElement('td'); tdT.textContent = nf.format(total); tr.appendChild(tdT);
+        tbody.appendChild(tr);
+      }
+    }
+    function exportCSV(){
+      const headers = ['cliente','cantidad','ref','planta','fecha','anio','mes'];
+      const lines = [headers.join(';')];
+      for (const r of DATA){
+        const row = [
+          (r.cliente??'').toString().replace(/;/g, ','), isFinite(r.cantidad)? r.cantidad : '',
+          (r.ref??'').toString().replace(/;/g, ','), (r.planta??'').toString().replace(/;/g, ','),
+          formatDate(r.fecha), r.anio??'', r.mes??''
+        ];
+        lines.push(row.join(';'));
+      }
+      const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'}); const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'fcast_export.csv'; document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    document.getElementById('file').addEventListener('change', async (ev)=>{
+      const f = ev.target.files[0]; if (!f) return;
+      document.getElementById('fileName').textContent = f.name;
+      const data = await f.arrayBuffer(); const wb = XLSX.read(data, {type:'array'});
+      const rows = parseExcelToRows(wb);
+      RAW = pickColumnsByLetters(rows);
+      // Si quieres modo demo con un XLSX por defecto, aquí podríamos cargar uno embebido vía fetch/ArrayBuffer.
+      // Por ahora requiere que cargues un Excel desde el botón.
+      populateFilters(RAW);
+      DATA = RAW.slice();
+      updateKPIs(); rebuildTable(); rebuildTopRefs(); rebuildSeries('M'); rebuildHeat();
+    });
+
+    document.getElementById('apply').addEventListener('click', ()=>{ applyFilters(); updateKPIs(); rebuildTable(); rebuildTopRefs(); rebuildSeries(document.querySelector('.freq.active')?.dataset.f || 'M'); rebuildHeat(); });
+    document.getElementById('clear').addEventListener('click', ()=>{ ['cliente','planta','anio','mes','ref'].forEach(id=>{ const el = document.getElementById(id); Array.from(el.options).forEach(o => o.selected = false); }); document.getElementById('dmin').value=''; document.getElementById('dmax').value=''; DATA = RAW.slice(); updateKPIs(); rebuildTable(); rebuildTopRefs(); rebuildSeries('M'); rebuildHeat(); });
+    document.getElementById('topn').addEventListener('change', rebuildTopRefs);
+    document.getElementById('exportCsv').addEventListener('click', exportCSV);
+    document.querySelectorAll('.freq').forEach(btn=>{ btn.addEventListener('click', ()=>{ document.querySelectorAll('.freq').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); rebuildSeries(btn.dataset.f); }); });
+  </script>
+</body>
+</html>
