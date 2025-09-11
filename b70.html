@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>FORECAST — Clientes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors:{ brand:{DEFAULT:'#0071bc',600:'#0071bc',700:'#005a91'} },
+          boxShadow:{ glow:'0 0 0 2px rgba(0,113,188,.18), 0 0 24px rgba(0,113,188,.35)'}
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* Glow animado "respirando" */
+  /* .filtros-title eliminado */
+    .btn-limpiar-filtros {
+      background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb 100%);
+      color: #005a91;
+      font-weight: 700;
+      border-radius: 999px;
+      border: none;
+      box-shadow: 0 2px 8px rgba(0,113,188,.10);
+      padding: .45em 1.2em;
+      margin-left: 1em;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background .2s;
+    }
+      [data-client-name] {
+        display: none;
+      }
+    .btn-limpiar-filtros:hover {
+      background: linear-gradient(90deg, #bbdefb 0%, #e3f2fd 100%);
+      color: #0071bc;
+    }
+    @keyframes filtrosPulse {
+      0% { box-shadow: 0 6px 32px rgba(0,113,188,.18), 0 0 0 4px #0071bc22; }
+      100% { box-shadow: 0 12px 48px rgba(0,113,188,.28), 0 0 0 12px #0071bc18; }
+    }
+    .filtros-title .icon-filtros {
+      font-size: 2.1rem;
+      color: #0071bc;
+      margin-right: .3em;
+      filter: drop-shadow(0 2px 8px #0071bc55);
+      animation: iconPulse 2.5s infinite alternate;
+    }
+    @keyframes iconPulse {
+      0% { color: #0071bc; }
+      100% { color: #005a91; }
+    }
+    
+    .pulse-glow {
+      animation: glowBreath 2.2s ease-in-out infinite;
+      box-shadow: 0 0 0 0 rgba(0,113,188,.35), 0 0 24px rgba(0,113,188,.35);
+    }
+    @keyframes glowBreath {
+      0%,100% { box-shadow: 0 0 0 2px rgba(0,113,188,.25), 0 0 24px rgba(0,113,188,.35); }
+      50% { box-shadow: 0 0 0 12px rgba(0,113,188,.12), 0 0 42px rgba(0,113,188,.45); }
+    }
+    .skeleton{position:relative;overflow:hidden;background:linear-gradient(90deg,transparent,#00000010,transparent)}
+    .skeleton::after{content:"";position:absolute;inset:0;animation:shim 1.2s infinite}
+    @keyframes shim{0%{transform:translateX(-100%)}100%{transform:translateX(100%)} }
+    .popover{position:absolute; z-index:50; min-width:220px; background:#fff; border-radius:1rem; box-shadow:0 8px 32px rgba(0,0,0,.18); padding:1rem; }
+  .popover-search { width:100%; margin-bottom:.5rem; padding:.4rem .7rem; border-radius:.7rem; border:1px solid #0071bc; }
+    .popover-list { max-height:220px; overflow:auto; margin-bottom:.5rem; }
+    .popover-list label { display:flex; align-items:center; gap:.5rem; padding:.2rem .1rem; cursor:pointer; }
+  .popover-list input[type="checkbox"] { accent-color:#0071bc; }
+    .popover-btns { display:flex; gap:.5rem; justify-content:flex-end; }
+    /* Logo apaisado */
+  .logo-bling { filter:drop-shadow(0 8px 28px rgba(0,113,188,.25)); border-radius:.7rem; width:120px; height:48px; object-fit:contain; }
+    @keyframes glowPulse{from{box-shadow:0 0 0 rgba(22,163,74,0)} to{box-shadow:0 0 42px rgba(22,163,74,.45)}}
+    .segmented{display:inline-flex; background:rgba(0,0,0,.04); border:1px solid rgba(0,0,0,.08); border-radius:9999px; padding:4px}
+    .dark .segmented{background:rgba(255,255,255,.04); border-color:#1f2937}
+    .segmented button{padding:.4rem .8rem; border-radius:9999px; font-size:.9rem}
+  .segmented button.is-active{background:#0071bc; color:#fff; box-shadow:0 4px 14px rgba(0,113,188,.25)}
+  @keyframes cardPeek {
+    0% { transform: translateY(0); box-shadow: 0 2px 8px rgba(0,113,188,.10); }
+    100% { transform: translateY(-10px); box-shadow: 0 2px 18px 2px #0071bc33; }
+  }
+  [data-client-tab] {
+    transition: box-shadow 0.2s, transform 0.2s;
+    will-change: transform, box-shadow;
+  }
+  [data-client-tab]:hover {
+    animation: cardPeek 0.38s cubic-bezier(.4,1.6,.6,1) forwards;
+    box-shadow: 0 2px 18px 2px #0071bc33;
+    z-index: 2;
+  }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+  <!-- Top bar -->
+  <header class="sticky top-0 z-40 backdrop-blur bg-white/70 dark:bg-gray-950/70 border-b border-gray-200 dark:border-gray-800">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-6">
+      <!-- Logo Teixidó apaisado grande -->
+      <img src="teixido.jpg" onerror="this.onerror=null;this.src='teixido.png'" alt="Teixidó" style="height:56px; width:auto; max-width:220px; object-fit:contain; border-radius:1rem; box-shadow:0 4px 24px rgba(22,163,74,.12); background:#fff;" />
+      <div class="flex items-center gap-2 ml-6">
+        <div class="text-sm text-gray-500">Archivo:</div>
+        <div id="fileBadge" class="text-sm px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800">ninguno</div>
+      </div>
+      <div class="ml-auto flex items-center gap-2">
+        <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-brand-600 text-white hover:bg-brand-700">
+          <input id="fileInput" type="file" accept=".xlsx,.xls" class="hidden">
+          <span>Subir Excel</span>
+        </label>
+        <button id="exportPNG" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Exportar PNG</button>
+        <button id="exportCSV" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Exportar CSV</button>
+        <label class="ml-3 inline-flex items-center gap-2 text-sm">
+          <span>Oscuro</span>
+          <input id="darkToggle" type="checkbox">
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Dropzone eliminado a petición: seguimos permitiendo subir desde el botón -->
+
+    <!-- Client tabs -->
+    <div class="mt-0 flex gap-2">
+  <button class="clientTab px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 font-medium" data-client="Vitesco" data-client-tab>VITESCO</button>
+  <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Continental" data-client-tab>CONTINENTAL</button>
+  <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Bosch" data-client-tab>BOSCH</button>
+    </div>
+
+    <!-- Per-client panels -->
+    <section id="panels" class="mt-4 space-y-8"></section>
+  </main>
+
+  <template id="clientPanelTpl">
+    <div class="clientPanel rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
+      <!-- Header card -->
+      <div class="rounded-2xl p-5 border border-gray-200 dark:border-gray-800 shadow-glow pulse-glow">
+        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <!-- Left: logo + name + filters -->
+          <div class="flex-1 min-w-0 flex items-center gap-5">
+            <div class="w-full flex flex-col items-center justify-center">
+                    <div style="display: flex; justify-content: center; align-items: center; height: 160px;">
+                      <img data-client-logo class="object-contain bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-800" style="width:220px;height:90px;" src="" alt="Logo" />
+                    </div>
+              <div class="text-4xl font-extrabold tracking-wide text-center mt-1" data-client-name>CLIENTE</div>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-row gap-4 items-center justify-center mt-2">
+              <button class="filter-btn-year px-4 py-2 rounded-xl bg-brand-600 text-white font-semibold text-base shadow hover:bg-brand-700 transition">Año</button>
+              <button class="filter-btn-month px-4 py-2 rounded-xl bg-brand-600 text-white font-semibold text-base shadow hover:bg-brand-700 transition">Mes</button>
+              <button class="filter-btn-ref px-4 py-2 rounded-xl bg-brand-600 text-white font-semibold text-base shadow hover:bg-brand-700 transition">Referencia</button>
+              <button class="filter-btn-planta px-4 py-2 rounded-xl bg-brand-600 text-white font-semibold text-base shadow hover:bg-brand-700 transition">Planta</button>
+              <button type="button" class="btn-limpiar-filtros" id="btnLimpiarFiltros">Limpiar filtros</button>
+              <select class="filter-year hidden" multiple size="4"></select>
+              <select class="filter-month hidden" multiple size="4"></select>
+              <select class="filter-ref hidden" multiple size="4"></select>
+              <select class="filter-planta hidden" multiple size="4"></select>
+            </div>
+
+            <div class="mt-4 flex flex-col gap-2">
+              <div class="flex flex-row gap-8 items-end justify-start">
+                <div>
+                  <div class="text-xs text-gray-500">Cantidad total</div>
+                  <div class="text-5xl font-extrabold text-brand-700" data-kpi-cantidad>—</div>
+                </div>
+                <div>
+                  <div class="text-xs text-gray-500">Registros</div>
+                  <div class="text-xl font-bold" data-kpi-rows>—</div>
+                </div>
+                <div>
+                  <div class="text-xs text-gray-500">Refs únicas</div>
+                  <div class="text-xl font-bold" data-kpi-refs>—</div>
+                </div>
+                <div>
+                  <div class="text-xs text-gray-500">Plantas</div>
+                  <div class="text-xl font-bold" data-kpi-plantas>—</div>
+                </div>
+              </div>
+              <div class="mt-2" id="activeFiltersBar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Menu inside tab -->
+      <div class="mt-4 flex items-center gap-3">
+        <div class="text-sm text-gray-500">Agrupar por:</div>
+        <div class="segmented" data-groupby>
+          <button class="is-active" data-val="month">Mes</button>
+          <button data-val="week">Semana</button>
+          <button data-val="day">Día</button>
+        </div>
+      </div>
+
+      <!-- Chart (ARREGLADO: sin duplicado) -->
+      <div class="mt-3 rounded-2xl border border-gray-200 dark:border-gray-800 p-4">
+  <div class="mb-2 text-lg font-semibold text-brand-700 text-center" id="chartFiltersTitle" style="margin-bottom:0.5rem;"></div>
+  <div style="position:relative; width:100%; height:360px;">
+    <canvas class="mainChart" style="width:100%; height:100%; display:block;"></canvas>
+  </div>
+      </div>
+
+      <!-- Tabla resumen Año x Mes -->
+      <div class="mt-4 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 overflow-auto">
+  <div class="font-semibold mb-2 text-brand-700" id="tableFiltersTitle">Resumen por año y mes</div>
+  <table class="summaryTable min-w-full text-sm">
+          <thead>
+            <tr>
+              <th class="px-2 py-1 text-left">Año</th>
+              <th class="px-2 py-1 text-right">E</th>
+              <th class="px-2 py-1 text-right">F</th>
+              <th class="px-2 py-1 text-right">M</th>
+              <th class="px-2 py-1 text-right">A</th>
+              <th class="px-2 py-1 text-right">M</th>
+              <th class="px-2 py-1 text-right">J</th>
+              <th class="px-2 py-1 text-right">J</th>
+              <th class="px-2 py-1 text-right">A</th>
+              <th class="px-2 py-1 text-right">S</th>
+              <th class="px-2 py-1 text-right">O</th>
+              <th class="px-2 py-1 text-right">N</th>
+              <th class="px-2 py-1 text-right">D</th>
+              <th class="px-2 py-1 text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    // ---------- Estado ----------
+    const state = {
+      rows: [], // {cliente, fecha:Date, anio, mes(1-12), refCli, refTeix, planta, qty}
+      mapCliToTeix: new Map(), // A->B (Hoja2)
+      mapTeixToCli: new Map(),
+      charts: new Map(), // client -> Chart instance
+      currentClient: 'Vitesco'
+    };
+
+    const CLIENTS = ['Vitesco','Continental','Bosch'];
+    const LOGO_MAP = { Vitesco:'VT.jpg', Continental:'CONTINENTAL.jpg', Bosch:'BOSCH.jpg' };
+    // Cambia esta base si pones las imágenes en una subcarpeta (p.ej. './logos/')
+    const LOGO_BASE = './logos/';
+    const fmt = new Intl.NumberFormat('es-ES');
+
+    // Devuelve candidatos alternativos (extensión/majus/minus) por robustez
+    function logoCandidates(client){
+      const mapped = LOGO_MAP[client] || '';
+      const stem = (mapped ? mapped.replace(/\.(jpg|jpeg|png|webp)$/i,'') : client).toString();
+      const stems = [stem, stem.toUpperCase(), stem.toLowerCase()];
+      const exts = ['.jpg','.jpeg','.png','.webp'];
+      const list = [];
+      if(mapped){ list.push(mapped); list.push(mapped.toLowerCase()); }
+      stems.forEach(s=> exts.forEach(e=> list.push(s+e)));
+      return [...new Set(list)];
+    }
+
+    function setClientLogo(imgEl, client){
+      const cands = logoCandidates(client);
+      if(!cands.length){ imgEl.classList.add('hidden'); return; }
+      imgEl.classList.remove('hidden');
+      imgEl.dataset.cands = JSON.stringify(cands);
+      imgEl.onerror = function(){
+        try{
+          const arr = JSON.parse(this.dataset.cands||'[]');
+          arr.shift();
+          if(arr.length){
+            this.dataset.cands = JSON.stringify(arr);
+            this.src = LOGO_BASE + arr[0];
+          }else{
+            this.onerror = null; this.src = '';
+            this.classList.add('hidden');
+          }
+        }catch{ this.onerror=null; this.classList.add('hidden'); }
+      };
+      imgEl.src = LOGO_BASE + cands[0];
+    }
+
+    // ---------- Aliases de cliente (columna G) ----------
+    const CLIENT_ALIASES = {
+      vitesco: ['vt'],
+      continental: ['aumov'],
+      bosch: ['bosch','uaes']
+    };
+    const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    function matchesClient(cellValue, tabName){
+      const a = norm(cellValue);
+      const key = norm(tabName);
+      const list = CLIENT_ALIASES[key] || [key];
+      return list.some(alias => a.includes(alias));
+    }
+
+    // ---------- Tema ----------
+    const darkToggle = document.querySelector('#darkToggle');
+    const savedTheme = localStorage.getItem('theme');
+    if(savedTheme==='dark'){ document.documentElement.classList.add('dark'); darkToggle.checked = true; }
+    darkToggle.addEventListener('change', e=>{
+      document.documentElement.classList.toggle('dark', e.target.checked);
+      localStorage.setItem('theme', e.target.checked?'dark':'light');
+      CLIENTS.forEach(c=> drawChart(c));
+    });
+
+    // ---------- Tabs cliente ----------
+    document.querySelectorAll('.clientTab').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.clientTab').forEach(b=> b.classList.remove('bg-gray-100','dark:bg-gray-800'));
+        btn.classList.add('bg-gray-100','dark:bg-gray-800');
+        state.currentClient = btn.dataset.client;
+        renderPanels();
+      });
+    });
+
+    // ---------- Archivo ----------
+    document.querySelector('#fileInput').addEventListener('change', e=>{
+      const f = e.target.files?.[0]; if(f) loadExcel(f);
+    });
+
+    // ---------- Export ----------
+    document.querySelector('#exportPNG').addEventListener('click', ()=>{
+      const chart = state.charts.get(state.currentClient);
+      if(!chart){ alert('Carga datos primero'); return; }
+      const a = document.createElement('a');
+      a.href = chart.toBase64Image();
+      a.download = state.currentClient+'_forecast.png';
+      a.click();
+    });
+    document.querySelector('#exportCSV').addEventListener('click', ()=>{
+      const root = document.querySelector(`.clientPanel[data-client="${state.currentClient}"]`);
+      const rows = getFilteredRows(state.currentClient, root);
+      if(!rows.length){ alert('No hay datos filtrados'); return; }
+      const header = ['cliente','fecha','año','mes','ref_cliente','ref_teixido','planta','cantidad'];
+      const csv = [header.join(',')].concat(rows.map(r=>[
+        esc(r.cliente), r.fecha.toISOString().slice(0,10), r.anio, r.mes,
+        esc(r.refCli||''), esc(r.refTeix||''), esc(r.planta||''), r.qty
+      ].join(','))).join('\n');
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = state.currentClient+'_datos.csv'; a.click();
+      URL.revokeObjectURL(url);
+    });
+    const esc = s => ('"'+String(s).replace(/"/g,'""')+'"');
+
+    // ---------- Construcción paneles ----------
+    function renderPanels(){
+      const panels = document.querySelector('#panels');
+      panels.innerHTML = '';
+      const tpl = document.querySelector('#clientPanelTpl').content.cloneNode(true);
+      const root = tpl.querySelector('.clientPanel');
+      root.dataset.client = state.currentClient;
+      // Nombre en mayúsculas + logo
+      const clientUpper = state.currentClient.toUpperCase();
+      root.querySelector('[data-client-name]').textContent = clientUpper;
+      const logo = root.querySelector('[data-client-logo]');
+      logo.alt = `Logo ${clientUpper}`;
+      setClientLogo(logo, state.currentClient);
+
+      // Filtros
+      const selYear = tpl.querySelector('.filter-year');
+      const selMonth = tpl.querySelector('.filter-month');
+      const selRef = tpl.querySelector('.filter-ref');
+
+      // Filas del cliente (por alias)
+      const rowsC = state.rows.filter(r=> matchesClient(r.cliente, state.currentClient));
+
+      // Años (de BZ) -> multiselect
+      const years = [...new Set(rowsC.map(r=> r.anio).filter(Boolean))].sort((a,b)=>a-b);
+      selYear.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
+
+      // Mes (1..12) multi
+      selMonth.innerHTML = Array.from({length:12}, (_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+
+      // Referencias multi: mezcla ref cliente y ref teixidó
+      const refSet = new Set();
+      rowsC.forEach(r=>{
+        if(r.refCli) refSet.add('CLI:'+r.refCli);
+        if(r.refTeix) refSet.add('TEI:'+r.refTeix);
+      });
+      selRef.innerHTML = [...refSet].sort().map(tag=>{
+        const [type,val] = tag.split(':');
+        const label = (type==='CLI'?'[CLI] ':'') + val;
+        return `<option value="${val}">${label}</option>`;
+      }).join('');
+
+      // Plantas multi
+      const plantaSet = new Set(rowsC.map(r=> r.planta).filter(Boolean));
+      const selPlanta = tpl.querySelector('.filter-planta');
+      selPlanta.innerHTML = [...plantaSet].sort().map(p=>`<option value="${p}">${p}</option>`).join('');
+
+      // Botones para abrir popover de filtros
+      tpl.querySelector('.filter-btn-year').onclick = (e)=>{
+        e.preventDefault();
+        openPopoverForSelectWithSearch(selYear, 'Años', ()=>{ onFilterChange(root); }, e.target);
+      };
+      tpl.querySelector('.filter-btn-month').onclick = (e)=>{
+        e.preventDefault();
+        openPopoverForSelectWithSearch(selMonth, 'Meses', ()=>{ onFilterChange(root); }, e.target);
+      };
+      tpl.querySelector('.filter-btn-ref').onclick = (e)=>{
+        e.preventDefault();
+        openPopoverForSelectWithSearch(selRef, 'Referencias', ()=>{ onFilterChange(root); }, e.target);
+      };
+      tpl.querySelector('.filter-btn-planta').onclick = (e)=>{
+        e.preventDefault();
+        openPopoverForSelectWithSearch(selPlanta, 'Plantas', ()=>{ onFilterChange(root); }, e.target);
+      };
+
+      // Botones de agrupación (no cambio estética)
+      const grp = tpl.querySelector('[data-groupby]');
+      grp.addEventListener('click', (e)=>{
+        if(!(e.target instanceof HTMLElement)) return;
+        const btn = e.target.closest('button');
+        if(!btn) return;
+        grp.querySelectorAll('button').forEach(b=> b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        drawChart(state.currentClient, root);
+      });
+
+      panels.appendChild(tpl);
+      // Añadir funcionalidad al botón Limpiar filtros (ahora sobre root)
+      const btnLimpiar = root.querySelector('#btnLimpiarFiltros');
+      if (btnLimpiar) {
+        btnLimpiar.onclick = function() {
+          // Deselecciona todos los filtros
+          root.querySelectorAll('.filter-year, .filter-month, .filter-ref, .filter-planta').forEach(sel => {
+            Array.from(sel.options).forEach(opt => opt.selected = false);
+          });
+          // Actualiza KPIs, gráfico y tabla
+          updateKPIs(root);
+          drawChart(state.currentClient, root);
+          drawSummaryTable(state.currentClient, root);
+        };
+      }
+
+      // iPad / táctil
+      enhanceForTouch(root);
+
+      updateKPIs(root);
+      drawChart(state.currentClient, root);
+      drawSummaryTable(state.currentClient, root);
+    }
+
+    function onFilterChange(root){
+      updateKPIs(root);
+      drawChart(state.currentClient, root);
+      drawSummaryTable(state.currentClient, root);
+    }
+
+    function getMultiSelectValues(selectEl){
+      return Array.from(selectEl.selectedOptions || []).map(o=> o.value);
+    }
+
+    function getFilters(root){
+  const years = getMultiSelectValues(root.querySelector('.filter-year')).map(Number);
+  const months = getMultiSelectValues(root.querySelector('.filter-month')).map(Number);
+  const refs = getMultiSelectValues(root.querySelector('.filter-ref')); // strings
+  const plantas = getMultiSelectValues(root.querySelector('.filter-planta'));
+  const grp = root.querySelector('[data-groupby]');
+  const active = grp?.querySelector('button.is-active')?.dataset?.val || 'month';
+  const groupBy = active;
+  return {years, months, refs, plantas, groupBy};
+    }
+
+    function getFilteredRows(client, root){
+      const base = state.rows.filter(r=> matchesClient(r.cliente, client));
+      if(!root) return base;
+      const {years, months, refs, plantas} = getFilters(root);
+      return base.filter(r=>{
+        if(years.length && !years.includes(Number(r.anio))) return false;
+        if(months.length && !months.includes(Number(r.mes))) return false;
+        if(refs.length){
+          const rc = (r.refCli||''); const rt = (r.refTeix||'');
+          const hit = refs.includes(rc) || refs.includes(rt);
+          if(!hit) return false;
+        }
+        if(plantas.length && !plantas.includes(r.planta)) return false;
+        return true;
+      });
+    }
+
+    function updateKPIs(root){
+  const rows = getFilteredRows(state.currentClient, root);
+  const qty = rows.reduce((s,r)=> s + (Number(r.qty)||0), 0);
+  const refsSet = new Set(rows.map(r=> r.refCli||r.refTeix||''));
+  const plantasSet = new Set(rows.map(r=> r.planta||''));
+  root.querySelector('[data-kpi-cantidad]').textContent = fmt.format(qty);
+  root.querySelector('[data-kpi-rows]').textContent = fmt.format(rows.length);
+  root.querySelector('[data-kpi-refs]').textContent = fmt.format([...refsSet].filter(Boolean).length);
+  root.querySelector('[data-kpi-plantas]').textContent = fmt.format([...plantasSet].filter(Boolean).length);
+  const filtersBar = root.querySelector('#activeFiltersBar');
+  if(!filtersBar) return;
+  const {years, months, refs, plantas} = getFilters(root);
+  let html = '';
+  let filtersText = [];
+  if(years.length) { html += `<span class=\"inline-flex items-center gap-1 px-2 py-1 rounded bg-brand-600 text-white text-xs mr-2\">Año: ${years.join(', ')} <button class=\"ml-1\" onclick=\"this.parentNode.remove();\">✕</button></span>`; filtersText.push(`Año: ${years.join(', ')}`); }
+  if(months.length) { html += `<span class=\"inline-flex items-center gap-1 px-2 py-1 rounded bg-brand-600 text-white text-xs mr-2\">Mes: ${months.join(', ')} <button class=\"ml-1\" onclick=\"this.parentNode.remove();\">✕</button></span>`; filtersText.push(`Mes: ${months.join(', ')}`); }
+  if(refs.length) { html += `<span class=\"inline-flex items-center gap-1 px-2 py-1 rounded bg-brand-600 text-white text-xs mr-2\">Ref: ${refs.join(', ')} <button class=\"ml-1\" onclick=\"this.parentNode.remove();\">✕</button></span>`; filtersText.push(`Ref: ${refs.join(', ')}`); }
+  if(plantas.length) { html += `<span class=\"inline-flex items-center gap-1 px-2 py-1 rounded bg-brand-600 text-white text-xs mr-2\">Planta: ${plantas.join(', ')} <button class=\"ml-1\" onclick=\"this.parentNode.remove();\">✕</button></span>`; filtersText.push(`Planta: ${plantas.join(', ')}`); }
+  if(!html) { html = `<span class=\"text-xs text-gray-400\">Sin filtros aplicados</span>`; filtersText.push('Sin filtros aplicados'); }
+  filtersBar.innerHTML = html;
+  // Restaurar el título de la tabla
+  const tableTitle = root.querySelector('#tableFiltersTitle');
+  if(tableTitle) tableTitle.textContent = 'Resumen por año y mes';
+  // Añadir título en el gráfico con formato solicitado
+  const chartTitle = root.querySelector('#chartFiltersTitle');
+  if(chartTitle) {
+    const clientName = state.currentClient ? state.currentClient.toUpperCase() : '-';
+    const añoTxt = years.length ? years.join(', ') : '-';
+    const mesTxt = months.length ? months.join(', ') : '-';
+    const refTxt = refs.length ? refs.join(', ') : '-';
+    const plantaTxt = plantas.length ? plantas.join(', ') : '-';
+    chartTitle.textContent = `Cliente: ${clientName} · Año: ${añoTxt} · Mes: ${mesTxt} · Referencia: ${refTxt} · Planta: ${plantaTxt}`;
+  }
+    }
+
+    function drawChart(client, root){
+      root = root || document.querySelector(`.clientPanel[data-client="${client}"]`);
+      const canvas = root.querySelector('.mainChart');
+      const ctx = canvas.getContext('2d');
+      const rows = getFilteredRows(client, root);
+      const {groupBy} = getFilters(root);
+
+      const groups = new Map();
+      const keyFn = {
+        day: (d)=> d.toISOString().slice(0,10),
+        week: (d)=> {
+          const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+          const day = (t.getUTCDay()||7); t.setUTCDate(t.getUTCDate()+4-day);
+          const y = t.getUTCFullYear();
+          const y0 = new Date(Date.UTC(y,0,1));
+          const w = Math.ceil((((t - y0)/86400000)+1)/7);
+          return `${y}-W${String(w).padStart(2,'0')}`;
+        },
+        month: (d)=> `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+      }[groupBy];
+
+      rows.forEach(r=>{
+        const k = keyFn(r.fecha);
+        groups.set(k, (groups.get(k)||0) + (Number(r.qty)||0));
+      });
+      const labels = [...groups.keys()].sort();
+      const data = labels.map(k=> groups.get(k));
+
+      const prev = state.charts.get(client);
+      if(prev){ prev.destroy(); }
+      const chart = new Chart(ctx, {
+        type:'line',
+        data:{ labels, datasets:[ { label:`${client} · ${groupBy}`, data, fill:true, tension:.25 } ]},
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          elements:{ point:{ radius:0 }, line:{ borderWidth:0 } }, /* sin líneas ni puntos */
+          scales:{ x:{ grid:{ display:false } }, y:{ beginAtZero:true, grid:{ display:false } } },
+          plugins:{ legend:{ display:true }, tooltip:{ enabled:true } },
+          interaction:{ mode:'index', intersect:false } /* tooltips al pasar/clicar */
+        }
+      });
+      state.charts.set(client, chart);
+    }
+
+    // ---- Tabla resumen Año x Mes + Total ----
+    function drawSummaryTable(client, root){
+      root = root || document.querySelector(`.clientPanel[data-client="${client}"]`);
+      const tbody = root.querySelector('.summaryTable tbody');
+      tbody.innerHTML = '';
+      const rows = getFilteredRows(client, root);
+
+      const byYearMonth = new Map();
+      const yearsSet = new Set();
+      const refCliSet = new Set();
+      rows.forEach(r=>{
+        if(!r.anio || !r.mes) return;
+        yearsSet.add(r.anio);
+        const key = `${r.anio}-${r.mes}`;
+        byYearMonth.set(key, (byYearMonth.get(key)||0) + (Number(r.qty)||0));
+        if(r.refCli) refCliSet.add(r.refCli);
+      });
+      const years = [...yearsSet].sort((a,b)=> a-b);
+
+      // Mostrar referencia de cliente arriba de la tabla si existe
+      if (refCliSet.size) {
+        const refCliInfo = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 14;
+        td.className = 'px-2 py-1 text-left text-xs text-gray-500';
+        td.innerHTML = `Referencia cliente: <span class="font-bold">${[...refCliSet].join(', ')}</span>`;
+        refCliInfo.appendChild(td);
+        tbody.appendChild(refCliInfo);
+      }
+
+      years.forEach(Y=>{
+        let total = 0;
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.className = 'px-2 py-1 text-left font-medium';
+        th.textContent = Y;
+        tr.appendChild(th);
+
+        for(let m=1;m<=12;m++){
+          const v = byYearMonth.get(`${Y}-${m}`) || 0;
+          total += v;
+          const td = document.createElement('td');
+          td.className = 'px-2 py-1 text-right';
+          td.textContent = v ? fmt.format(v) : '—';
+          tr.appendChild(td);
+        }
+        const tdT = document.createElement('td');
+        tdT.className = 'px-2 py-1 text-right font-semibold';
+        tdT.textContent = fmt.format(total);
+        tr.appendChild(tdT);
+
+        tbody.appendChild(tr);
+      });
+
+      if(!years.length){
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 14;
+        td.className = 'px-2 py-3 text-center text-gray-500';
+        td.textContent = 'Sin datos para el filtro seleccionado';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      }
+    }
+
+    // ---------- Lectura Excel ----------
+    async function loadExcel(file){
+      document.querySelector('#fileBadge').textContent = file.name;
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array'});
+
+      // Hoja2: equivalencias
+      state.mapCliToTeix.clear(); state.mapTeixToCli.clear();
+      if(wb.SheetNames[1]){
+        const ws2 = wb.Sheets[wb.SheetNames[1]];
+        const range2 = XLSX.utils.decode_range(ws2['!ref']);
+        for(let r=range2.s.r+1; r<=range2.e.r; r++){
+          const a = (ws2[XLSX.utils.encode_cell({c:0,r})]||{}).v; // A
+          const b = (ws2[XLSX.utils.encode_cell({c:1,r})]||{}).v; // B
+          if(a!=null && b!=null){
+            state.mapCliToTeix.set(String(a).trim(), String(b).trim());
+            state.mapTeixToCli.set(String(b).trim(), String(a).trim());
+          }
+        }
+      }
+
+      // Hoja1
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      const col = (letters)=> XLSX.utils.decode_col(letters); // AM, BX, ...
+      const CANT = col('AM'), FECHA = col('BX'), ANIO = col('BZ'), MES = col('CA'),
+            CLI = col('G'), REF_TEIX = col('BV'), PLANTA = col('BW');
+
+      const rows = [];
+      for(let r=range.s.r+1; r<=range.e.r; r++){
+        const cellObj = (c)=> ws[XLSX.utils.encode_cell({c,r})];
+        const vQty = cellObj(CANT)?.v;
+        const vFecha = cellObj(FECHA)?.v;
+        const vAnio = cellObj(ANIO)?.v;
+        const vMes = cellObj(MES)?.v;
+        const vCli = cellObj(CLI)?.v;
+        const vRefTeix = cellObj(REF_TEIX)?.v;
+        const vPlanta = cellObj(PLANTA)?.v;
+
+        if(vCli==null || vFecha==null) continue;
+
+        const fecha = parseExcelDate(vFecha);
+        const qty = Number(vQty||0);
+        const anio = Number(vAnio || (fecha? fecha.getFullYear(): null));
+        const mes = Number(vMes || (fecha? fecha.getMonth()+1 : null));
+
+        let refCli = null, refTeix = vRefTeix!=null ? String(vRefTeix).trim() : null;
+        if(refTeix && state.mapTeixToCli.has(refTeix)) refCli = state.mapTeixToCli.get(refTeix);
+
+        rows.push({
+          cliente: String(vCli).trim(),
+          fecha, anio, mes,
+          refCli, refTeix,
+          planta: vPlanta!=null? String(vPlanta).trim() : null,
+          qty
+        });
+      }
+      state.rows = rows.filter(r=> r.fecha instanceof Date && !isNaN(r.fecha));
+      renderPanels();
+    }
+
+    function parseExcelDate(v){
+      if(v==null) return null;
+      if(typeof v === 'number'){
+        const o = XLSX.SSF.parse_date_code(v);
+        if(!o) return null;
+        return new Date(Date.UTC(o.y, o.m-1, o.d, o.H||0, o.M||0, o.S||0));
+      }
+      if(typeof v==='string'){
+        const t1 = /^\d{4}-\d{2}-\d{2}/.test(v) ? new Date(v) : NaN;
+        if(!isNaN(t1)) return t1;
+        const m = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+        if(m){
+          const dd=+m[1], mm=+m[2]-1, yy=m[3].length===2? 2000+ +m[3] : +m[3];
+          return new Date(Date.UTC(yy,mm,dd));
+        }
+      }
+      const d = new Date(v);
+      return isNaN(d)? null : d;
+    }
+
+    // ---------- iPad / táctil: popovers con checkboxes ----------
+    function enhanceForTouch(root){
+      // Usar popover con búsqueda y ticks en todos los dispositivos
+      const setups = [
+        {sel:'.filter-year', btn:'.btn-touch-year', label:'Años'},
+        {sel:'.filter-month', btn:'.btn-touch-month', label:'Meses'},
+        {sel:'.filter-ref', btn:'.btn-touch-ref', label:'Referencias'}
+      ];
+      setups.forEach(({sel,btn,label})=>{
+        const selectEl = root.querySelector(sel);
+        const btnEl = root.querySelector(btn);
+        if(!selectEl || !btnEl) return;
+        selectEl.classList.add('hidden');
+        btnEl.classList.remove('hidden');
+        btnEl.addEventListener('click', (e)=>{
+          e.preventDefault();
+          openPopoverForSelectWithSearch(selectEl, label, ()=>{ onFilterChange(root); }, btnEl);
+        });
+      });
+    }
+
+    function openPopoverForSelectWithSearch(selectEl, title, onApply){
+    closeAnyPopover();
+    let left = window.innerWidth/2-120, top = window.innerHeight/2-100;
+    if (arguments.length > 3 && arguments[3]) {
+      const btnEl = arguments[3];
+      const rect = btnEl.getBoundingClientRect();
+      left = rect.left + window.scrollX;
+      top = rect.bottom + 8 + window.scrollY;
+    }
+    const pop = document.createElement('div');
+    pop.className = 'popover';
+    pop.style.left = `${left}px`;
+    pop.style.top = `${top}px`;
+    const header = document.createElement('div');
+    header.className = 'font-semibold mb-2 text-brand-700 text-base';
+    header.textContent = title;
+    pop.appendChild(header);
+    const search = document.createElement('input');
+    search.type = 'text';
+    search.className = 'popover-search text-base px-3 py-2 border border-brand-600 rounded-lg mb-2';
+    search.placeholder = 'Buscar...';
+    pop.appendChild(search);
+    const list = document.createElement('div');
+    list.className = 'popover-list';
+    pop.appendChild(list);
+    function renderList(){
+      list.innerHTML = '';
+      const q = search.value.toLowerCase();
+      [...selectEl.options].forEach((opt, idx)=>{
+        if(!opt.text.toLowerCase().includes(q)) return;
+        const row = document.createElement('label');
+        row.className = 'flex items-center gap-2 text-base font-medium px-2 py-1 rounded hover:bg-brand-100 cursor-pointer';
+        row.innerHTML = `<input type="checkbox" ${opt.selected?'checked':''} data-index="${idx}"> <span>${opt.text}</span>`;
+        list.appendChild(row);
+      });
+    }
+    search.addEventListener('input', renderList);
+    renderList();
+    const btns = document.createElement('div');
+    btns.className = 'popover-btns';
+    btns.innerHTML = `<button data-act="all" class="px-3 py-1 rounded bg-brand-600 text-white">Todo</button><button data-act="none" class="px-3 py-1 rounded bg-gray-200">Ninguno</button><button data-act="cancel" class="px-3 py-1 rounded bg-gray-200">Cancelar</button><button data-act="apply" class="px-3 py-1 rounded bg-brand-600 text-white">Aplicar</button>`;
+    pop.appendChild(btns);
+    btns.addEventListener('click', (ev)=>{
+      const act = ev.target?.dataset?.act;
+      if(act==='all'){
+        list.querySelectorAll('input[type="checkbox"]').forEach(c=> c.checked=true);
+      } else if(act==='none'){
+        list.querySelectorAll('input[type="checkbox"]').forEach(c=> c.checked=false);
+      } else if(act==='cancel'){
+        closeAnyPopover();
+      } else if(act==='apply'){
+        const checks = [...list.querySelectorAll('input[type="checkbox"]')];
+        checks.forEach(ch=>{
+          const idx = Number(ch.dataset.index);
+          selectEl.options[idx].selected = ch.checked;
+        });
+        closeAnyPopover();
+        onApply && onApply();
+      }
+    });
+    document.body.appendChild(pop);
+    // Guardar referencia global para poder eliminar el listener
+    window._popoverDocClose = function(e){
+      if(!pop.contains(e.target)) {
+        closeAnyPopover();
+        document.removeEventListener('click', window._popoverDocClose);
+        window._popoverDocClose = null;
+      }
+    };
+    setTimeout(()=> document.addEventListener('click', window._popoverDocClose), 0);
+}
+
+function closeAnyPopover(){
+  document.querySelectorAll('.popover').forEach(p=> p.remove());
+  // Eliminar el listener de cierre si existe
+  if(window._popoverDocClose) {
+    document.removeEventListener('click', window._popoverDocClose);
+    window._popoverDocClose = null;
+  }
+}
+
+    // Inicializa panel por defecto
+    renderPanels();
+  </script>
+</body>
+</html>
