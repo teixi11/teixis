@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LAR Web (Delfor → Forecast)</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; color: #1f2937; }
+    h1 { font-size: 20px; margin: 0 0 16px; }
+    fieldset { border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+    legend { padding: 0 6px; color: #374151; }
+    label { display: block; margin: 8px 0 4px; font-size: 13px; color: #374151; }
+    input[type="text"], input[type="file"] { width: 100%; max-width: 560px; }
+    input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+    .btn { background: #0ea5e9; border: 0; color: white; padding: 10px 14px; border-radius: 8px; cursor: pointer; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .muted { color: #6b7280; font-size: 12px; }
+    pre { background: #0b1020; color: #cbd5e1; padding: 10px; border-radius: 8px; height: 220px; overflow: auto; font-size: 12px; }
+  </style>
+
+</head>
+<body>
+  <h1>LAR Web — Normalizar Delfor y actualizar Forecast</h1>
+
+  <fieldset>
+    <legend>Entradas</legend>
+    <label>Delfor (CSV o XLSX)</label>
+    <input id="inpDelfor" type="file" accept=".csv,.xlsx" />
+
+    <label style="margin-top:12px">Forecast (XLSX)</label>
+    <input id="inpForecast" type="file" accept=".xlsx" />
+    <div class="muted">El Forecast original no se puede sobrescribir desde el navegador. Se descargará una copia actualizada.</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Opciones</legend>
+    <div class="row">
+      <div>
+        <label>Hoja destino en Forecast</label>
+        <input id="optSheetLast" type="text" value="Last LAR" />
+      </div>
+      <div>
+        <label>Rango máximo Delfor a copiar (última columna, letra)</label>
+        <input id="optMaxColCopy" type="text" value="BT" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Columnas letra para normalizar fechas (coma)</label>
+        <input id="optDateCols" type="text" value="AK,BT" />
+      </div>
+      <div>
+        <label>Nombres de columna de fecha (coma)</label>
+        <input id="optDateHeaders" type="text" value="Fecha de entrega,Fecha de entrega.1,Delivery Date" />
+      </div>
+    </div>
+    <div class="muted">La normalización cambia puntos por barras ("." → "/") en las columnas de fecha seleccionadas (desde fila 2). Para CSV se convierte a XLSX.</div>
+  </fieldset>
+
+  <div class="row">
+    <button id="btnRun" class="btn">Procesar</button>
+    <span id="status" class="muted"></span>
+  </div>
+
+  <h3>Log</h3>
+  <pre id="log"></pre>
+
+<script>
+const logEl = document.getElementById('log');
+const statusEl = document.getElementById('status');
+function log(msg){ const line = `[${new Date().toLocaleTimeString()}] ${msg}`; console.log(line); logEl.textContent += line + "\n"; logEl.scrollTop = logEl.scrollHeight; }
+function setStatus(s){ statusEl.textContent = s || ''; }
+
+// Garantizar que SheetJS (XLSX) está cargado, con fallback de CDNs alternativos
+async function ensureXLSX(){
+  if (window.XLSX) return;
+  const cdns = [
+    // Local copias (coloca el archivo junto al HTML o en /vendor)
+    './xlsx.full.min.js',
+    './vendor/xlsx.full.min.js',
+    // CDNs
+    'https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js',
+    'https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js'
+  ];
+  for (const url of cdns){
+    try{
+      await new Promise((resolve, reject)=>{
+        const s = document.createElement('script');
+        s.src = url; s.async = true; s.onload = ()=> resolve(); s.onerror = ()=> reject(new Error('load error'));
+        document.head.appendChild(s);
+      });
+      if (window.XLSX) return;
+    }catch(e){ /* siguiente CDN */ }
+  }
+  throw new Error('XLSX no está disponible. Revisa conexión o usa copia local.');
+}
+
+function colLetterToIndex(letter){
+  let n = 0; const s = String(letter||'').trim().toUpperCase();
+  for (let i=0;i<s.length;i++){ n = n*26 + (s.charCodeAt(i)-64); }
+  return n; // 1-based
+}
+function colIndexToLetter(n){
+  let s=''; let x=n; while (x>0){ const m=(x-1)%26; s = String.fromCharCode(65+m)+s; x = Math.floor((x-1)/26); } return s;
+}
+
+async function readFileAsArrayBuffer(file){
+  return new Promise((resolve, reject)=>{ const fr = new FileReader(); fr.onload = ()=> resolve(fr.result); fr.onerror = reject; fr.readAsArrayBuffer(file); });
+}
+async function readFileAsText(file){
+  return new Promise((resolve, reject)=>{ const fr = new FileReader(); fr.onload = ()=> resolve(fr.result); fr.onerror = reject; fr.readAsText(file); });
+}
+
+function cloneWorkbook(wb){ return JSON.parse(JSON.stringify(wb)); }
+
+function getWS(wb, idx=0){ const name = wb.SheetNames[idx]; return wb.Sheets[name]; }
+
+function wsRange(ws){ const ref = ws['!ref']; if(!ref) return null; return XLSX.utils.decode_range(ref); }
+
+function lastUsedRowInCol(ws, colLetter){
+  const c = colLetterToIndex(colLetter) - 1; const r = wsRange(ws); if (!r) return 0;
+  for (let row=r.e.r; row>=0; row--){ const addr = XLSX.utils.encode_cell({r: row, c}); if (ws[addr] && ws[addr].v !== undefined && ws[addr].v !== '') return row+1; }
+  return 0;
+}
+
+function ensureRange(ws, r){ ws['!ref'] = XLSX.utils.encode_range(r); }
+
+function clearRange(ws, c1, r1, c2, r2){
+  for (let R=r1; R<=r2; R++){
+    for (let C=c1; C<=c2; C++){
+      const addr = XLSX.utils.encode_cell({r:R,c:C});
+      if (ws[addr]) delete ws[addr];
+    }
+  }
+}
+
+function setCell(ws, r1based, c1based, val, type){
+  const r = r1based-1, c = c1based-1; const addr = XLSX.utils.encode_cell({r, c});
+  ws[addr] = ws[addr] || {};
+  if (type === 'f'){ ws[addr].f = String(val); delete ws[addr].v; delete ws[addr].t; }
+  else { ws[addr].v = val; if (type) ws[addr].t = type; }
+}
+
+function getCell(ws, r1based, c1based){
+  const r = r1based-1, c = c1based-1; const addr = XLSX.utils.encode_cell({r, c}); return ws[addr];
+}
+
+function detectHeaderCols(ws){
+  const r = wsRange(ws); if(!r) return {};
+  const headers = {}; for (let c=r.s.c; c<=r.e.c; c++){ const cell = ws[XLSX.utils.encode_cell({r: r.s.r, c})]; const v = cell && cell.v != null ? String(cell.v) : ''; headers[v] = c+1; }
+  return headers;
+}
+
+function normalizeDateCells(ws, letters, headerNames){
+  const r = wsRange(ws); if(!r) return;
+  const targets = new Set();
+  (letters||[]).forEach(l=>{if(l) targets.add(colLetterToIndex(l));});
+  const headers = detectHeaderCols(ws);
+  (headerNames||[]).forEach(name=>{ const idx = headers[name]; if (idx) targets.add(idx); });
+  if (targets.size === 0) return;
+  const startRow = r.s.r + 1; // fila 2
+  for (const c1based of targets){
+    for (let rr=startRow; rr<=r.e.r; rr++){
+      const addr = XLSX.utils.encode_cell({r: rr, c: c1based-1});
+      const cell = ws[addr];
+      if (!cell) continue;
+      if (typeof cell.v === 'string' && cell.v.includes('.')){
+        cell.v = cell.v.replaceAll('.', '/');
+        cell.t = 's';
+      }
+    }
+  }
+}
+
+function replicateFormulaForRow(formula, sourceRow, targetRow){
+  const re = /(\$?[A-Za-z]{1,3})(\$?)(\d{1,7})/g;
+  return String(formula).replace(re, (m, col, absRow, rowNum) => {
+    if (absRow === '$') return m; // fila absoluta
+    const n = parseInt(rowNum, 10);
+    return (n === sourceRow) ? (col + absRow + String(targetRow)) : m;
+  });
+}
+
+async function process(){
+  await ensureXLSX();
+  const delforFile = document.getElementById('inpDelfor').files[0];
+  const forecastFile = document.getElementById('inpForecast').files[0];
+  if (!delforFile || !forecastFile){ alert('Selecciona Delfor y Forecast'); return; }
+
+  const sheetLast = document.getElementById('optSheetLast').value.trim() || 'Last LAR';
+  const maxColCopy = document.getElementById('optMaxColCopy').value.trim() || 'BT';
+  const dateCols = (document.getElementById('optDateCols').value || '').split(',').map(s=>s.trim()).filter(Boolean);
+  const dateHeaders = (document.getElementById('optDateHeaders').value || '').split(',').map(s=>s.trim()).filter(Boolean);
+
+  try{
+    setStatus('Procesando…'); log('Iniciando proceso Web');
+
+    // 1) Leer Delfor y normalizar fechas; producir XLSX YYYYMMDD
+    const today = new Date();
+    const ymd = today.toISOString().slice(0,10).replaceAll('-','');
+    let delforWb;
+    if (/\.csv$/i.test(delforFile.name)){
+      const txt = await readFileAsText(delforFile);
+      log('Leyendo CSV Delfor');
+      const wb = XLSX.read(txt, { type: 'string' });
+      delforWb = wb;
+    } else {
+      const ab = await readFileAsArrayBuffer(delforFile);
+      log('Leyendo XLSX Delfor');
+      delforWb = XLSX.read(ab, { type: 'array' });
+    }
+    const delforWSName = delforWb.SheetNames[0];
+    const delforWS = delforWb.Sheets[delforWSName];
+    normalizeDateCells(delforWS, dateCols, dateHeaders);
+    const delforOutName = `${ymd}.xlsx`;
+    log(`Exportando Delfor normalizado como ${delforOutName}`);
+    XLSX.writeFile(delforWb, delforOutName);
+
+    // 2) Leer Forecast, actualizar "Last LAR"
+    const abForecast = await readFileAsArrayBuffer(forecastFile);
+    log('Leyendo Forecast XLSX');
+    const fw = XLSX.read(abForecast, { type: 'array' });
+    if (!fw.Sheets[sheetLast]){ alert(`No existe la hoja "${sheetLast}" en el Forecast`); return; }
+    const wsLast = fw.Sheets[sheetLast];
+
+    // last row previa en col B
+    const lastPrev = lastUsedRowInCol(wsLast, 'B');
+    log(`Última fila previa en ${sheetLast}: ${lastPrev}`);
+
+    // limpiar B2:BT{lastPrev}
+    const c1 = colLetterToIndex('B')-1; const c2 = colLetterToIndex('BT')-1;
+    if (lastPrev >= 2) clearRange(wsLast, c1, 1, c2, lastPrev-1);
+
+    // calcular filas delfor y copiar A2:BT{delfor_lr} → B2:.. en wsLast
+    const delforLR = lastUsedRowInCol(delforWS, 'A');
+    const maxColIdx = colLetterToIndex(maxColCopy);
+    log(`Última fila en Delfor: ${delforLR}`);
+
+    if (delforLR >= 2){
+      for (let R=2; R<=delforLR; R++){
+        for (let srcC=1; srcC<=maxColIdx; srcC++){
+          const dstC = srcC + 1; // desplazamiento 1 col a la derecha (A->B)
+          const srcAddr = XLSX.utils.encode_cell({r:R-1,c:srcC-1});
+          const cell = delforWS[srcAddr];
+          if (!cell) continue;
+          let t = cell.t || (typeof cell.v === 'number' ? 'n' : 's');
+          // evitar escribir objetos/fechas raras como tipo
+          if (t !== 'n' && t !== 's' && t !== 'd' && t !== 'b') t = 's';
+          setCell(wsLast, R, dstC, cell.v, t);
+        }
+      }
+    }
+
+    // nueva última fila en col B
+    const newLast = lastUsedRowInCol(wsLast, 'B');
+    log(`Última fila en ${sheetLast} tras pegar Delfor: ${newLast}`);
+
+    // arrastrar fórmulas de fila 2 a filas 3..newLast para columnas A y BU:CA
+    if (newLast > 2){
+      const fillCols = [];
+      // Col A
+      fillCols.push(colLetterToIndex('A'));
+      // Rango BU:CA
+      const bu = colLetterToIndex('BU');
+      const ca = colLetterToIndex('CA');
+      for (let c=bu; c<=ca; c++) fillCols.push(c);
+
+      for (const c1based of fillCols){
+        const src = getCell(wsLast, 2, c1based);
+        if (src && src.f){
+          for (let r=3; r<=newLast; r++){
+            const f = replicateFormulaForRow(src.f, 2, r);
+            setCell(wsLast, r, c1based, f, 'f');
+          }
+        }
+      }
+    }
+
+    // si newLast < lastPrev, limpiar sobrante B{newLast+1}:CA{lastPrev}
+    if (newLast < lastPrev){
+      const cStart = colLetterToIndex('B')-1;
+      const cEnd = colLetterToIndex('CA')-1;
+      if (newLast+1 <= lastPrev) clearRange(wsLast, cStart, newLast, cEnd, lastPrev-1);
+      log(`Limpieza de sobrante B${newLast+1}:CA${lastPrev}`);
+    }
+
+    // refrescar ref del sheet por si expandimos
+    const r = wsRange(wsLast) || { s: {r:0,c:0}, e: {r:0,c:0} };
+    r.e.r = Math.max(r.e.r, newLast-1);
+    r.e.c = Math.max(r.e.c, colLetterToIndex('CA')-1);
+    ensureRange(wsLast, r);
+
+    // Guardar forecast actualizado (descarga)
+    const outName = forecastFile.name.replace(/\.xlsx$/i, '') + ' - actualizado.xlsx';
+    log(`Guardando Forecast actualizado: ${outName}`);
+    XLSX.writeFile(fw, outName);
+
+    log('✅ Proceso completado (Web).');
+    setStatus('Listo');
+  } catch (e){
+    console.error(e);
+    log('❌ Error: ' + e.message);
+    setStatus('Error');
+    alert('Error: ' + e.message);
+  }
+}
+
+document.getElementById('btnRun').addEventListener('click', process);
+</script>
+</body>
+</html>
