@@ -1,0 +1,367 @@
+﻿<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+  <meta charset="UTF-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Dashboard Excel – Buscar por Columna A</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+</head>
+
+<body class="min-h-screen bg-slate-50 text-slate-900">
+
+  <div class="max-w-6xl mx-auto p-6">
+
+    <header class="mb-6 flex items-center justify-between">
+
+      <h1 class="text-2xl font-bold">Dashboard Excel → Buscar por Columna A</h1>
+
+      <a href="#" class="text-sm text-slate-500 hover:text-slate-700" id="metaInfo"></a>
+
+    </header>
+
+
+
+    <!-- Cargador de archivo -->
+
+    <div class="bg-white rounded-2xl shadow p-6 mb-6">
+
+      <div class="flex flex-col md:flex-row items-center gap-4">
+
+        <label class="shrink-0 font-medium">Cargar Excel (.xlsx/.xls/.csv)</label>
+
+        <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" class="file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 cursor-pointer w-full md:w-auto" />
+
+        <div class="text-sm text-slate-500" id="summary">Sin datos cargados.</div>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- Buscador -->
+
+    <div class="bg-white rounded-2xl shadow p-6 mb-6 hidden" id="searchCard">
+
+      <div class="grid md:grid-cols-2 gap-4 items-end">
+
+        <div>
+
+          <label for="search" class="block text-sm font-medium mb-1">Buscar por <span class="font-semibold">columna A</span> (e.g., 000238)</label>
+
+          <input id="search" type="text" placeholder="Escribe un valor de la columna A…" class="w-full rounded-xl border border-slate-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+
+        </div>
+
+        <div class="flex gap-3">
+
+          <button id="btnExact" class="px-4 py-2 rounded-xl bg-emerald-600 text-white font-medium shadow hover:bg-emerald-700">Búsqueda exacta</button>
+
+          <button id="btnParcial" class="px-4 py-2 rounded-xl bg-slate-200 text-slate-800 font-medium hover:bg-slate-300">Coincidencia parcial</button>
+
+          <button id="btnLimpiar" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100">Limpiar</button>
+
+        </div>
+
+      </div>
+
+      <p class="mt-3 text-sm text-slate-500" id="colAName"></p>
+
+    </div>
+
+
+
+    <!-- Resultados -->
+
+    <div class="bg-white rounded-2xl shadow overflow-hidden hidden" id="resultsCard">
+
+      <div class="p-4 flex items-center justify-between border-b border-slate-100">
+
+        <h2 class="font-semibold">Resultados</h2>
+
+        <button id="btnExport" class="text-sm px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Exportar resultados (CSV)</button>
+
+      </div>
+
+      <div class="overflow-x-auto">
+
+        <table class="min-w-full text-sm" id="resultsTable">
+
+          <thead class="bg-slate-50" id="thead"></thead>
+
+          <tbody id="tbody"></tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- Mensajes -->
+
+    <p id="helper" class="text-center text-slate-500 mt-8">Sube un Excel para empezar.</p>
+
+  </div>
+
+
+
+  <script>
+
+    // Estado
+
+    let allRows = []; // Array de objetos por fila
+
+    let headers = []; // Encabezados detectados
+
+    let headerA = 'A'; // Nombre de la columna A (encabezado real)
+
+
+
+    const $ = (id) => document.getElementById(id);
+
+
+
+    // Utilidad: descarga CSV
+
+    function download(filename, text) {
+
+      const element = document.createElement('a');
+
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+
+      element.setAttribute('download', filename);
+
+      element.style.display = 'none';
+
+      document.body.appendChild(element);
+
+      element.click();
+
+      document.body.removeChild(element);
+
+    }
+
+
+
+    // Leer archivo
+
+    $('fileInput').addEventListener('change', async (e) => {
+
+      const file = e.target.files?.[0];
+
+      if (!file) return;
+
+
+
+      const reader = new FileReader();
+
+      reader.onload = (evt) => {
+
+        const data = new Uint8Array(evt.target.result);
+
+        const workbook = XLSX.read(data, { type: 'array' });
+
+
+
+        const sheetName = workbook.SheetNames[0];
+
+        const ws = workbook.Sheets[sheetName];
+
+
+
+        // Convertimos a JSON usando la primera fila como headers
+
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
+
+        allRows = json;
+
+        headers = Object.keys(json[0] || {});
+
+
+
+        // Detectar el header de la columna A (primer encabezado)
+
+        headerA = headers[0] || 'A';
+
+
+
+        $('summary').textContent = `${file.name} • Hoja: ${sheetName} • ${allRows.length} filas`;
+
+        $('metaInfo').textContent = 'Encabezados: ' + headers.join(' | ');
+
+        $('colAName').textContent = `Buscando por la columna A detectada: “${headerA}”.`;
+
+
+
+        $('searchCard').classList.remove('hidden');
+
+        $('helper').classList.add('hidden');
+
+
+
+        // Limpiar resultados previos
+
+        renderResults([]);
+
+      };
+
+      reader.readAsArrayBuffer(file);
+
+    });
+
+
+
+    // Buscar exacto / parcial
+
+    function searchRows(query, exact = true) {
+
+      if (!query) return [];
+
+      const q = String(query).trim();
+
+      if (!q) return [];
+
+
+
+      return allRows.filter((row) => {
+
+        const val = String(row[headerA] ?? '').trim();
+
+        if (exact) return val === q;
+
+        return val.toLowerCase().includes(q.toLowerCase());
+
+      });
+
+    }
+
+
+
+    // Renderizado de resultados (excluyendo columna A)
+
+    function renderResults(rows) {
+
+      const resultsCard = $('resultsCard');
+
+      if (!rows || rows.length === 0) {
+
+        resultsCard.classList.add('hidden');
+
+        return;
+
+      }
+
+
+
+      // Cabecera: todas las columnas excepto la A
+
+      const otherHeaders = headers.slice(1);
+
+      $('thead').innerHTML = `<tr>${otherHeaders.map(h => `<th class='text-left font-medium px-4 py-2'>${_.escape(h)}</th>`).join('')}</tr>`;
+
+
+
+      // Filas
+
+      $('tbody').innerHTML = rows.map((row) => {
+
+        return `<tr class='odd:bg-white even:bg-slate-50'>${otherHeaders.map(h => `<td class='px-4 py-2 border-t border-slate-100'>${_.escape(String(row[h] ?? ''))}</td>`).join('')}</tr>`;
+
+      }).join('');
+
+
+
+      resultsCard.classList.remove('hidden');
+
+    }
+
+
+
+    // Controles de búsqueda
+
+    $('btnExact').addEventListener('click', () => {
+
+      const q = $('search').value;
+
+      const res = searchRows(q, true);
+
+      renderResults(res);
+
+    });
+
+
+
+    $('btnParcial').addEventListener('click', () => {
+
+      const q = $('search').value;
+
+      const res = searchRows(q, false);
+
+      renderResults(res);
+
+    });
+
+
+
+    $('btnLimpiar').addEventListener('click', () => {
+
+      $('search').value = '';
+
+      renderResults([]);
+
+    });
+
+
+
+    // Enter → búsqueda exacta
+
+    $('search').addEventListener('keydown', (e) => {
+
+      if (e.key === 'Enter') $('btnExact').click();
+
+    });
+
+
+
+    // Exportar resultados
+
+    $('btnExport').addEventListener('click', () => {
+
+      const bodyRows = Array.from($('tbody').querySelectorAll('tr'));
+
+      if (bodyRows.length === 0) return;
+
+      const otherHeaders = headers.slice(1);
+
+      const csvRows = [otherHeaders.join(',')];
+
+      bodyRows.forEach(tr => {
+
+        const cols = Array.from(tr.children).map(td => '"' + td.textContent.replaceAll('"', '""') + '"');
+
+        csvRows.push(cols.join(','));
+
+      });
+
+      download('resultados.csv', csvRows.join('\n'));
+
+    });
+
+  </script>
+
+</body>
+
+</html>
