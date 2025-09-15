@@ -170,6 +170,7 @@
           </label>
           <button id="exportPDF" class="px-3 py-2 btn-gradient">PDF</button>
           <button id="exportCSV" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">CSV</button>
+          <button id="openMatrix" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Matriz</button>
           <button id="exportMCIExcel" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Exportar Excel MCI</button>
           <label class="ml-3 inline-flex items-center gap-2 text-sm">
             <span>Oscuro</span>
@@ -299,6 +300,34 @@
       <button id="closeTop5" class="absolute top-4 right-4 text-2xl font-bold text-gray-500 hover:text-red-600">&times;</button>
       <h2 class="text-2xl font-bold mb-6 text-center">Top 5 piezas más pedidas</h2>
       <div id="top5List" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
+    </div>
+  </div>
+
+  <!-- Modal Matriz (pantalla completa) -->
+  <div id="matrixModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black bg-opacity-60"></div>
+    <div class="absolute inset-2 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-300 dark:border-gray-700 flex flex-col">
+      <div class="p-3 flex items-center gap-3 border-b border-gray-200 dark:border-gray-800">
+        <div class="text-lg font-bold">Matriz referencias × clientes</div>
+        <div class="segmented ml-4" id="matrixMode">
+          <button data-mode="table" class="is-active">Tabla</button>
+          <button data-mode="bubbles">Burbujas</button>
+        </div>
+        <div class="ml-auto flex items-center gap-2">
+          <button id="closeMatrix" class="px-3 py-1 rounded bg-red-600 text-white">Cerrar</button>
+        </div>
+      </div>
+      <div class="p-2" style="height: calc(100% - 56px);">
+        <div id="matrixTableWrap" class="overflow-auto w-full h-full">
+          <table id="matrixTable" class="min-w-full text-sm">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="matrixChartWrap" class="w-full h-full hidden">
+          <canvas id="matrixChartCanvas" style="width:100%;height:100%"></canvas>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -458,6 +487,285 @@
       URL.revokeObjectURL(url);
     });
     const esc = s => ('"'+String(s).replace(/"/g,'""')+'"' );
+
+    // ---------- Matriz: abrir/cerrar ----------
+    document.querySelector('#openMatrix').addEventListener('click', ()=>{
+      buildAndShowMatrix();
+    });
+    document.getElementById('closeMatrix').addEventListener('click', ()=>{
+      document.getElementById('matrixModal').classList.add('hidden');
+    });
+
+    let _matrixChartInstance = null;
+    const CLIENT_LOGOS = {
+      // Map client name to image URL. Fill with your logos.
+      // 'VW': 'imgs/logos/vw.png',
+      // 'AUDI': 'imgs/logos/audi.png',
+      // 'BMW': 'imgs/logos/bmw.png',
+      // 'SEAT': 'imgs/logos/seat.png',
+      // 'FORD': 'imgs/logos/ford.png',
+      // 'MERCEDES': 'imgs/logos/mercedes.png',
+      // 'MCI': 'imgs/logos/mci.png'
+    };
+    const _logoCache = new Map();
+    function getClientLogo(name){
+      const key = String(name||'');
+      if (_logoCache.has(key)) return _logoCache.get(key);
+      const url = CLIENT_LOGOS[key];
+      if (!url) { _logoCache.set(key, null); return null; }
+      const img = new Image();
+      img.src = url;
+      _logoCache.set(key, img);
+      return img;
+    }
+
+    function buildAndShowMatrix(){
+      const modal = document.getElementById('matrixModal');
+      const data = computeMatrixData();
+      renderMatrixTable(data);
+      renderMatrixBubbles(data); // prepared but hidden by default
+      // default to table view
+      document.getElementById('matrixTableWrap').classList.remove('hidden');
+      document.getElementById('matrixChartWrap').classList.add('hidden');
+      const mode = document.getElementById('matrixMode');
+      if (mode) {
+        mode.querySelectorAll('button').forEach(b=> b.classList.remove('is-active'));
+        mode.querySelector('[data-mode="table"]').classList.add('is-active');
+      }
+      modal.classList.remove('hidden');
+    }
+
+    // Cambiar modo Matriz
+    document.getElementById('matrixMode').addEventListener('click', (e)=>{
+      const btn = e.target.closest('button'); if(!btn) return;
+      const mode = btn.dataset.mode;
+      btn.parentElement.querySelectorAll('button').forEach(b=> b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      if (mode === 'bubbles'){
+        document.getElementById('matrixTableWrap').classList.add('hidden');
+        document.getElementById('matrixChartWrap').classList.remove('hidden');
+        // Ensure chart resized
+        if (_matrixChartInstance) { _matrixChartInstance.resize(); }
+      } else {
+        document.getElementById('matrixChartWrap').classList.add('hidden');
+        document.getElementById('matrixTableWrap').classList.remove('hidden');
+      }
+    });
+
+    function computeMatrixData(){
+      // Recolectar datos de todas las fuentes (rows, rows2, mciRows)
+      const all = [];
+      const pushRows = (arr, clientLabel) => {
+        arr.forEach(r=>{
+          const ref = r.refCli || r.refTeix || r.ref || '';
+          if(!ref) return;
+          const cli = clientLabel || inferClientLabel(r.cliente);
+          const qty = Number(r.qty)||0;
+          if(!cli || qty===0) return;
+          all.push({ref, cli, qty});
+        });
+      };
+      pushRows(state.rows, null);
+      pushRows(state.rows2, null);
+      pushRows(state.mciRows, 'MCI');
+
+      // Conjuntos
+      let refs = Array.from(new Set(all.map(x=>x.ref))).sort();
+      const clients = Array.from(new Set(all.map(x=>x.cli))).sort();
+
+      // Mapa ref->cli->qty acumulado
+      const map = new Map();
+      const totals = new Map();
+      all.forEach(({ref,cli,qty})=>{
+        if(!map.has(ref)) map.set(ref, new Map());
+        const row = map.get(ref);
+        row.set(cli, (row.get(cli)||0) + qty);
+        totals.set(ref, (totals.get(ref)||0) + qty);
+      });
+
+      // Limitar refs si hay demasiadas (p. ej. top 120 por total)
+      const MAX_REFS = 120;
+      if (refs.length > MAX_REFS) {
+        refs = refs.sort((a,b)=> (totals.get(b)||0) - (totals.get(a)||0)).slice(0, MAX_REFS);
+      }
+
+      // Máximo para escalado de burbujas
+      let maxQty = 0;
+      refs.forEach(ref=>{
+        const row = map.get(ref)||new Map();
+        clients.forEach(c=>{ maxQty = Math.max(maxQty, row.get(c)||0); });
+      });
+
+      return { refs, clients, map, maxQty };
+    }
+
+    function renderMatrixTable({refs, clients, map}){
+      const modal = document.getElementById('matrixModal');
+      const thead = modal.querySelector('#matrixTable thead');
+      const tbody = modal.querySelector('#matrixTable tbody');
+      thead.innerHTML = ''; tbody.innerHTML = '';
+      const trh = document.createElement('tr');
+      trh.innerHTML = `<th class="px-2 py-1 text-left sticky left-0 bg-white dark:bg-gray-900">Ref</th>` +
+        clients.map(c=>`<th class="px-2 py-1 text-right">${c}</th>`).join('') +
+        `<th class="px-2 py-1 text-right">Total</th>`;
+      thead.appendChild(trh);
+      refs.forEach(ref=>{
+        const rowMap = map.get(ref) || new Map();
+        let total = 0;
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.className = 'px-2 py-1 text-left sticky left-0 bg-white dark:bg-gray-900';
+        th.textContent = ref;
+        tr.appendChild(th);
+        clients.forEach(c=>{
+          const v = rowMap.get(c)||0; total += v;
+          const td = document.createElement('td');
+          td.className = 'px-2 py-1 text-right';
+          td.textContent = v ? fmt.format(v) : '—';
+          tr.appendChild(td);
+        });
+        const tdT = document.createElement('td');
+        tdT.className = 'px-2 py-1 text-right font-semibold';
+        tdT.textContent = fmt.format(total);
+        tr.appendChild(tdT);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderMatrixBubbles({refs, clients, map, maxQty}){
+      const wrap = document.getElementById('matrixChartWrap');
+      const canvas = document.getElementById('matrixChartCanvas');
+      if (_matrixChartInstance) { _matrixChartInstance.destroy(); _matrixChartInstance = null; }
+      // Construir puntos: x=cantidad, y=cliente index, etiqueta=referencia
+      const points = [];
+      let maxX = 0;
+      clients.forEach((cli, yi)=>{
+        refs.forEach((ref)=>{
+          const v = (map.get(ref)||new Map()).get(cli)||0;
+          if (v>0) {
+            maxX = Math.max(maxX, v);
+            points.push({x: v, y: yi, ref, cli});
+          }
+        });
+      });
+      // Radio fijo moderado; la cantidad ya está en X
+  const pointR = 12;
+      const data = points.map(p=> ({x:p.x, y:p.y, r: pointR, ref: p.ref, cli: p.cli}));
+
+      // Plugin: logos en eje Y y etiquetas de referencia en burbujas
+      const logoTickPlugin = {
+        id: 'clientLogoTicks',
+        afterDraw(chart){
+          const {ctx, chartArea, scales:{y}} = chart;
+          if (!y) return;
+          const tickPositions = y.ticks.map((t,i)=>({y: y.getPixelForTick(i), label: y.ticks[i].label}));
+          tickPositions.forEach((tp, i)=>{
+            const cli = y.getLabelForValue(i) || (chart?.config?._config?.options?.scales?.y?.labels?.[i]) || '';
+            const name = clients[i] || cli || '';
+            const img = getClientLogo(name);
+            const size = 22;
+            ctx.save();
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            if (img && img.complete) {
+              const x = chartArea.left - 8 - size;
+              const ypix = tp.y;
+              ctx.drawImage(img, x, ypix - size/2, size, size);
+            } else {
+              ctx.fillStyle = '#666';
+              ctx.font = '12px sans-serif';
+              ctx.fillText(name, chartArea.left - 10, tp.y);
+            }
+            ctx.restore();
+          });
+        },
+        afterDatasetsDraw(chart){
+          const {ctx} = chart;
+          ctx.save();
+          ctx.font = '11px sans-serif';
+          ctx.textBaseline = 'middle';
+          ctx.textAlign = 'center';
+          const meta = chart.getDatasetMeta(0);
+          meta.data.forEach((el, idx)=>{
+            const d = chart.data.datasets[0].data[idx];
+            const {x,y} = el.getProps(['x','y'], true);
+            const label = d.ref || '';
+            const metrics = ctx.measureText(label);
+            const fitsInside = metrics.width <= (d.r*2 - 6);
+            if (fitsInside){
+              ctx.fillStyle = '#fff';
+              ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+              ctx.lineWidth = 3;
+              ctx.strokeText(label, x, y);
+              ctx.fillText(label, x, y);
+            } else {
+              ctx.fillStyle = '#111';
+              ctx.fillText(label, x + d.r + 8, y);
+            }
+          });
+          ctx.restore();
+        }
+      };
+
+      const ctx = canvas.getContext('2d');
+      _matrixChartInstance = new Chart(ctx, {
+        type: 'bubble',
+        data: { datasets: [{
+          label: 'Cantidad',
+          data,
+          backgroundColor: 'rgba(0,113,188,0.45)',
+          borderColor: 'rgba(0,0,0,0.12)',
+          borderWidth: 1,
+        }]},
+        options: {
+          parsing: false,
+          animation: { duration: 250 },
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              type: 'linear',
+              min: 0,
+              suggestedMax: maxX * 1.1 || 10,
+              grid: { display: true },
+              title: { display: true, text: 'Cantidad' }
+            },
+            y: {
+              type: 'linear',
+              min: -0.5, max: clients.length-0.5,
+              ticks: { stepSize: 1, display: false },
+              grid: { display: false },
+              title: { display: true, text: 'Cliente' }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: (items)=>{
+                  const p = items[0];
+                  const d = p.raw; // has ref and cli
+                  return `${d.ref} × ${d.cli}`;
+                },
+                label: (p)=> `Cantidad: ${fmt.format(p.raw.x)}`
+              }
+            }
+          }
+        },
+        plugins: [logoTickPlugin]
+      });
+    }
+
+    function inferClientLabel(raw){
+      // Normaliza nombre del cliente según aliases ya usados
+      if(!raw) return '';
+      const s = norm(raw);
+      for(const k of Object.keys(CLIENT_ALIASES)){
+        const aliases = (CLIENT_ALIASES[k]||[k]);
+        if (aliases.some(a=> s.includes(a))) return k.charAt(0).toUpperCase()+k.slice(1);
+      }
+      return raw;
+    }
 
     // Exportar Excel MCI (6 columnas)
   document.querySelector('#exportMCIExcel').addEventListener('click', ()=>{
