@@ -37,9 +37,9 @@
       border-radius: 999px;
       border: none;
       box-shadow: 0 2px 8px rgba(0,113,188,.10);
-      padding: .45em 1.2em;
+      padding: .30em .9em;
       margin-left: 1em;
-      font-size: 1rem;
+      font-size: .95rem;
       cursor: pointer;
       transition: background .2s;
     }
@@ -85,8 +85,8 @@
       border-radius: 999px;
       border: none;
       box-shadow: 0 2px 8px rgba(37,99,235,.10);
-      padding: .45em 1.2em;
-      font-size: 1rem;
+      padding: .30em .9em;
+      font-size: .95rem;
       cursor: pointer;
       transition: background .2s, transform .18s;
     }
@@ -120,6 +120,8 @@
     .toast .toast-close {
       background: none; border: none; color: #fff; font-size: 1.1em; cursor: pointer; margin-left: auto;
     }
+    /* Mantener los botones en una línea (con scroll si falta ancho) */
+    .filters-row { flex-wrap: nowrap; overflow-x: auto; gap: .5rem; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
@@ -141,7 +143,7 @@
     <header class="sticky top-0 z-40 backdrop-blur bg-white/70 dark:bg-gray-950/70 border-b border-gray-200 dark:border-gray-800">
       <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-6">
         <!-- Logo Teixidó apaisado grande -->
-        <img src="teixido.jpg" onerror="this.onerror=null;this.src='teixido.png'" alt="Teixidó" style="height:56px; width:auto; max-width:220px; object-fit:contain; border-radius:1rem; box-shadow:0 4px 24px rgba(22,163,74,.12); background:#fff;" />
+  <img src="teixido.jpg" onerror="this.onerror=null;this.src='teixido.png'" alt="Teixidó" style="height:72px; width:auto; max-width:260px; object-fit:contain; border-radius:1rem; background:#fff;" />
         <div class="flex items-center gap-2 ml-6">
           <div class="text-sm text-gray-500">Archivo:</div>
           <div id="fileBadge" class="text-sm px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800">ninguno</div>
@@ -149,14 +151,18 @@
         <div class="ml-auto flex items-center gap-2">
           <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient">
             <input id="fileInput" type="file" accept=".xlsx,.xls" class="hidden">
-            <span>Subir Excel 1</span>
+            <span>LAST</span>
           </label>
           <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient">
             <input id="fileInput2" type="file" accept=".xlsx,.xls" class="hidden">
-            <span>Subir Excel 2</span>
+            <span>OLD</span>
           </label>
-          <button id="exportPDF" class="px-3 py-2 btn-gradient">Exportar PDF</button>
-          <button id="exportCSV" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Exportar CSV</button>
+          <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient">
+            <input id="fileMci" type="file" accept=".xlsx,.xls" class="hidden">
+            <span>Excel MCI</span>
+          </label>
+          <button id="exportPDF" class="px-3 py-2 btn-gradient">PDF</button>
+          <button id="exportCSV" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">CSV</button>
           <label class="ml-3 inline-flex items-center gap-2 text-sm">
             <span>Oscuro</span>
             <input id="darkToggle" type="checkbox">
@@ -164,6 +170,7 @@
           <button id="logoutBtn" class="ml-4 px-3 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700">Cerrar sesión</button>
         </div>
       </div>
+
     </header>
 
     <main class="max-w-7xl mx-auto px-4 py-6">
@@ -172,6 +179,7 @@
         <button class="clientTab px-3 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 font-medium" data-client="Vitesco" data-client-tab>VITESCO</button>
         <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Continental" data-client-tab>CONTINENTAL</button>
         <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Bosch" data-client-tab>BOSCH</button>
+        <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="MCI" data-client-tab>MCI</button>
       </div>
       <!-- Per-client panels -->
       <section id="panels" class="mt-4 space-y-8"></section>
@@ -187,13 +195,13 @@
           <div class="flex-1 min-w-0 flex items-center gap-5">
             <div class="w-full flex flex-col items-center justify-center">
               <div style="display: flex; justify-content: center; align-items: center; height: 160px;">
-                <img data-client-logo class="object-contain bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-800" style="width:220px;height:90px;" src="" alt="Logo" />
+                <img data-client-logo class="object-contain bg-white dark:bg-gray-800" style="width:260px;height:110px;" src="" alt="Logo" />
               </div>
               <div class="text-4xl font-extrabold tracking-wide text-center mt-1" data-client-name>CLIENTE</div>
             </div>
           </div>
           <div class="flex-1 min-w-0">
-            <div class="flex flex-row gap-4 items-center justify-center mt-2">
+            <div class="filters-row flex flex-row gap-4 items-center justify-center mt-2">
               <button class="filter-btn-year btn-gradient px-4 py-2 rounded-xl font-semibold text-base shadow transition">Año</button>
               <button class="filter-btn-month btn-gradient px-4 py-2 rounded-xl font-semibold text-base shadow transition">Mes</button>
               <button class="filter-btn-ref btn-gradient px-4 py-2 rounded-xl font-semibold text-base shadow transition">Referencia</button>
@@ -326,14 +334,15 @@
     const state = {
       rows: [], // Excel 1
       rows2: [], // Excel 2
+      mciRows: [], // Excel MCI
       mapCliToTeix: new Map(), // A->B (Hoja2)
       mapTeixToCli: new Map(),
       charts: new Map(), // client -> Chart instance
       currentClient: 'Vitesco'
     };
 
-    const CLIENTS = ['Vitesco','Continental','Bosch'];
-    const LOGO_MAP = { Vitesco:'VT.jpg', Continental:'CONTINENTAL.jpg', Bosch:'BOSCH.jpg' };
+  const CLIENTS = ['Vitesco','Continental','Bosch','MCI'];
+  const LOGO_MAP = { Vitesco:'VT.jpg', Continental:'CONTINENTAL.jpg', Bosch:'BOSCH.jpg', MCI:'MCI.jpg' };
     const LOGO_BASE = './logos/';
     const fmt = new Intl.NumberFormat('es-ES');
 
@@ -373,7 +382,8 @@
     const CLIENT_ALIASES = {
       vitesco: ['vt'],
       continental: ['aumov'],
-      bosch: ['bosch','uaes']
+      bosch: ['bosch','uaes'],
+      mci: ['mci']
     };
     const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
     function matchesClient(cellValue, tabName){
@@ -409,6 +419,10 @@
     });
     document.querySelector('#fileInput2').addEventListener('change', e=>{
       const f = e.target.files?.[0]; if(f) loadExcel(f, 2);
+    });
+    // Excel MCI (formato específico)
+    document.querySelector('#fileMci').addEventListener('change', e=>{
+      const f = e.target.files?.[0]; if(f) loadMciExcel(f);
     });
 
     // ---------- Export ----------
@@ -448,7 +462,9 @@
       const selMonth = tpl.querySelector('.filter-month');
       const selRef = tpl.querySelector('.filter-ref');
 
-      const rowsC = state.rows.filter(r=> matchesClient(r.cliente, state.currentClient));
+      const rowsC = (state.currentClient==='MCI')
+        ? state.mciRows.slice()
+        : state.rows.filter(r=> matchesClient(r.cliente, state.currentClient));
 
       const years = [...new Set(rowsC.map(r=> r.anio).filter(Boolean))].sort((a,b)=>a-b);
       selYear.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
@@ -459,10 +475,11 @@
       rowsC.forEach(r=>{
         if(r.refCli) refSet.add('CLI:'+r.refCli);
         if(r.refTeix) refSet.add('TEI:'+r.refTeix);
+        if(state.currentClient==='MCI' && r.ref) refSet.add('MCI:'+r.ref);
       });
       selRef.innerHTML = [...refSet].sort().map(tag=>{
         const [type,val] = tag.split(':');
-        const label = (type==='CLI'?'[CLI] ':'') + val;
+        const label = (type==='CLI'?'[CLI] ': type==='TEI'?'[TEI] ':'[MCI] ') + val;
         return `<option value="${val}">${label}</option>`;
       }).join('');
 
@@ -499,23 +516,25 @@
 
       panels.appendChild(tpl);
 
-      const btnLimpiar = root.querySelector('#btnLimpiarFiltros');
+      const rootEl = panels.querySelector('.clientPanel');
+
+      const btnLimpiar = rootEl.querySelector('#btnLimpiarFiltros');
       if (btnLimpiar) {
         btnLimpiar.onclick = function() {
-          root.querySelectorAll('.filter-year, .filter-month, .filter-ref, .filter-planta').forEach(sel => {
+          rootEl.querySelectorAll('.filter-year, .filter-month, .filter-ref, .filter-planta').forEach(sel => {
             Array.from(sel.options).forEach(opt => opt.selected = false);
           });
-          updateKPIs(root);
-          drawChart(state.currentClient, root);
-          drawSummaryTable(state.currentClient, root);
+          updateKPIs(rootEl);
+          drawChart(state.currentClient, rootEl);
+          drawSummaryTable(state.currentClient, rootEl);
         };
       }
 
-      enhanceForTouch(root);
+      enhanceForTouch(rootEl);
 
-      updateKPIs(root);
-      drawChart(state.currentClient, root);
-      drawSummaryTable(state.currentClient, root);
+      updateKPIs(rootEl);
+      drawChart(state.currentClient, rootEl);
+      drawSummaryTable(state.currentClient, rootEl);
     }
 
     function onFilterChange(root){
@@ -523,6 +542,8 @@
       drawChart(state.currentClient, root);
       drawSummaryTable(state.currentClient, root);
     }
+
+    // (Eliminado: etiquetas MCI)
 
     function getMultiSelectValues(selectEl){
       return Array.from(selectEl.selectedOptions || []).map(o=> o.value);
@@ -540,15 +561,20 @@
     }
 
     function getFilteredRows(client, root, which=1){
-      const base = (which===2 ? state.rows2 : state.rows).filter(r=> matchesClient(r.cliente, client));
+      let base = [];
+      if (client==='MCI' || which==='MCI') {
+        base = state.mciRows.slice();
+      } else {
+        base = (which===2 ? state.rows2 : state.rows).filter(r=> matchesClient(r.cliente, client));
+      }
       if(!root) return base;
       const {years, months, refs, plantas} = getFilters(root);
       return base.filter(r=>{
         if(years.length && !years.includes(Number(r.anio))) return false;
         if(months.length && !months.includes(Number(r.mes))) return false;
         if(refs.length){
-          const rc = (r.refCli||''); const rt = (r.refTeix||'');
-          const hit = refs.includes(rc) || refs.includes(rt);
+          const rc = (r.refCli||''); const rt = (r.refTeix||''); const rm = (r.ref||'');
+          const hit = refs.includes(rc) || refs.includes(rt) || refs.includes(rm);
           if(!hit) return false;
         }
         if(plantas.length && !plantas.includes(r.planta)) return false;
@@ -557,9 +583,9 @@
     }
 
     function updateKPIs(root){
-      const rows = getFilteredRows(state.currentClient, root);
+      const rows = getFilteredRows(state.currentClient, root, (state.currentClient==='MCI' ? 'MCI' : 1));
       const qty = rows.reduce((s,r)=> s + (Number(r.qty)||0), 0);
-      const refsSet = new Set(rows.map(r=> r.refCli||r.refTeix||''));
+      const refsSet = new Set(rows.map(r=> r.refCli||r.refTeix||r.ref||''));
       const plantasSet = new Set(rows.map(r=> r.planta||''));
       root.querySelector('[data-kpi-cantidad]').textContent = fmt.format(qty);
       root.querySelector('[data-kpi-rows]').textContent = fmt.format(rows.length);
@@ -594,8 +620,8 @@
       root = root || document.querySelector(`.clientPanel[data-client="${client}"]`);
       const canvas = root.querySelector('.mainChart');
       const ctx = canvas.getContext('2d');
-      const rows1 = getFilteredRows(client, root, 1);
-      const rows2 = getFilteredRows(client, root, 2);
+      const rows1 = getFilteredRows(client, root, (client==='MCI' ? 'MCI' : 1));
+      const rows2 = (client==='MCI') ? [] : getFilteredRows(client, root, 2);
       const {groupBy} = getFilters(root);
 
       const keyFn = {
@@ -629,16 +655,16 @@
       const datasets = [];
       if (rows1.length) {
         datasets.push({
-          label: `LAST · ${client} · ${groupBy}`,
+          label: `${client==='MCI'?'MCI':'LAST'} · ${client} · ${groupBy}`,
           data: data1,
           fill: true,
           tension: .25,
           borderColor: 'rgba(0,0,0,0.08)',
-          backgroundColor: 'rgba(0,113,188,0.45)',
+          backgroundColor: client==='MCI' ? 'rgba(99,102,241,0.45)' : 'rgba(0,113,188,0.45)',
           borderWidth: 1,
           pointRadius: 0,
           pointHoverRadius: 4,
-          pointBackgroundColor: '#0071bc'
+          pointBackgroundColor: client==='MCI' ? '#6366f1' : '#0071bc'
         });
       }
       if (rows2.length) {
@@ -682,8 +708,8 @@
       root = root || document.querySelector(`.clientPanel[data-client="${client}"]`);
       const tbody = root.querySelector('.summaryTable tbody');
       tbody.innerHTML = '';
-      const rows1 = getFilteredRows(client, root, 1);
-      const rows2 = getFilteredRows(client, root, 2);
+      const rows1 = getFilteredRows(client, root, (client==='MCI' ? 'MCI' : 1));
+      const rows2 = (client==='MCI') ? [] : getFilteredRows(client, root, 2);
 
       if (!rows2.length) {
         const byYearMonth = new Map();
@@ -809,7 +835,7 @@
       }
     }
 
-    // ---------- Lectura Excel ----------
+  // ---------- Lectura Excel ----------
     async function loadExcel(file, which=1){
       if(which===1) document.querySelector('#fileBadge').textContent = file.name;
       const buf = await file.arrayBuffer();
@@ -909,6 +935,109 @@
         });
       }
       renderPanels();
+    }
+
+    // ---------- Lectura Excel MCI (robusta por cabeceras + fallback posicional) ----------
+    async function loadMciExcel(file){
+      try{
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        if(!ws || !ws['!ref']) throw new Error('Hoja vacía o inválida');
+        const range = XLSX.utils.decode_range(ws['!ref']);
+
+        const normH = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[\s\.:]/g,'').trim();
+        const monthMap = {
+          'ene':1,'enero':1,'jan':1,'january':1,
+          'feb':2,'febrero':2,'february':2,
+          'mar':3,'marzo':3,'march':3,
+          'abr':4,'abril':4,'apr':4,'april':4,
+          'may':5,'mayo':5,
+          'jun':6,'junio':6,'june':6,
+          'jul':7,'julio':7,'july':7,
+          'ago':8,'agosto':8,'aug':8,'august':8,
+          'sep':9,'sept':9,'septiembre':9,'september':9,
+          'oct':10,'octubre':10,'october':10,
+          'nov':11,'noviembre':11,'november':11,
+          'dic':12,'diciembre':12,'dec':12,'december':12
+        };
+
+        // Detectar fila de cabeceras (primeras 4 filas que tengan alguna coincidencia)
+        let headerRow = range.s.r;
+        let headerFound = false;
+        for(let r=range.s.r; r<=Math.min(range.s.r+4, range.e.r); r++){
+          let refHit = false;
+          for(let c=range.s.c; c<=range.e.c; c++){
+            const v = ws[XLSX.utils.encode_cell({c,r})]?.v;
+            const n = normH(v);
+            if(n==='ref' || n==='referencia' || n==='refcliente' || n==='ref.'){
+              refHit = true; break;
+            }
+          }
+          if(refHit){ headerRow = r; headerFound = true; break; }
+        }
+
+        // Mapear nombres -> columnas
+        let colQty, colMes, colAnio, colRef;
+        if(headerFound){
+          for(let c=range.s.c; c<=range.e.c; c++){
+            const v = ws[XLSX.utils.encode_cell({c: c, r: headerRow})]?.v;
+            const n = normH(v);
+            if(colRef==null && (n==='ref'||n==='ref.'||n==='refcliente'||n==='referencia')) colRef = c;
+            else if(colMes==null && (n==='mes'||n==='month')) colMes = c;
+            else if(colAnio==null && (n==='ano'||n==='año'||n==='year')) colAnio = c;
+            else if(colQty==null && (n==='cantidad'||n==='qty'||n==='cantidadtotal'||n==='cant')) colQty = c;
+          }
+        }
+        // Fallback posicional si falta algo (B=qty, E=mes, F=año, G=ref)
+        const byLetter = l => XLSX.utils.decode_col(l);
+        if(colQty==null) colQty = byLetter('B');
+        if(colMes==null) colMes = byLetter('E');
+        if(colAnio==null) colAnio = byLetter('F');
+        if(colRef==null) colRef = byLetter('G');
+
+        const startRow = headerFound ? headerRow+1 : range.s.r+1;
+        const rows = [];
+        for(let r=startRow; r<=range.e.r; r++){
+          const cell = (c)=> ws[XLSX.utils.encode_cell({c,r})]?.v;
+          const vRef = cell(colRef);
+          if(vRef==null || String(vRef).trim()==='') continue;
+          const vQty = cell(colQty);
+          let vMes = cell(colMes);
+          let vAnio = cell(colAnio);
+          // Mes puede venir como número o texto
+          let mesNum = Number(vMes);
+          if(!mesNum || isNaN(mesNum)){
+            const nm = normH(vMes);
+            mesNum = monthMap[nm] || null;
+          }
+          const anioNum = Number(vAnio);
+          if(!anioNum || !mesNum) continue;
+          const fecha = new Date(Date.UTC(anioNum, mesNum-1, 1));
+          rows.push({
+            cliente: 'MCI',
+            fecha,
+            anio: anioNum,
+            mes: mesNum,
+            ref: String(vRef).trim(),
+            planta: null,
+            qty: Number(vQty||0)
+          });
+        }
+        state.mciRows = rows.filter(r=> r.fecha instanceof Date && !isNaN(r.fecha));
+
+        // Cambiar a la pestaña MCI y re-render
+        state.currentClient = 'MCI';
+        document.querySelectorAll('.clientTab').forEach(b=>{
+          const isMci = b.dataset.client==='MCI';
+          b.classList.toggle('bg-gray-100', isMci);
+          b.classList.toggle('dark:bg-gray-800', isMci);
+        });
+        renderPanels();
+      }catch(err){
+        console.error('Error leyendo Excel MCI:', err);
+        alert('No se pudo leer el Excel de MCI. Asegúrate de que existen columnas Ref., Mes y Año, o que siguen el esquema B=qty, E=mes, F=año, G=ref.');
+      }
     }
 
     function parseExcelDate(v){
@@ -1065,10 +1194,10 @@
         const root = document.querySelector(`.clientPanel[data-client="${client}"]`);
         const rows = getFilteredRows(client, root);
 
-        // Agrupa por refTeix (BV). Si no hay BV, usa refCli.
+        // Agrupa por refTeix (BV). Si no hay BV, usa refCli. Para MCI, usa r.ref
         const piezas = {};
         rows.forEach(r => {
-          const key = r.refTeix || r.refCli || "";
+          const key = r.refTeix || r.refCli || r.ref || "";
           if (!key) return;
           piezas[key] = (piezas[key] || 0) + (Number(r.qty) || 0);
         });
