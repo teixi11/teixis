@@ -1,0 +1,693 @@
+﻿<!doctype html>
+
+<html lang="es">
+
+<head>
+
+  <meta charset="utf-8"/>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+  <title>PDF → Excel (Pick up date, Quantity, Change, Cum Ordered)</title>
+
+  <!-- PDF.js -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+  <script>
+
+    if (window.pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
+
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+
+    }
+
+  </script>
+
+  <!-- SheetJS -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+
+    :root { --brand:#16a34a; }
+
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px; line-height:1.35; }
+
+    .box { border: 1px dashed #9ca3af; padding: 16px; border-radius: 10px; margin-top: 12px; }
+
+    .hint { color:#6b7280; font-size: .92rem; }
+
+    button { padding: 10px 14px; border-radius: 10px; border: 0; background: var(--brand); color: #fff; cursor: pointer; box-shadow: 0 4px 14px rgba(22,163,74,.2); }
+
+    button:disabled { background: #9ca3af; cursor: not-allowed; box-shadow:none; }
+
+    label { display:inline-block; margin-top: 8px; font-weight: 600; }
+
+    input[type="number"] { width: 80px; padding:6px 8px; border-radius:8px; border:1px solid #d1d5db; }
+
+    input[type="file"] { padding: 6px 0; }
+
+    .row { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 6px; }
+
+  </style>
+
+</head>
+
+<body>
+
+  <h1>PDF → Excel (4 columnas)</h1>
+
+  <p class="hint">
+
+    Detecta la tabla con encabezados <strong>Pick up date</strong>, <strong>Quantity</strong>, <strong>Change</strong>, <strong>Cum Ordered</strong>
+
+    en PDFs <strong>vectoriales</strong>. Si es escaneado, aplica OCR primero (p. ej. <code>ocrmypdf --force-ocr</code>).
+
+  </p>
+
+
+
+  <div class="box">
+
+    <div class="row">
+
+      <label>Selecciona PDF</label>
+
+      <input type="file" id="pdfFile" accept="application/pdf"/>
+
+    </div>
+
+
+
+    <div class="row" style="margin-top:8px;">
+
+      <label>Y-tol (agrupación filas)</label>
+
+      <input type="number" id="yTol" value="3" step="0.5"/>
+
+      <label>Header match mínimo (%)</label>
+
+      <input type="number" id="hdrPct" value="80" step="5"/>
+
+      <label><input type="checkbox" id="recalcEach" checked/> Recalcular columnas en cada página</label>
+
+      <label><input type="checkbox" id="parseExcelDate" checked/> Exportar fecha como fecha real de Excel</label>
+
+    </div>
+
+
+
+    <div class="row" style="margin-top:8px;">
+
+      <label>Pág. inicio</label>
+
+      <input type="number" id="pStart" value="1" min="1"/>
+
+      <label>Pág. fin (0 = todas)</label>
+
+      <input type="number" id="pEnd" value="0" min="0"/>
+
+    </div>
+
+
+
+    <div class="row" style="margin-top:12px;">
+
+      <button id="convertBtn" disabled>Convertir a Excel</button>
+
+      <span class="hint" id="status"></span>
+
+    </div>
+
+  </div>
+
+
+
+  <script>
+
+    // ===== Config =====
+
+    const HEADERS = ["Pick up date", "Quantity", "Change", "Cum Ordered"];
+
+    const NORMALIZE_DATE = true; // normaliza 00.00.00, 00-00-00, 00_00_00 → 00/00/00
+
+
+
+    // ===== UI refs =====
+
+    const pdfInput   = document.getElementById("pdfFile");
+
+    const btn        = document.getElementById("convertBtn");
+
+    const statusEl   = document.getElementById("status");
+
+    const yTolInput  = document.getElementById("yTol");
+
+    const hdrPctInput= document.getElementById("hdrPct");
+
+    const pStartEl   = document.getElementById("pStart");
+
+    const pEndEl     = document.getElementById("pEnd");
+
+    const recalcEl   = document.getElementById("recalcEach");
+
+    const parseDateEl= document.getElementById("parseExcelDate");
+
+
+
+    pdfInput.addEventListener("change", () => {
+
+      btn.disabled = !pdfInput.files.length;
+
+      statusEl.textContent = pdfInput.files.length ? "PDF cargado, listo para convertir." : "";
+
+    });
+
+
+
+    btn.addEventListener("click", async () => {
+
+      if (!pdfInput.files.length) return;
+
+      btn.disabled = true;
+
+      statusEl.textContent = "Procesando PDF…";
+
+
+
+      try {
+
+        const file = pdfInput.files[0];
+
+        const arrayBuffer = await file.arrayBuffer();
+
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+
+
+        const allRows = [];
+
+        const yTol = parseFloat(yTolInput.value) || 3;
+
+        const headerMinPct = parseInt(hdrPctInput.value) || 80;
+
+
+
+        const pStart = Math.max(1, parseInt(pStartEl.value) || 1);
+
+        let pEnd = parseInt(pEndEl.value) || 0;
+
+        if (pEnd <= 0 || pEnd > pdf.numPages) pEnd = pdf.numPages;
+
+
+
+        const recalcEach = !!recalcEl.checked;
+
+
+
+        // Solo arrastramos el layout de columnas; NO arrastramos headerY entre páginas
+
+        let lastColRanges = null;
+
+
+
+        for (let pageNum = pStart; pageNum <= pEnd; pageNum++) {
+
+          const page = await pdf.getPage(pageNum);
+
+          const textContent = await page.getTextContent();
+
+          const items = textContent.items.map(it => {
+
+            const [a,b,c,d,e,f] = it.transform;
+
+            return { str: (it.str || "").trim(), x: e, y: f, width: it.width || 0, height: it.height || 0 };
+
+          }).filter(x => x.str);
+
+
+
+          const pageRows = extractTableFromPageMulti(items, {
+
+            yTol, headerMinPct, recalcEach,
+
+            lastColRanges,
+
+            parseToExcelDate: !!parseDateEl.checked
+
+          });
+
+
+
+          if (pageRows.meta.colRanges) lastColRanges = pageRows.meta.colRanges;
+
+
+
+          // Feedback por página (devtools)
+
+          console.log(`Página ${pageNum}: ${pageRows.rows.length} filas extraídas`);
+
+
+
+          for (const r of pageRows.rows) allRows.push(r);
+
+        }
+
+
+
+        if (allRows.length === 0) {
+
+          statusEl.textContent = "No se detectó ninguna tabla con esos encabezados. Ajusta tolerancias o rango de páginas.";
+
+          btn.disabled = false;
+
+          return;
+
+        }
+
+
+
+        // A Excel
+
+        const aoa = [HEADERS, ...allRows];
+
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+        ws['!cols'] = [{wch:14},{wch:10},{wch:10},{wch:14}]; // ancho columnas
+
+
+
+        const wb = XLSX.utils.book_new();
+
+        XLSX.utils.book_append_sheet(wb, ws, "Datos");
+
+        XLSX.writeFile(wb, "salida.xlsx");
+
+
+
+        statusEl.textContent = `¡Listo! ${allRows.length} filas exportadas a salida.xlsx`;
+
+      } catch (err) {
+
+        console.error(err);
+
+        statusEl.textContent = "Error procesando el PDF: " + (err && err.message ? err.message : err);
+
+      } finally {
+
+        btn.disabled = false;
+
+      }
+
+    });
+
+
+
+    // ===== Núcleo =====
+
+
+
+    // Normaliza y opcionalmente convierte a fecha real de Excel (Date)
+
+    function normalizeDateLike(s, parseToExcelDate) {
+
+      const t = (s || "").trim();
+
+      if (!t) return t;
+
+
+
+      // acepta dd.mm.yy, dd-mm-yy, dd/_/yy, dd/mm/yy y también con año de 4 cifras
+
+      const m = t.match(/^(\d{1,2})[.\-_\/](\d{1,2})[.\-_\/](\d{2}|\d{4})$/);
+
+      if (!m) return t;
+
+
+
+      let [ , dd, mm, yy ] = m;
+
+      let yyyy = yy.length === 2 ? (parseInt(yy,10) >= 70 ? `19${yy}` : `20${yy}`) : yy;
+
+
+
+      if (parseToExcelDate) {
+
+        const d = new Date(parseInt(yyyy,10), parseInt(mm,10)-1, parseInt(dd,10));
+
+        if (!isNaN(d.getTime())) return d; // SheetJS lo pone como fecha real
+
+      }
+
+      return `${dd}/${mm}/${yy.length===2 ? yy : yyyy}`;
+
+    }
+
+
+
+    function extractTableFromPageMulti(items, { yTol, headerMinPct, recalcEach, lastColRanges, parseToExcelDate }) {
+
+      // 1) Recalcular columnas si procede (por página)
+
+      let hdrInfo = null;
+
+      let colRanges = null;
+
+
+
+      if (recalcEach || !lastColRanges) {
+
+        hdrInfo = findHeaderRow(items, HEADERS, { yTol, headerMinPct });
+
+        if (hdrInfo) {
+
+          colRanges = computeColumnRanges(hdrInfo);
+
+        } else {
+
+          colRanges = lastColRanges; // reutiliza layout previo si existe
+
+        }
+
+      } else {
+
+        colRanges = lastColRanges;
+
+      }
+
+
+
+      if (!colRanges) {
+
+        return { rows: [], meta: { colRanges: null } };
+
+      }
+
+
+
+      // 2) Si hay header en esta página: recorta por debajo; si no: procesa todo
+
+      const cutoffY = (hdrInfo && hdrInfo.avgY != null) ? hdrInfo.avgY : Infinity;
+
+      const below = items.filter(it => it.y < cutoffY - yTol);
+
+
+
+      // 3) Agrupar filas y proyectar a 4 columnas
+
+      const groupedRows = groupByRowY(below, yTol);
+
+      const rows = [];
+
+      for (const row of groupedRows) {
+
+        const cols = ["","","",""];
+
+        for (const it of row) {
+
+          const cx = it.x + it.width/2;
+
+          const idx = whichColumn(cx, colRanges);
+
+          if (idx !== -1) cols[idx] = cols[idx] ? (cols[idx] + " " + it.str) : it.str;
+
+        }
+
+        const merged = cols.map(v => (v||"").trim());
+
+
+
+        // Saltar headers repetidos
+
+        const isHeaderRepeat = merged.every((v,i)=> v.toLowerCase().includes(HEADERS[i].toLowerCase()));
+
+        const isEmpty = merged.every(v => !v);
+
+        if (!isEmpty && !isHeaderRepeat) {
+
+          if (NORMALIZE_DATE && merged[0]) merged[0] = normalizeDateLike(merged[0], parseToExcelDate);
+
+          rows.push(merged);
+
+        }
+
+      }
+
+
+
+      return {
+
+        rows,
+
+        meta: { colRanges }
+
+      };
+
+    }
+
+
+
+    // Heurística para encontrar la fila de encabezado
+
+    function findHeaderRow(items, headers, { yTol, headerMinPct }) {
+
+      const rows = groupByRowY(items, yTol);
+
+      const targets = headers.map(h => h.toLowerCase());
+
+      let best = null;
+
+
+
+      for (const row of rows) {
+
+        const matches = [];
+
+        for (const it of row) {
+
+          const s = it.str.toLowerCase();
+
+          for (let i = 0; i < targets.length; i++) {
+
+            const pct = roughSimilarPct(s, targets[i]);
+
+            if (pct >= headerMinPct) matches.push({ i, it });
+
+          }
+
+        }
+
+        const setIdx = new Set(matches.map(m => m.i));
+
+        if (setIdx.size >= 3) {
+
+          const perCol = Array(headers.length).fill(null);
+
+          for (const m of matches) {
+
+            if (!perCol[m.i]) perCol[m.i] = [];
+
+            perCol[m.i].push(m.it);
+
+          }
+
+          const colXs = [];
+
+          for (let i = 0; i < headers.length; i++) {
+
+            if (perCol[i] && perCol[i].length) {
+
+              const chosen = perCol[i].slice().sort((a,b)=>a.x-b.x)[0];
+
+              colXs.push({ idx: i, x: chosen.x, item: chosen });
+
+            } else {
+
+              colXs.push({ idx: i, x: null, item: null });
+
+            }
+
+          }
+
+          const avgY = row.reduce((acc, it) => acc + it.y, 0) / row.length;
+
+          const found = { avgY, colXs };
+
+          const count = colXs.filter(c => c.x != null).length;
+
+          if (!best || count > best.count) {
+
+            best = { ...found, count };
+
+          }
+
+        }
+
+      }
+
+
+
+      if (!best || best.count < 2) return null;
+
+      return best;
+
+    }
+
+
+
+    function roughSimilarPct(a, b) {
+
+      if (a === b) return 100;
+
+      if (a.startsWith(b) || b.startsWith(a)) return 90;
+
+      if (a.includes(b) || b.includes(a)) return 80;
+
+      return 0;
+
+    }
+
+
+
+    // Agrupar por filas (proximidad en Y)
+
+    function groupByRowY(items, yTol) {
+
+      const sorted = items.slice().sort((a,b)=> b.y - a.y); // Y descendente
+
+      const rows = [];
+
+      let current = [];
+
+
+
+      const flush = () => {
+
+        if (current.length) {
+
+          current.sort((a,b)=> a.x - b.x); // ordenar por X
+
+          rows.push(current);
+
+          current = [];
+
+        }
+
+      };
+
+
+
+      for (let i=0; i<sorted.length; i++) {
+
+        const it = sorted[i];
+
+        if (!current.length) {
+
+          current.push(it);
+
+        } else {
+
+          const lastY = current[0].y;
+
+          if (Math.abs(it.y - lastY) <= yTol) {
+
+            current.push(it);
+
+          } else {
+
+            flush();
+
+            current.push(it);
+
+          }
+
+        }
+
+      }
+
+      flush();
+
+      return rows;
+
+    }
+
+
+
+    // Rango de columnas a partir de X de los headers
+
+    function computeColumnRanges(hdr) {
+
+      const xs = Array(4).fill(null);
+
+      for (const c of hdr.colXs) {
+
+        if (c.x != null) xs[c.idx] = c.x;
+
+      }
+
+      if (xs[1]==null && xs[0]!=null && xs[2]!=null) xs[1] = (xs[0]+xs[2])/2;
+
+      if (xs[2]==null && xs[1]!=null && xs[3]!=null) xs[2] = (xs[1]+xs[3])/2;
+
+      for (let i=0;i<4;i++){
+
+        if (xs[i]==null){
+
+          for (let step=1; step<4; step++){
+
+            const left = i-step, right = i+step;
+
+            if (left>=0 && xs[left]!=null){ xs[i] = xs[left] + 120*step; break; }
+
+            if (right<4 && xs[right]!=null){ xs[i] = xs[right] - 120*step; break; }
+
+          }
+
+        }
+
+      }
+
+      const mids = [(xs[0]+xs[1])/2, (xs[1]+xs[2])/2, (xs[2]+xs[3])/2];
+
+      const minX = Math.min(...xs) - 60;
+
+      const maxX = Math.max(...xs) + 60;
+
+      return [
+
+        [minX, mids[0]],
+
+        [mids[0], mids[1]],
+
+        [mids[1], mids[2]],
+
+        [mids[2], maxX]
+
+      ];
+
+    }
+
+
+
+    function whichColumn(cx, ranges){
+
+      for (let i=0;i<ranges.length;i++){
+
+        const [a,b] = ranges[i];
+
+        if (cx >= a && cx < b) return i;
+
+      }
+
+      return -1;
+
+    }
+
+  </script>
+
+</body>
+
+</html>
