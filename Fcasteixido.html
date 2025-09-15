@@ -29,6 +29,13 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- PDF.js for MCI PDF ingestion -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib && pdfjsLib.GlobalWorkerOptions) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+    }
+  </script>
   <style>
     .btn-limpiar-filtros {
       background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb 100%);
@@ -158,11 +165,12 @@
             <span>OLD</span>
           </label>
           <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient">
-            <input id="fileMci" type="file" accept=".xlsx,.xls" class="hidden">
+            <input id="fileMci" type="file" accept=".xlsx,.xls,application/pdf,.pdf" class="hidden">
             <span>Excel MCI</span>
           </label>
           <button id="exportPDF" class="px-3 py-2 btn-gradient">PDF</button>
           <button id="exportCSV" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">CSV</button>
+          <button id="exportMCIExcel" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Exportar Excel MCI</button>
           <label class="ml-3 inline-flex items-center gap-2 text-sm">
             <span>Oscuro</span>
             <input id="darkToggle" type="checkbox">
@@ -420,9 +428,16 @@
     document.querySelector('#fileInput2').addEventListener('change', e=>{
       const f = e.target.files?.[0]; if(f) loadExcel(f, 2);
     });
-    // Excel MCI (formato específico)
+    // MCI: acepta Excel o PDF. Si es PDF, parsea con pdf.js y alimenta el dashboard
     document.querySelector('#fileMci').addEventListener('change', e=>{
-      const f = e.target.files?.[0]; if(f) loadMciExcel(f);
+      const f = e.target.files?.[0];
+      if(!f) return;
+      const name = (f.name||'').toLowerCase();
+      if (name.endsWith('.pdf')) {
+        loadMciPdf(f);
+      } else {
+        loadMciExcel(f);
+      }
     });
 
     // ---------- Export ----------
@@ -443,6 +458,37 @@
       URL.revokeObjectURL(url);
     });
     const esc = s => ('"'+String(s).replace(/"/g,'""')+'"' );
+
+    // Exportar Excel MCI (6 columnas)
+    document.querySelector('#exportMCIExcel').addEventListener('click', ()=>{
+      // Solo exporta si hay datos MCI cargados
+      if (!state.mciRows || !state.mciRows.length) { alert('No hay datos MCI para exportar'); return; }
+      const root = document.querySelector(`.clientPanel[data-client="MCI"]`);
+      const rows = getFilteredRows('MCI', root, 'MCI');
+      if(!rows.length){ alert('No hay datos MCI filtrados'); return; }
+      const headers = ["Pick up date","Quantity","Change","Cum Ordered","Mes","Año"];
+      const aoa = [headers];
+      rows.forEach(r=>{
+        // Fecha formateada como dd/mm/yyyy (para mm/yyyy mantenemos texto)
+        let dateStr = '';
+        if (r.fecha instanceof Date && !isNaN(r.fecha)) {
+          const dd = String(r.fecha.getUTCDate()).padStart(2,'0');
+          const mm = String(r.fecha.getUTCMonth()+1).padStart(2,'0');
+          const yy = r.fecha.getUTCFullYear();
+          dateStr = `${dd}/${mm}/${yy}`;
+        } else if (typeof r.fecha === 'string') {
+          dateStr = r.fecha;
+        }
+        const qty = Number(r.qty||0);
+        // Change/Cum no existen en dashboard MCI; exportamos 0 para mantener el layout de 6 columnas
+        aoa.push([dateStr, qty, 0, 0, r.mes||'', r.anio||'']);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = [{wch:14},{wch:10},{wch:10},{wch:14},{wch:8},{wch:8}];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'MCI');
+      XLSX.writeFile(wb, 'MCI_export.xlsx');
+    });
 
     // ---------- Construcción paneles ----------
     function renderPanels(){
@@ -1038,6 +1084,161 @@
         console.error('Error leyendo Excel MCI:', err);
         alert('No se pudo leer el Excel de MCI. Asegúrate de que existen columnas Ref., Mes y Año, o que siguen el esquema B=qty, E=mes, F=año, G=ref.');
       }
+    }
+
+    // ---------- Lectura PDF MCI (tabla Pick up date, Quantity, Change, Cum Ordered) ----------
+    async function loadMciPdf(file){
+      try{
+        document.querySelector('#fileBadge').textContent = file.name + ' [PDF→MCI]';
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const yTol = 3, headerMinPct = 80, recalcEach = true;
+        let lastColRanges = null;
+        const all = [];
+        const DETECT_HEADERS = ["Pick up date", "Quantity", "Change", "Cum Ordered"];
+
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const items = textContent.items.map(it => {
+            const [a,b,c,d,e,f] = it.transform;
+            return { str: (it.str || "").trim(), x: e, y: f, width: it.width || 0, height: it.height || 0 };
+          }).filter(x => x.str);
+
+          const pageRows = mciPdfExtract(items, { yTol, headerMinPct, recalcEach, lastColRanges, headers: DETECT_HEADERS });
+          if (pageRows.meta.colRanges) lastColRanges = pageRows.meta.colRanges;
+          for (const r of pageRows.rows) all.push(r);
+        }
+
+        if (!all.length) {
+          alert('No se detectó ninguna tabla MCI en el PDF.');
+          return;
+        }
+
+        // Transformar a state.mciRows: fecha, anio, mes, qty, ref (null)
+        const rows = [];
+        all.forEach(r=>{
+          const [dateOut, qty, _ch, _cum] = r; // usamos Quantity como qty
+          if (!dateOut) return;
+          let anio = null, mes = null, fecha = null;
+          if (dateOut instanceof Date) {
+            fecha = dateOut; anio = fecha.getFullYear(); mes = fecha.getMonth()+1;
+          } else {
+            const parts = String(dateOut).split('/');
+            if (parts.length === 2) { // mm/yyyy
+              mes = Number(parts[0]); anio = Number(parts[1]);
+              fecha = new Date(Date.UTC(anio, (mes||1)-1, 1));
+            } else if (parts.length >= 3) { // dd/mm/yyyy
+              const dd = Number(parts[0]); mes = Number(parts[1]); anio = Number(parts[2]);
+              fecha = new Date(Date.UTC(anio, (mes||1)-1, dd||1));
+            }
+          }
+          if (!anio || !mes || !(fecha instanceof Date) || isNaN(fecha)) return;
+          const nqty = Number(qty||0);
+          rows.push({ cliente:'MCI', fecha, anio, mes, ref: null, planta: null, qty: nqty });
+        });
+
+        state.mciRows = rows;
+
+        // Cambiar a MCI y re-render
+        state.currentClient = 'MCI';
+        document.querySelectorAll('.clientTab').forEach(b=>{
+          const isMci = b.dataset.client==='MCI';
+          b.classList.toggle('bg-gray-100', isMci);
+          b.classList.toggle('dark:bg-gray-800', isMci);
+        });
+        renderPanels();
+      } catch (err) {
+        console.error('Error leyendo PDF MCI:', err);
+        alert('No se pudo leer el PDF de MCI. Revisa que el PDF sea vectorial.');
+      }
+    }
+
+    // ===== Utilidades de parsing PDF MCI =====
+    function mciNormalizeDateLike(s) {
+      const raw = (s || '').trim(); if (!raw) return raw;
+      const t = raw.replace(/^[^0-9]+/, '');
+      let m = t.match(/^(\d{1,2})[.\-_\/](\d{1,2})[.\-_\/](\d{2}|\d{4})$/);
+      if (m) {
+        let [ , dd, mm, yy ] = m;
+        let yyyy = yy.length === 2 ? (parseInt(yy,10) >= 70 ? `19${yy}` : `20${yy}`) : yy;
+        const d = new Date(parseInt(yyyy,10), parseInt(mm,10)-1, parseInt(dd,10));
+        if (!isNaN(d.getTime())) return d;
+        return `${String(dd).padStart(2,'0')}/${String(mm).padStart(2,'0')}/${yyyy}`;
+      }
+      m = t.match(/^(\d{1,2})[.\-_\/](\d{4})$/);
+      if (m) {
+        const mm = String(m[1]).padStart(2,'0'); const yyyy = m[2];
+        return `${mm}/${yyyy}`;
+      }
+      return t;
+    }
+    function mciIsDateToken(s){
+      const raw = String(s||'').trim().replace(/^[^0-9]+/, '');
+      return /^(\d{1,2})[.\-_\/](\d{1,2})[.\-_\/](\d{2}|\d{4})$/.test(raw) || /^(\d{1,2})[.\-_\/](\d{4})$/.test(raw);
+    }
+    function mciGroupByRowY(items, yTol){
+      const sorted = items.slice().sort((a,b)=> b.y - a.y);
+      const rows = []; let current = [];
+      const flush = ()=>{ if (current.length){ current.sort((a,b)=> a.x - b.x); rows.push(current); current=[]; } };
+      for (let i=0;i<sorted.length;i++){
+        const it = sorted[i];
+        if (!current.length) current.push(it);
+        else { const lastY = current[0].y; if (Math.abs(it.y - lastY) <= yTol) current.push(it); else { flush(); current.push(it); } }
+      }
+      flush(); return rows;
+    }
+    function mciRoughSimilarPct(a,b){ if(a===b) return 100; if(a.startsWith(b)||b.startsWith(a)) return 90; if(a.includes(b)||b.includes(a)) return 80; return 0; }
+    function mciFindHeaderRow(items, headers, { yTol, headerMinPct }){
+      const rows = mciGroupByRowY(items, yTol); const targets = headers.map(h=>h.toLowerCase()); let best=null;
+      for(const row of rows){
+        const matches=[]; for(const it of row){ const s=it.str.toLowerCase(); for(let i=0;i<targets.length;i++){ const pct=mciRoughSimilarPct(s,targets[i]); if(pct>=headerMinPct) matches.push({i,it}); } }
+        const setIdx=new Set(matches.map(m=>m.i)); if (setIdx.size>=3){
+          const perCol=Array(headers.length).fill(null); for(const m of matches){ if(!perCol[m.i]) perCol[m.i]=[]; perCol[m.i].push(m.it); }
+          const colXs=[]; for(let i=0;i<headers.length;i++){ if(perCol[i]&&perCol[i].length){ const chosen=perCol[i].slice().sort((a,b)=>a.x-b.x)[0]; colXs.push({idx:i,x:chosen.x,item:chosen}); } else { colXs.push({idx:i,x:null,item:null}); } }
+          const avgY=row.reduce((acc,it)=>acc+it.y,0)/row.length; const found={avgY,colXs}; const count=colXs.filter(c=>c.x!=null).length; if(!best||count>best.count) best={...found,count};
+        }
+      }
+      if(!best||best.count<2) return null; return best;
+    }
+    function mciComputeColumnRanges(hdr){
+      const xs=Array(4).fill(null); for(const c of hdr.colXs){ if(c.x!=null) xs[c.idx]=c.x; }
+      if (xs[1]==null && xs[0]!=null && xs[2]!=null) xs[1]=(xs[0]+xs[2])/2;
+      if (xs[2]==null && xs[1]!=null && xs[3]!=null) xs[2]=(xs[1]+xs[3])/2;
+      for(let i=0;i<4;i++){ if(xs[i]==null){ for(let step=1;step<4;step++){ const left=i-step,right=i+step; if(left>=0&&xs[left]!=null){ xs[i]=xs[left]+120*step; break; } if(right<4&&xs[right]!=null){ xs[i]=xs[right]-120*step; break; } } } }
+      const mids=[(xs[0]+xs[1])/2,(xs[1]+xs[2])/2,(xs[2]+xs[3])/2]; const minX=Math.min(...xs)-60; const maxX=Math.max(...xs)+60;
+      return [[minX,mids[0]],[mids[0],mids[1]],[mids[1],mids[2]],[mids[2],maxX]];
+    }
+    function mciWhichColumn(cx,ranges){ for(let i=0;i<ranges.length;i++){ const [a,b]=ranges[i]; if(cx>=a&&cx<b) return i; } return -1; }
+    function mciPdfExtract(items, { yTol, headerMinPct, recalcEach, lastColRanges, headers }){
+      let hdrInfo=null, colRanges=null;
+      if (recalcEach || !lastColRanges) {
+        hdrInfo = mciFindHeaderRow(items, headers, { yTol, headerMinPct });
+        colRanges = hdrInfo ? mciComputeColumnRanges(hdrInfo) : lastColRanges;
+      } else { colRanges = lastColRanges; }
+      if (!colRanges) return { rows: [], meta: { colRanges:null } };
+      const cutoffY = (hdrInfo && hdrInfo.avgY != null) ? hdrInfo.avgY : Infinity;
+      const below = items.filter(it => it.y < cutoffY - yTol);
+      const groupedRows = mciGroupByRowY(below, yTol);
+      const rows = [];
+      for (const row of groupedRows) {
+        const cols = ["","","",""];
+        for (const it of row) {
+          const cx = it.x + it.width/2; const idx = mciWhichColumn(cx, colRanges);
+          if (idx !== -1) cols[idx] = cols[idx] ? (cols[idx] + " " + it.str) : it.str;
+        }
+        const merged = cols.map(v => (v||"").trim());
+        const isHeaderRepeat = merged.every((v,i)=> v.toLowerCase().includes(headers[i].toLowerCase()));
+        const isEmpty = merged.every(v => !v);
+        if (isEmpty || isHeaderRepeat) continue;
+        if (!mciIsDateToken(merged[0])) continue;
+        const toNum = (s)=>{ const cleaned=String(s||"").replace(/\s+/g,'').replace(/,/g,''); if(cleaned==="") return s; const n=Number(cleaned); return isNaN(n)? s : n; };
+        const q = toNum(merged[1]); const ch = toNum(merged[2]); const cum = toNum(merged[3]);
+        const anyNumber = [q,ch,cum].some(v => typeof v === 'number' && !isNaN(v)); if (!anyNumber) continue;
+        const dateOut = mciNormalizeDateLike(merged[0]);
+        rows.push([dateOut, q, ch, cum]);
+      }
+      return { rows, meta: { colRanges } };
     }
 
     function parseExcelDate(v){
