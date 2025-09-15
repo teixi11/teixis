@@ -460,13 +460,13 @@
     const esc = s => ('"'+String(s).replace(/"/g,'""')+'"' );
 
     // Exportar Excel MCI (6 columnas)
-    document.querySelector('#exportMCIExcel').addEventListener('click', ()=>{
+  document.querySelector('#exportMCIExcel').addEventListener('click', ()=>{
       // Solo exporta si hay datos MCI cargados
       if (!state.mciRows || !state.mciRows.length) { alert('No hay datos MCI para exportar'); return; }
       const root = document.querySelector(`.clientPanel[data-client="MCI"]`);
       const rows = getFilteredRows('MCI', root, 'MCI');
       if(!rows.length){ alert('No hay datos MCI filtrados'); return; }
-      const headers = ["Pick up date","Quantity","Change","Cum Ordered","Mes","Año"];
+  const headers = ["Pick up date","Quantity","Change","Cum Ordered","Mes","Año","Ref"];
       const aoa = [headers];
       rows.forEach(r=>{
         // Fecha formateada como dd/mm/yyyy (para mm/yyyy mantenemos texto)
@@ -480,11 +480,11 @@
           dateStr = r.fecha;
         }
         const qty = Number(r.qty||0);
-        // Change/Cum no existen en dashboard MCI; exportamos 0 para mantener el layout de 6 columnas
-        aoa.push([dateStr, qty, 0, 0, r.mes||'', r.anio||'']);
+        // Change/Cum no existen en dashboard MCI; exportamos 0 y añadimos Ref al final
+        aoa.push([dateStr, qty, 0, 0, r.mes||'', r.anio||'', r.ref||'']);
       });
       const ws = XLSX.utils.aoa_to_sheet(aoa);
-      ws['!cols'] = [{wch:14},{wch:10},{wch:10},{wch:14},{wch:8},{wch:8}];
+      ws['!cols'] = [{wch:14},{wch:10},{wch:10},{wch:14},{wch:8},{wch:8},{wch:18}];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'MCI');
       XLSX.writeFile(wb, 'MCI_export.xlsx');
@@ -1087,13 +1087,14 @@
     }
 
     // ---------- Lectura PDF MCI (tabla Pick up date, Quantity, Change, Cum Ordered) ----------
-    async function loadMciPdf(file){
+  async function loadMciPdf(file){
       try{
         document.querySelector('#fileBadge').textContent = file.name + ' [PDF→MCI]';
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const yTol = 3, headerMinPct = 80, recalcEach = true;
-        let lastColRanges = null;
+  let lastColRanges = null;
+  let globalRef = null; // Material reference to apply to all rows
         const all = [];
         const DETECT_HEADERS = ["Pick up date", "Quantity", "Change", "Cum Ordered"];
 
@@ -1105,6 +1106,11 @@
             return { str: (it.str || "").trim(), x: e, y: f, width: it.width || 0, height: it.height || 0 };
           }).filter(x => x.str);
 
+          // Capture global Material ref (first hit across pages)
+          if (!globalRef) {
+            const pr = mciExtractMaterialRefFromItems(items);
+            if (pr) globalRef = pr;
+          }
           const pageRows = mciPdfExtract(items, { yTol, headerMinPct, recalcEach, lastColRanges, headers: DETECT_HEADERS });
           if (pageRows.meta.colRanges) lastColRanges = pageRows.meta.colRanges;
           for (const r of pageRows.rows) all.push(r);
@@ -1115,7 +1121,10 @@
           return;
         }
 
-        // Transformar a state.mciRows: fecha, anio, mes, qty, ref (null)
+        // Determine effective global Ref
+        const effectiveRef = globalRef || (all.find(r => r[4])?.[4]) || null;
+
+        // Transformar a state.mciRows: fecha, anio, mes, qty, ref
         const rows = [];
         all.forEach(r=>{
           const [dateOut, qty, _ch, _cum] = r; // usamos Quantity como qty
@@ -1135,7 +1144,8 @@
           }
           if (!anio || !mes || !(fecha instanceof Date) || isNaN(fecha)) return;
           const nqty = Number(qty||0);
-          rows.push({ cliente:'MCI', fecha, anio, mes, ref: null, planta: null, qty: nqty });
+          const refClean = (effectiveRef||'').toString().replace(/[^A-Za-z0-9/_\-.]+$/,'') || null;
+          rows.push({ cliente:'MCI', fecha, anio, mes, ref: refClean || null, planta: null, qty: nqty });
         });
 
         state.mciRows = rows;
@@ -1211,6 +1221,7 @@
     }
     function mciWhichColumn(cx,ranges){ for(let i=0;i<ranges.length;i++){ const [a,b]=ranges[i]; if(cx>=a&&cx<b) return i; } return -1; }
     function mciPdfExtract(items, { yTol, headerMinPct, recalcEach, lastColRanges, headers }){
+      const materialRef = mciExtractMaterialRefFromItems(items);
       let hdrInfo=null, colRanges=null;
       if (recalcEach || !lastColRanges) {
         hdrInfo = mciFindHeaderRow(items, headers, { yTol, headerMinPct });
@@ -1236,9 +1247,24 @@
         const q = toNum(merged[1]); const ch = toNum(merged[2]); const cum = toNum(merged[3]);
         const anyNumber = [q,ch,cum].some(v => typeof v === 'number' && !isNaN(v)); if (!anyNumber) continue;
         const dateOut = mciNormalizeDateLike(merged[0]);
-        rows.push([dateOut, q, ch, cum]);
+        rows.push([dateOut, q, ch, cum, materialRef]);
       }
       return { rows, meta: { colRanges } };
+    }
+
+    function mciExtractMaterialRefFromItems(items){
+      try {
+        const pageText = items.map(it=>it.str).join(' ');
+        const pageTextLC = pageText.toLowerCase();
+        // Buscar la ventana de texto tras la palabra "material"
+        const idx = pageTextLC.indexOf('material');
+        const windowText = idx >= 0 ? pageText.slice(idx, idx + 160) : pageText;
+        // Acepta solo patrones numéricos tipo 280/506-00 (flexible en longitudes)
+        const reNum = /\b\d{1,6}\/\d{1,6}(?:-\d{1,6})?\b/;
+        const m = windowText.match(reNum);
+        if (m && m[0]) return m[0];
+      } catch {}
+      return null;
     }
 
     function parseExcelDate(v){
