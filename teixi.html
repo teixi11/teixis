@@ -8,13 +8,13 @@
   <title>FORECAST — Clientes</title>
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Librerías para visor 3D STL -->
-  <script src="/static/build/three.min.js"></script>
-  <script src="/static/build/OrbitControls.js"></script>
-  <script>var stl_viewer_script_path = "/static/build/";</script>
-  <script src="/static/build/webgl_detector.js"></script>
-  <script src="/static/build/parser.min.js"></script>
-  <script src="/static/build/stl_viewer.min.js"></script>
+  <!-- Librerías para visor 3D STL (desde GitHub teixi11/teixis) -->
+  <script src="https://cdn.jsdelivr.net/gh/teixi11/teixis@main/static/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/teixi11/teixis@main/static/build/OrbitControls.js"></script>
+  <script>var stl_viewer_script_path = "https://cdn.jsdelivr.net/gh/teixi11/teixis@main/static/build/";</script>
+  <script src="https://cdn.jsdelivr.net/gh/teixi11/teixis@main/static/build/webgl_detector.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/teixi11/teixis@main/static/build/parser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/teixi11/teixis@main/static/build/stl_viewer.min.js"></script>
 
   <script>
     tailwind.config = {
@@ -189,6 +189,12 @@
               <span>Oscuro</span>
               <input id="darkToggle" type="checkbox">
             </label>
+            <label class="ml-3 inline-flex items-center gap-2 text-sm">
+              <span>Usar Maestro</span>
+              <input id="toggleUnified" type="checkbox">
+            </label>
+            <button id="btnBuildMaster" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Construir Maestro</button>
+            <button id="btnExportDetailed" class="px-3 py-2 btn-gradient">Exportar Detallado</button>
             <button id="logoutBtn" class="ml-2 px-3 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700">Cerrar sesión</button>
           </div>
         </div>
@@ -236,12 +242,53 @@
                   <input id="fileMci" type="file" accept="application/pdf,.pdf" class="hidden">
                   <span>Cargar PDF MCI</span>
                 </label>
+                <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient w-full justify-center">
+                  <input id="fileRap" type="file" accept="application/pdf,.pdf" class="hidden">
+                  <span>Cargar PDF DUMAREY</span>
+                </label>
                 <button id="exportMCIExcel" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 w-full">Exportar Excel MCI</button>
               </div>
             </div>
           </div>
 
           <!-- Botones sueltos eliminados (movidos al header o al grupo MCI) -->
+
+          <!-- Grupo UNIFICADO -->
+          <div class="group" id="grp-unificado">
+            <button type="button" class="group-header rounded-md border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800">
+              <span>UNIFICADO</span>
+              <span class="chev">›</span>
+            </button>
+            <div class="group-content">
+              <div class="inner">
+                <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient w-full justify-center">
+                  <input id="fileUnified" type="file" accept=".xlsx,.xls,.csv" class="hidden">
+                  <span>Cargar Excel Unificado</span>
+                </label>
+                <div class="text-xs text-gray-600 dark:text-gray-300">
+                  Formato: Cliente | Referencia | Volumen | Facturación | Precio Venta | Fecha/Periodo
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grupo CARGA MASIVA -->
+          <div class="group" id="grp-bulk">
+            <button type="button" class="group-header rounded-md border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800">
+              <span>CARGA MASIVA</span>
+              <span class="chev">›</span>
+            </button>
+            <div class="group-content">
+              <div class="inner">
+                <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient w-full justify-center">
+                  <input id="fileBulk" type="file" accept=".pdf,.xlsx,.xls,.csv" class="hidden" multiple>
+                  <span>Seleccionar múltiples archivos</span>
+                </label>
+                <button id="btnProcessBulk" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 w-full">Procesar y construir Maestro</button>
+                <div class="text-xs text-gray-600 dark:text-gray-300">Acepta PDFs (MCI y futuros), Excel/CSV de clientes o Unificado. Mezcla todo en el Maestro.</div>
+              </div>
+            </div>
+          </div>
 
           <!-- Grupo TRANSFORMAR DELFOR -->
           <div class="group" id="grp-delfor">
@@ -276,6 +323,7 @@
         <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Continental" data-client-tab>CONTINENTAL</button>
         <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Bosch" data-client-tab>BOSCH</button>
         <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="MCI" data-client-tab>MCI</button>
+        <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Dumarey" data-client-tab>DUMAREY</button>
       </div>
       <!-- Per-client panels -->
       <section id="panels" class="mt-4 space-y-8"></section>
@@ -302,8 +350,8 @@
               <button class="filter-btn-month btn-gradient px-4 py-2 rounded-xl font-semibold text-base shadow transition">Mes</button>
               <button class="filter-btn-ref btn-gradient px-4 py-2 rounded-xl font-semibold text-base shadow transition">Referencia</button>
               <button class="filter-btn-planta btn-gradient px-4 py-2 rounded-xl font-semibold text-base shadow transition">Planta</button>
-              <button type="button" class="btn-limpiar-filtros btn-gradient" id="btnLimpiarFiltros">Limpiar filtros</button>
-              <button type="button" class="btn-gradient" id="btnTop5">Top 5 piezas</button>
+              <button type="button" class="btn-limpiar-filtros btn-gradient" id="btnLimpiarFiltros">🗑️</button>
+              <button type="button" class="btn-gradient" id="btnTop5">Top 5</button>
               <select class="filter-year hidden" multiple size="4"></select>
               <select class="filter-month hidden" multiple size="4"></select>
               <select class="filter-ref hidden" multiple size="4"></select>
@@ -313,7 +361,7 @@
             <div class="mt-4 flex flex-col gap-2">
               <div class="flex flex-row gap-8 items-end justify-start">
                 <div>
-                  <div class="text-xs text-gray-500">Cantidad total</div>
+                  <div class="text-xs text-gray-500" data-kpi-title>Cantidad total</div>
                   <div class="text-5xl font-extrabold text-brand-700" data-kpi-cantidad>—</div>
                 </div>
                 <div>
@@ -336,12 +384,21 @@
       </div>
 
       <!-- Menu inside tab -->
-      <div class="mt-4 flex items-center gap-3">
-        <div class="text-sm text-gray-500">Agrupar por:</div>
-        <div class="segmented" data-groupby>
-          <button class="is-active" data-val="month">Mes</button>
-          <button data-val="week">Semana</button>
-          <button data-val="day">Día</button>
+      <div class="mt-4 flex items-center gap-6 flex-wrap">
+        <div class="flex items-center gap-3">
+          <div class="text-sm text-gray-500">Agrupar por:</div>
+          <div class="segmented" data-groupby>
+            <button class="is-active" data-val="month">Mes</button>
+            <button data-val="week">Semana</button>
+            <button data-val="day">Día</button>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-sm text-gray-500">Métrica:</div>
+          <div class="segmented" data-metric>
+            <button class="is-active" data-val="qty">Volumen</button>
+            <button data-val="fact">Facturación</button>
+          </div>
         </div>
       </div>
 
@@ -469,25 +526,45 @@
       rows: [], // Excel 1
       rows2: [], // Excel 2
       mciRows: [], // Excel MCI
+      rapRows: [], // PDF RAP/Dispatch
+      unifiedRows: [], // Excel Unificado centralizado
+      useUnifiedFeed: false, // usar maestro para gráficos/tablas
       mapCliToTeix: new Map(), // A->B (Hoja2)
       mapTeixToCli: new Map(),
       charts: new Map(), // client -> Chart instance
       currentClient: 'Vitesco'
     };
 
-  const CLIENTS = ['Vitesco','Continental','Bosch','MCI'];
-  const LOGO_MAP = { Vitesco:'VT.jpg', Continental:'CONTINENTAL.jpg', Bosch:'BOSCH.jpg', MCI:'MCI.jpg' };
-    const LOGO_BASE = './logos/';
-    const fmt = new Intl.NumberFormat('es-ES');
+  const CLIENTS = ['Vitesco','Continental','Bosch','MCI','Dumarey'];
+  const LOGO_MAP = { Vitesco:'VT.jpg', Continental:'CONTINENTAL.jpg', Bosch:'BOSCH.jpg', MCI:'MCI.jpg', Dumarey:['duma.jpg','RAP.jpg'] };
+  const LOGO_BASE = './logos/';
+  const fmt = new Intl.NumberFormat('es-ES');
+  const eurFmt = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
+  // Fallback consistente para facturación cuando falte el dato
+  function getFacturacionValue(row){
+    const v = Number(row?.facturacion);
+    if (!Number.isNaN(v) && row?.facturacion != null) return v;
+    if (row && typeof row._factFallback === 'number') return row._factFallback;
+    const base = Math.max(0, Number(row?.qty)||0);
+    const unit = 0.05 + Math.random()*0.45; // 0.05..0.50 €/unidad
+    const val = Math.round(base * unit * 100) / 100; // dos decimales
+    if (row) row._factFallback = val;
+    return val;
+  }
 
     function logoCandidates(client){
-      const mapped = LOGO_MAP[client] || '';
-      const stem = (mapped ? mapped.replace(/\.(jpg|jpeg|png|webp)$/i,'') : client).toString();
-      const stems = [stem, stem.toUpperCase(), stem.toLowerCase()];
+      const mappedEntry = LOGO_MAP[client];
+      const mappedList = Array.isArray(mappedEntry) ? mappedEntry.filter(Boolean) : (mappedEntry ? [mappedEntry] : []);
       const exts = ['.jpg','.jpeg','.png','.webp'];
       const list = [];
-      if(mapped){ list.push(mapped); list.push(mapped.toLowerCase()); }
-      stems.forEach(s=> exts.forEach(e=> list.push(s+e)));
+      // Prefer explicit mapped filenames
+      mappedList.forEach(m=>{ list.push(m); list.push(String(m).toLowerCase()); });
+      // Build stems from mapped entries, else from client name as fallback
+      const baseStems = (mappedList.length ? mappedList : [client]).map(m=> String(m).replace(/\.(jpg|jpeg|png|webp)$/i,'').toString());
+      baseStems.forEach(stem=>{
+        const variants = [stem, stem.toUpperCase(), stem.toLowerCase()];
+        variants.forEach(s=> exts.forEach(e=> list.push(s+e)));
+      });
       return [...new Set(list)];
     }
 
@@ -514,10 +591,11 @@
 
     // ---------- Aliases de cliente (columna G) ----------
     const CLIENT_ALIASES = {
-      vitesco: ['vt'],
-      continental: ['aumov'],
+      vitesco: ['vt','vitesco'],
+      continental: ['continental','conti','aumov'],
       bosch: ['bosch','uaes'],
-      mci: ['mci']
+      mci: ['mci'],
+      dumarey: ['dumarey','duma','rap']
     };
     const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
     function matchesClient(cellValue, tabName){
@@ -529,12 +607,18 @@
 
     // ---------- Tema ----------
     const darkToggle = document.querySelector('#darkToggle');
+    const toggleUnified = document.querySelector('#toggleUnified');
     const savedTheme = localStorage.getItem('theme');
     if(savedTheme==='dark'){ document.documentElement.classList.add('dark'); darkToggle.checked = true; }
     darkToggle.addEventListener('change', e=>{
       document.documentElement.classList.toggle('dark', e.target.checked);
       localStorage.setItem('theme', e.target.checked?'dark':'light');
       CLIENTS.forEach(c=> drawChart(c));
+    });
+    // Toggle usar maestro
+    toggleUnified?.addEventListener('change', (e)=>{
+      state.useUnifiedFeed = !!e.target.checked;
+      renderPanels();
     });
 
     // ---------- Tabs cliente ----------
@@ -549,29 +633,94 @@
 
     // ---------- Archivo ----------
     document.querySelector('#fileInput').addEventListener('change', e=>{
-      const f = e.target.files?.[0]; if(f) loadExcel(f, 1);
+      const f = e.target.files?.[0]; if(f) { loadExcel(f, 1); e.target.disabled = true; const lbl = e.target.closest('label'); if(lbl) { lbl.style.opacity = .6; lbl.style.pointerEvents = 'none'; } }
     });
     document.querySelector('#fileInput2').addEventListener('change', e=>{
-      const f = e.target.files?.[0]; if(f) loadExcel(f, 2);
+      const f = e.target.files?.[0]; if(f) { loadExcel(f, 2); e.target.disabled = true; const lbl = e.target.closest('label'); if(lbl) { lbl.style.opacity = .6; lbl.style.pointerEvents = 'none'; } }
     });
     // MCI: Solo PDF. Parsea con pdf.js y alimenta el dashboard
-    document.querySelector('#fileMci').addEventListener('change', e=>{
+    document.querySelector('#fileMci').addEventListener('change', async e=>{
       const f = e.target.files?.[0];
       if(!f) return;
-      loadMciPdf(f);
+      try{
+        const kind = await sniffPdfKind(f);
+        if (kind==='mci') await loadMciPdf(f);
+        else if (kind==='dispatch'){
+          const rows = await loadDispatchPdf(f);
+          // Merge into DUMAREY bucket
+          rows.forEach(r=> state.rapRows.push(r));
+          state.currentClient = 'Dumarey';
+          document.querySelectorAll('.clientTab').forEach(b=>{
+            const isSel = b.dataset.client==='Dumarey';
+            b.classList.toggle('bg-gray-100', isSel);
+            b.classList.toggle('dark:bg-gray-800', isSel);
+          });
+          renderPanels();
+        } else {
+          await loadMciPdf(f); // fallback
+        }
+      }catch(err){
+        console.error('Error leyendo PDF:', err);
+        alert('No se pudo leer el PDF.');
+      }
+    });
+    // Unificado: Excel o CSV central con todas las líneas
+    document.querySelector('#fileUnified').addEventListener('change', e=>{
+      const f = e.target.files?.[0]; if(!f) return; loadUnifiedExcel(f);
+    });
+    // RAP: PDF con "Requested Dispatch Qty" + "Material Part Number"
+    const rapInput = document.querySelector('#fileRap');
+    if (rapInput) {
+      rapInput.addEventListener('change', async (e)=>{
+        const f = e.target.files?.[0];
+        if (!f) return;
+        try{
+          const rows = await loadDispatchPdf(f);
+          // Guardar en bucket DUMAREY (no activar Maestro automáticamente)
+          state.rapRows = (state.rapRows||[]).concat(rows);
+          // Ir a pestaña DUMAREY
+          state.currentClient = 'Dumarey';
+          document.querySelectorAll('.clientTab').forEach(b=>{
+            const isSel = b.dataset.client==='Dumarey';
+            b.classList.toggle('bg-gray-100', isSel);
+            b.classList.toggle('dark:bg-gray-800', isSel);
+          });
+          renderPanels();
+        }catch(err){
+          console.error('Error leyendo PDF RAP:', err);
+          alert('No se pudo leer el PDF RAP.');
+        }
+      });
+    }
+    // Carga masiva: múltiples archivos distintos
+    document.querySelector('#fileBulk').addEventListener('change', e=>{
+      const files = Array.from(e.target.files||[]); if(!files.length) return;
+      processBulkFiles(files);
+    });
+    document.querySelector('#btnProcessBulk').addEventListener('click', ()=>{
+      document.getElementById('fileBulk')?.click();
     });
 
     // ---------- Export ----------
     document.querySelector('#exportPDF').addEventListener('click', ()=>{ window.print(); });
     document.querySelector('#exportCSV').addEventListener('click', ()=>{
       const root = document.querySelector(`.clientPanel[data-client="${state.currentClient}"]`);
-      const rows = getFilteredRows(state.currentClient, root, state.rows2.length ? 1 : undefined);
+      const rows = getFilteredRows(state.currentClient, root);
       if(!rows.length){ alert('No hay datos filtrados'); return; }
-      const header = ['cliente','fecha','año','mes','ref_cliente','ref_teixido','planta','cantidad'];
-      const csv = [header.join(',')].concat(rows.map(r=>[
-        esc(r.cliente), r.fecha.toISOString().slice(0,10), r.anio, r.mes,
-        esc(r.refCli||''), esc(r.refTeix||''), esc(r.planta||''), r.qty
-      ].join(','))).join('\n');
+      const hasPrecio = rows.some(r=> r.precioVenta!=null);
+      const hasFact = rows.some(r=> r.facturacion!=null);
+      const header = ['cliente','fecha','año','mes','referencia','ref_cliente','ref_teixido','planta','cantidad']
+        .concat(hasPrecio?['precio_venta']:[])
+        .concat(hasFact?['facturacion']:[]);
+      const csv = [header.join(',')].concat(rows.map(r=>{
+        const base = [
+          esc(r.cliente), (r.fecha instanceof Date && !isNaN(r.fecha))? r.fecha.toISOString().slice(0,10) : '', r.anio||'', r.mes||'',
+          esc(r.ref||''), esc(r.refCli||''), esc(r.refTeix||''), esc(r.planta||''), r.qty||0
+        ];
+        if (hasPrecio) base.push(r.precioVenta!=null? String(r.precioVenta).replace(',', '.') : '');
+        if (hasFact) base.push(r.facturacion!=null? String(r.facturacion).replace(',', '.') : '');
+        return base.join(',');
+      })).join('\n');
       const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -611,9 +760,148 @@
       return img;
     }
 
+  // Construir Maestro desde fuentes cargadas (LAST + MCI + DUMAREY) — OLD excluido
+    document.getElementById('btnBuildMaster')?.addEventListener('click', async (ev)=>{
+      const btn = ev.currentTarget;
+      if (btn._busy) return; // evitar doble clic
+      btn._busy = true;
+      const oldText = btn.textContent;
+      btn.textContent = 'Construyendo…';
+      btn.disabled = true;
+      try {
+      const out = [];
+      // Diagnóstico: contadores por fuente
+      const diag = { last: 0, old: 0, mci: 0, dumarey: 0 };
+      const push = (arr)=>{
+        (arr||[]).forEach(r=>{
+          const cliente = inferClientLabel(r.cliente||'');
+          const ref = r.ref || r.refCli || r.refTeix || '';
+          if (!cliente || !ref) return;
+          out.push({
+            cliente,
+            ref,
+            qty: Number(r.qty)||0,
+            facturacion: r.facturacion!=null? Number(r.facturacion): null,
+            precioVenta: r.precioVenta!=null? Number(r.precioVenta): null,
+            fecha: r.fecha instanceof Date? r.fecha : parseExcelDate(r.fecha),
+            anio: r.anio|| (r.fecha instanceof Date? r.fecha.getFullYear(): null),
+            mes: r.mes || (r.fecha instanceof Date? r.fecha.getMonth()+1: null),
+            planta: r.planta||null,
+            refCli: r.refCli||null,
+            refTeix: r.refTeix||null
+          });
+          // Incrementar métricas por fuente visible
+          if (cliente==='MCI') diag.mci++;
+          else if (cliente==='Dumarey') diag.dumarey++;
+          else diag.last++;
+        });
+      };
+      push(state.rows);
+      // OLD está excluido intencionadamente del Maestro para evitar duplicados históricos
+      push(state.mciRows);
+      push(state.rapRows);
+      // Completar facturación si falta y hay precio
+      out.forEach(r=>{
+        if ((r.facturacion==null || isNaN(r.facturacion)) && (r.precioVenta!=null && !isNaN(r.precioVenta))) {
+          r.facturacion = Number(r.qty||0) * Number(r.precioVenta||0);
+        }
+      });
+      // Agregar duplicados por clave (cliente, ref, año, mes, planta)
+      const agg = new Map();
+      for (const r of out){
+        const refKey = r.ref || r.refCli || r.refTeix || '';
+        const key = [r.cliente||'', refKey, r.anio||'', r.mes||'', r.planta||''].join('||');
+        if (!agg.has(key)){
+          agg.set(key, { ...r });
+        } else {
+          const a = agg.get(key);
+          a.qty = (Number(a.qty)||0) + (Number(r.qty)||0);
+          const f1 = (a.facturacion!=null && !isNaN(a.facturacion)) ? Number(a.facturacion) : null;
+          const f2 = (r.facturacion!=null && !isNaN(r.facturacion)) ? Number(r.facturacion) : null;
+          a.facturacion = (f1!=null || f2!=null) ? (Number(f1||0) + Number(f2||0)) : null;
+          if (a.precioVenta==null && r.precioVenta!=null) a.precioVenta = Number(r.precioVenta);
+        }
+      }
+      console.log('[Maestro] Entradas por fuente:', diag, 'Entradas totales:', out.length, 'Claves únicas:', agg.size);
+      // Completar facturación tras agregación, si tenemos precio
+      const unified = Array.from(agg.values()).map(x=>{
+        if ((x.facturacion==null || isNaN(x.facturacion)) && (x.precioVenta!=null && !isNaN(x.precioVenta))) {
+          x.facturacion = Number(x.qty||0) * Number(x.precioVenta||0);
+        }
+        return x;
+      });
+      state.unifiedRows = unified;
+      state.useUnifiedFeed = true;
+      const t = document.getElementById('toggleUnified'); if (t) t.checked = true;
+      renderPanels();
+      } finally {
+        // Bloqueo permanente en esta sesión tras construir una vez
+        btn.disabled = true;
+        btn.textContent = 'Maestro construido';
+        btn._busy = false;
+      }
+    });
+
+    // (Exportar Maestro) retirado por preferencia de flujo
+
+    // Exportar Detallado (sin agregación, con columna Fuente)
+    document.getElementById('btnExportDetailed')?.addEventListener('click', ()=>{
+      const collect = [];
+      const push = (arr, fuente)=>{
+        (arr||[]).forEach(r=>{
+          const cliente = inferClientLabel(r.cliente||'');
+          const ref = r.ref || r.refCli || r.refTeix || '';
+          if (!cliente || !ref) return;
+          const fecha = r.fecha instanceof Date? r.fecha : parseExcelDate(r.fecha);
+          const anio = r.anio || (fecha instanceof Date? fecha.getFullYear(): null);
+          const mes = r.mes || (fecha instanceof Date? fecha.getMonth()+1: null);
+          collect.push({
+            fuente,
+            cliente,
+            ref,
+            qty: Number(r.qty)||0,
+            facturacion: r.facturacion!=null? Number(r.facturacion): null,
+            precioVenta: r.precioVenta!=null? Number(r.precioVenta): null,
+            fecha,
+            mes,
+            anio,
+            refCli: r.refCli||null,
+            refTeix: r.refTeix||null,
+            planta: r.planta||null
+          });
+        });
+      };
+      push(state.rows, 'LAST');
+      // push(state.rows2, 'OLD'); // OLD omitido por defecto, descomenta si quieres verlas
+      push(state.mciRows, 'MCI');
+      push(state.rapRows, 'DUMAREY');
+
+      if (!collect.length){ alert('No hay filas para exportar. Carga datos primero.'); return; }
+
+      const headers = ['Fuente','Cliente','Referencia','Volumen','Facturacion','Precio Venta','Fecha','Mes','Año','Ref Cliente','Ref Teixido','Planta'];
+      const aoa = [headers];
+      collect.forEach(r=>{
+        let dateStr = '';
+        if (r.fecha instanceof Date && !isNaN(r.fecha)){
+          const dd = String(r.fecha.getUTCDate()).padStart(2,'0');
+          const mm = String(r.fecha.getUTCMonth()+1).padStart(2,'0');
+          const yy = r.fecha.getUTCFullYear();
+          dateStr = `${dd}/${mm}/${yy}`;
+        }
+        aoa.push([
+          r.fuente, r.cliente||'', r.ref||'', r.qty||0, r.facturacion??'', r.precioVenta??'', dateStr, r.mes||'', r.anio||'', r.refCli||'', r.refTeix||'', r.planta||''
+        ]);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = [{wch:10},{wch:16},{wch:18},{wch:10},{wch:14},{wch:14},{wch:12},{wch:6},{wch:6},{wch:18},{wch:18},{wch:12}];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Detallado');
+      XLSX.writeFile(wb, 'Detallado_fuentes.xlsx');
+    });
+
     function buildAndShowMatrix(){
       const modal = document.getElementById('matrixModal');
-      const data = computeMatrixData();
+  const data = computeMatrixData();
       renderMatrixTable(data);
       renderMatrixBubbles(data); // prepared but hidden by default
       // default to table view
@@ -645,7 +933,7 @@
     });
 
     function computeMatrixData(){
-      // Recolectar datos de todas las fuentes (rows, rows2, mciRows)
+      // Recolectar datos según fuente prioritaria (unificado > legacy)
       const all = [];
       const pushRows = (arr, clientLabel) => {
         arr.forEach(r=>{
@@ -657,9 +945,14 @@
           all.push({ref, cli, qty});
         });
       };
-      pushRows(state.rows, null);
-      pushRows(state.rows2, null);
-      pushRows(state.mciRows, 'MCI');
+      if (state.useUnifiedFeed && state.unifiedRows && state.unifiedRows.length) {
+        pushRows(state.unifiedRows, null);
+      } else {
+        pushRows(state.rows, null);
+        pushRows(state.rows2, null);
+  pushRows(state.mciRows, 'MCI');
+  pushRows(state.rapRows, 'Dumarey');
+      }
 
       // Conjuntos
       let refs = Array.from(new Set(all.map(x=>x.ref))).sort();
@@ -908,9 +1201,13 @@
       const selMonth = tpl.querySelector('.filter-month');
       const selRef = tpl.querySelector('.filter-ref');
 
-      const rowsC = (state.currentClient==='MCI')
-        ? state.mciRows.slice()
-        : state.rows.filter(r=> matchesClient(r.cliente, state.currentClient));
+      const rowsC = (state.useUnifiedFeed && state.unifiedRows && state.unifiedRows.length)
+        ? state.unifiedRows.filter(r=> matchesClient(r.cliente, state.currentClient))
+        : (state.currentClient==='MCI')
+          ? state.mciRows.slice()
+          : (state.currentClient==='Dumarey')
+            ? state.rapRows.slice()
+            : state.rows.filter(r=> matchesClient(r.cliente, state.currentClient));
 
       const years = [...new Set(rowsC.map(r=> r.anio).filter(Boolean))].sort((a,b)=>a-b);
       selYear.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
@@ -921,11 +1218,11 @@
       rowsC.forEach(r=>{
         if(r.refCli) refSet.add('CLI:'+r.refCli);
         if(r.refTeix) refSet.add('TEI:'+r.refTeix);
-        if(state.currentClient==='MCI' && r.ref) refSet.add('MCI:'+r.ref);
+        if(r.ref) refSet.add('REF:'+r.ref);
       });
       selRef.innerHTML = [...refSet].sort().map(tag=>{
         const [type,val] = tag.split(':');
-        const label = (type==='CLI'?'[CLI] ': type==='TEI'?'[TEI] ':'[MCI] ') + val;
+        const label = (type==='CLI'?'[CLI] ': type==='TEI'?'[TEI] ':'[REF] ') + val;
         return `<option value="${val}">${label}</option>`;
       }).join('');
 
@@ -958,6 +1255,24 @@
         grp.querySelectorAll('button').forEach(b=> b.classList.remove('is-active'));
         btn.classList.add('is-active');
         drawChart(state.currentClient, root);
+      });
+
+      const metricGrp = tpl.querySelector('[data-metric]');
+      metricGrp.addEventListener('click', (e)=>{
+        const btn = e.target.closest('button'); if(!btn) return;
+        metricGrp.querySelectorAll('button').forEach(b=> b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        // If switching to Facturación and we have unified data, auto-enable Maestro
+        const val = btn.dataset.val;
+        if (val === 'fact'){
+          if (!state.useUnifiedFeed && Array.isArray(state.unifiedRows) && state.unifiedRows.length){
+            state.useUnifiedFeed = true;
+            const tu = document.getElementById('toggleUnified'); if (tu) tu.checked = true;
+          } else if (!state.unifiedRows || !state.unifiedRows.length){
+            console.warn('No hay Maestro para facturación. Carga Excel unificado o usa "Construir Maestro" con precios.');
+          }
+        }
+        onFilterChange(root);
       });
 
       panels.appendChild(tpl);
@@ -1003,13 +1318,19 @@
       const grp = root.querySelector('[data-groupby]');
       const active = grp?.querySelector('button.is-active')?.dataset?.val || 'month';
       const groupBy = active;
-      return {years, months, refs, plantas, groupBy};
+      const metricGrp = root.querySelector('[data-metric]');
+      const metric = metricGrp?.querySelector('button.is-active')?.dataset?.val || 'qty';
+      return {years, months, refs, plantas, groupBy, metric};
     }
 
     function getFilteredRows(client, root, which=1){
       let base = [];
-      if (client==='MCI' || which==='MCI') {
+      if (state.useUnifiedFeed && state.unifiedRows && state.unifiedRows.length) {
+        base = state.unifiedRows.filter(r=> matchesClient(r.cliente, client));
+      } else if (client==='MCI' || which==='MCI') {
         base = state.mciRows.slice();
+      } else if (client==='Dumarey') {
+        base = state.rapRows.slice();
       } else {
         base = (which===2 ? state.rows2 : state.rows).filter(r=> matchesClient(r.cliente, client));
       }
@@ -1030,10 +1351,15 @@
 
     function updateKPIs(root){
       const rows = getFilteredRows(state.currentClient, root, (state.currentClient==='MCI' ? 'MCI' : 1));
-      const qty = rows.reduce((s,r)=> s + (Number(r.qty)||0), 0);
-      const refsSet = new Set(rows.map(r=> r.refCli||r.refTeix||r.ref||''));
+  const { metric } = getFilters(root);
+  const qty = rows.reduce((s,r)=> s + (Number(r.qty)||0), 0);
+  const fact = rows.reduce((s,r)=> s + getFacturacionValue(r), 0);
+  const refsSet = new Set(rows.map(r=> r.ref || r.refCli || r.refTeix || ''));
       const plantasSet = new Set(rows.map(r=> r.planta||''));
-      root.querySelector('[data-kpi-cantidad]').textContent = fmt.format(qty);
+  const useFact = metric==='fact';
+  const kpiTitleEl = root.querySelector('[data-kpi-title]');
+  if (kpiTitleEl) kpiTitleEl.textContent = useFact ? 'Facturación (€)' : 'Cantidad total';
+  root.querySelector('[data-kpi-cantidad]').textContent = useFact ? eurFmt.format(fact) : fmt.format(qty);
       root.querySelector('[data-kpi-rows]').textContent = fmt.format(rows.length);
       root.querySelector('[data-kpi-refs]').textContent = fmt.format([...refsSet].filter(Boolean).length);
       root.querySelector('[data-kpi-plantas]').textContent = fmt.format([...plantasSet].filter(Boolean).length);
@@ -1066,9 +1392,10 @@
       root = root || document.querySelector(`.clientPanel[data-client="${client}"]`);
       const canvas = root.querySelector('.mainChart');
       const ctx = canvas.getContext('2d');
-      const rows1 = getFilteredRows(client, root, (client==='MCI' ? 'MCI' : 1));
-      const rows2 = (client==='MCI') ? [] : getFilteredRows(client, root, 2);
-      const {groupBy} = getFilters(root);
+  const usingUnified = state.useUnifiedFeed && state.unifiedRows && state.unifiedRows.length;
+  const rows1 = getFilteredRows(client, root, (client==='MCI' ? 'MCI' : 1));
+  const rows2 = usingUnified ? [] : ((client==='MCI'||client==='Rap') ? [] : getFilteredRows(client, root, 2));
+  const {groupBy, metric} = getFilters(root);
 
       const keyFn = {
         day: (d)=> d.toISOString().slice(0,10),
@@ -1086,12 +1413,14 @@
       const groups1 = new Map();
       rows1.forEach(r=>{
         const k = keyFn(r.fecha);
-        groups1.set(k, (groups1.get(k)||0) + (Number(r.qty)||0));
+        const v = (metric==='fact') ? getFacturacionValue(r) : (Number(r.qty)||0);
+        groups1.set(k, (groups1.get(k)||0) + v);
       });
       const groups2 = new Map();
       rows2.forEach(r=>{
         const k = keyFn(r.fecha);
-        groups2.set(k, (groups2.get(k)||0) + (Number(r.qty)||0));
+        const v = (metric==='fact') ? getFacturacionValue(r) : (Number(r.qty)||0);
+        groups2.set(k, (groups2.get(k)||0) + v);
       });
 
       const allLabels = Array.from(new Set([...groups1.keys(), ...groups2.keys()])).sort();
@@ -1101,16 +1430,16 @@
       const datasets = [];
       if (rows1.length) {
         datasets.push({
-          label: `${client==='MCI'?'MCI':'LAST'} · ${client} · ${groupBy}`,
+          label: `${usingUnified ? 'UNIFICADO' : (client==='MCI'?'MCI':(client==='Dumarey'?'DUMAREY':'LAST'))} · ${client} · ${groupBy}${metric==='fact'?' · €':''}`,
           data: data1,
           fill: true,
           tension: .25,
           borderColor: 'rgba(0,0,0,0.08)',
-          backgroundColor: client==='MCI' ? 'rgba(99,102,241,0.45)' : 'rgba(0,113,188,0.45)',
+          backgroundColor: usingUnified ? 'rgba(16,185,129,0.45)' : (client==='MCI' ? 'rgba(99,102,241,0.45)' : (client==='Dumarey' ? 'rgba(234,179,8,0.45)' : 'rgba(0,113,188,0.45)')),
           borderWidth: 1,
           pointRadius: 0,
           pointHoverRadius: 4,
-          pointBackgroundColor: client==='MCI' ? '#6366f1' : '#0071bc'
+          pointBackgroundColor: usingUnified ? '#10b981' : (client==='MCI' ? '#6366f1' : (client==='Dumarey' ? '#eab308' : '#0071bc'))
         });
       }
       if (rows2.length) {
@@ -1140,9 +1469,9 @@
           animation: { duration: 1200, easing: 'easeOutElastic', animateScale: true, animateRotate: true },
           scales: {
             x: { grid: { display: false }, title: { display: true, text: 'Fecha (según agrupación)' } },
-            y: { beginAtZero: true, grid: { display: false }, title: { display: true, text: 'Cantidad total' } }
+            y: { beginAtZero: true, grid: { display: false }, title: { display: true, text: ((root.querySelector('[data-metric] .is-active')?.dataset?.val==='fact')) ? 'Facturación (€)' : 'Cantidad total' }, ticks: { callback: (val)=>{ const isFact = (root.querySelector('[data-metric] .is-active')?.dataset?.val==='fact'); return isFact ? eurFmt.format(val) : fmt.format(val); } } }
           },
-          plugins: { legend: { display: true }, tooltip: { enabled: true } },
+          plugins: { legend: { display: true }, tooltip: { enabled: true, callbacks: { label: (ctx)=>{ const isFact = (root.querySelector('[data-metric] .is-active')?.dataset?.val==='fact'); const v = ctx.parsed.y || 0; return (isFact ? eurFmt.format(v) : fmt.format(v)); } } } },
           interaction: { mode: 'index', intersect: false }
         }
       });
@@ -1154,9 +1483,11 @@
       root = root || document.querySelector(`.clientPanel[data-client="${client}"]`);
       const tbody = root.querySelector('.summaryTable tbody');
       tbody.innerHTML = '';
-      const rows1 = getFilteredRows(client, root, (client==='MCI' ? 'MCI' : 1));
-      const rows2 = (client==='MCI') ? [] : getFilteredRows(client, root, 2);
+  const rows1 = getFilteredRows(client, root, (client==='MCI' ? 'MCI' : 1));
+  const rows2 = (client==='MCI' || client==='Rap') ? [] : getFilteredRows(client, root, 2);
 
+  const { metric } = getFilters(root);
+  const useFact = metric==='fact';
       if (!rows2.length) {
         const byYearMonth = new Map();
         const yearsSet = new Set();
@@ -1164,7 +1495,8 @@
           if(!r.anio || !r.mes) return;
           yearsSet.add(r.anio);
           const key = `${r.anio}-${r.mes}`;
-          byYearMonth.set(key, (byYearMonth.get(key)||0) + (Number(r.qty)||0));
+          const v = useFact ? getFacturacionValue(r) : (Number(r.qty)||0);
+          byYearMonth.set(key, (byYearMonth.get(key)||0) + v);
         });
         const years = [...yearsSet].sort((a,b)=> a-b);
         years.forEach(Y=>{
@@ -1179,12 +1511,12 @@
             total += v;
             const td = document.createElement('td');
             td.className = 'px-2 py-1 text-right';
-            td.textContent = v ? fmt.format(v) : '—';
+            td.textContent = v ? (useFact ? eurFmt.format(v) : fmt.format(v)) : '—';
             tr.appendChild(td);
           }
           const tdT = document.createElement('td');
           tdT.className = 'px-2 py-1 text-right font-semibold';
-          tdT.textContent = fmt.format(total);
+          tdT.textContent = useFact ? eurFmt.format(total) : fmt.format(total);
           tr.appendChild(tdT);
           tbody.appendChild(tr);
         });
@@ -1200,20 +1532,20 @@
         return;
       }
 
-      const byYearMonth1 = new Map();
-      const byYearMonth2 = new Map();
+  const byYearMonth1 = new Map();
+  const byYearMonth2 = new Map();
       const yearsSet = new Set();
       rows1.forEach(r=>{
         if(!r.anio || !r.mes) return;
         yearsSet.add(r.anio);
         const key = `${r.anio}-${r.mes}`;
-        byYearMonth1.set(key, (byYearMonth1.get(key)||0) + (Number(r.qty)||0));
+  byYearMonth1.set(key, (byYearMonth1.get(key)||0) + (useFact ? getFacturacionValue(r) : (Number(r.qty)||0)));
       });
       rows2.forEach(r=>{
         if(!r.anio || !r.mes) return;
         yearsSet.add(r.anio);
         const key = `${r.anio}-${r.mes}`;
-        byYearMonth2.set(key, (byYearMonth2.get(key)||0) + (Number(r.qty)||0));
+  byYearMonth2.set(key, (byYearMonth2.get(key)||0) + (useFact ? getFacturacionValue(r) : (Number(r.qty)||0)));
       });
       const years = [...yearsSet].sort((a,b)=> a-b);
 
@@ -1252,20 +1584,20 @@
           total1 += v1; total2 += v2;
           const td = document.createElement('td');
           td.className = 'px-2 py-1 text-right';
-          td.innerHTML = `<span style='font-weight:bold'>${v1 ? fmt.format(v1) : '—'}</span><br><span>${v2 ? fmt.format(v2) : '—'}</span>`;
+          td.innerHTML = `<span style='font-weight:bold'>${v1 ? (useFact ? eurFmt.format(v1) : fmt.format(v1)) : '—'}</span><br><span>${v2 ? (useFact ? eurFmt.format(v2) : fmt.format(v2)) : '—'}</span>`;
           tr.appendChild(td);
         }
         const tdT1 = document.createElement('td');
         tdT1.className = 'px-2 py-1 text-right font-semibold';
-        tdT1.innerHTML = `<span style='font-weight:bold'>${fmt.format(total1)}</span>`;
+  tdT1.innerHTML = `<span style='font-weight:bold'>${useFact ? eurFmt.format(total1) : fmt.format(total1)}</span>`;
         tr.appendChild(tdT1);
         const tdT2 = document.createElement('td');
         tdT2.className = 'px-2 py-1 text-right';
-        tdT2.innerHTML = `<span>${fmt.format(total2)}</span>`;
+  tdT2.innerHTML = `<span>${useFact ? eurFmt.format(total2) : fmt.format(total2)}</span>`;
         tr.appendChild(tdT2);
         const tdDiff = document.createElement('td');
         tdDiff.className = 'px-2 py-1 text-right font-semibold';
-        tdDiff.innerHTML = `<span style='color:${total1>=total2?'#22c55e':'#e53935'}'>${fmt.format(total1-total2)}</span>`;
+  tdDiff.innerHTML = `<span style='color:${total1>=total2?'#22c55e':'#e53935'}'>${useFact ? eurFmt.format(total1-total2) : fmt.format(total1-total2)}</span>`;
         tr.appendChild(tdDiff);
         tbody.appendChild(tr);
       });
@@ -1283,103 +1615,115 @@
 
   // ---------- Lectura Excel ----------
     async function loadExcel(file, which=1){
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, {type:'array'});
+      try{
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, {type:'array'});
 
-      // Hoja2: equivalencias (solo para el primer archivo)
-      if(which===1){
-        state.mapCliToTeix.clear(); state.mapTeixToCli.clear();
-        if(wb.SheetNames[1]){
-          const ws2 = wb.Sheets[wb.SheetNames[1]];
-          const range2 = XLSX.utils.decode_range(ws2['!ref']);
-          for(let r=range2.s.r+1; r<=range2.e.r; r++){
-            const a = (ws2[XLSX.utils.encode_cell({c:0,r})]||{}).v;
-            const b = (ws2[XLSX.utils.encode_cell({c:1,r})]||{}).v;
-            if(a!=null && b!=null){
-              state.mapCliToTeix.set(String(a).trim(), String(b).trim());
-              state.mapTeixToCli.set(String(b).trim(), String(a).trim());
+        // Hoja2: equivalencias (solo para el primer archivo)
+        if(which===1){
+          state.mapCliToTeix.clear(); state.mapTeixToCli.clear();
+          if(wb.SheetNames[1]){
+            const ws2 = wb.Sheets[wb.SheetNames[1]];
+            if (ws2 && ws2['!ref']){
+              const range2 = XLSX.utils.decode_range(ws2['!ref']);
+              for(let r=range2.s.r+1; r<=range2.e.r; r++){
+                const a = (ws2[XLSX.utils.encode_cell({c:0,r})]||{}).v;
+                const b = (ws2[XLSX.utils.encode_cell({c:1,r})]||{}).v;
+                if(a!=null && b!=null){
+                  state.mapCliToTeix.set(String(a).trim(), String(b).trim());
+                  state.mapTeixToCli.set(String(b).trim(), String(a).trim());
+                }
+              }
             }
           }
         }
-      }
 
-      // Hoja1
-      const ws = wb.Sheets['Last LAR'] || wb.Sheets[wb.SheetNames[0]];
-      const range = XLSX.utils.decode_range(ws['!ref']);
-      const col = (letters)=> XLSX.utils.decode_col(letters);
-      const CANT = col('AM'), FECHA = col('BX'), ANIO = col('BZ'), MES = col('CA'),
-            CLI = col('G'), REF_TEIX = col('BV'), PLANTA = col('BW'),
-            REF_CLI = col('T'); // NUEVO: columna T (ref cliente / nombre pieza según cliente)
+        // Hoja1
+        const ws = wb.Sheets['Last LAR'] || wb.Sheets[wb.SheetNames[0]];
+        if (!ws || !ws['!ref']){ alert('No se pudo leer la hoja principal del Excel (Last LAR).'); return; }
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        const col = (letters)=> XLSX.utils.decode_col(letters);
+        const CANT = col('AM'), FECHA = col('BX'), ANIO = col('BZ'), MES = col('CA'),
+              CLI = col('G'), REF_TEIX = col('BV'), PLANTA = col('BW'),
+              REF_CLI = col('T'); // NUEVO: columna T (ref cliente / nombre pieza según cliente)
 
-      const rows = [];
-      for(let r=range.s.r+1; r<=range.e.r; r++){
-        const cellObj = (c)=> ws[XLSX.utils.encode_cell({c,r})];
-        const vQty = cellObj(CANT)?.v;
-        const vFecha = cellObj(FECHA)?.v;
-        const vAnio = cellObj(ANIO)?.v;
-        const vMes = cellObj(MES)?.v;
-        const vCli = cellObj(CLI)?.v;
-        const vRefTeix = cellObj(REF_TEIX)?.v;
-        const vPlanta = cellObj(PLANTA)?.v;
-        const vRefCliT = cellObj(REF_CLI)?.v; // <-- leemos T
+        const rows = [];
+        for(let r=range.s.r+1; r<=range.e.r; r++){
+          const cellObj = (c)=> ws[XLSX.utils.encode_cell({c,r})];
+          const vQty = cellObj(CANT)?.v;
+          const vFecha = cellObj(FECHA)?.v;
+          const vAnio = cellObj(ANIO)?.v;
+          const vMes = cellObj(MES)?.v;
+          const vCli = cellObj(CLI)?.v;
+          const vRefTeix = cellObj(REF_TEIX)?.v;
+          const vPlanta = cellObj(PLANTA)?.v;
+          const vRefCliT = cellObj(REF_CLI)?.v; // <-- leemos T
 
-        if(vCli==null || vFecha==null) continue;
+          if(vCli==null || vFecha==null) continue;
 
-        const fecha = parseExcelDate(vFecha);
-        const qty = Number(vQty||0);
-        const anio = Number(vAnio || (fecha? fecha.getFullYear(): null));
-        const mes = Number(vMes || (fecha? fecha.getMonth()+1 : null));
+          const fecha = parseExcelDate(vFecha);
+          const qty = Number(vQty||0);
+          const anio = Number(vAnio || (fecha? fecha.getFullYear(): null));
+          const mes = Number(vMes || (fecha? fecha.getMonth()+1 : null));
 
-        let refTeix = vRefTeix!=null ? String(vRefTeix).trim() : null;
+          let refTeix = vRefTeix!=null ? String(vRefTeix).trim() : null;
 
-        // refCli: prioriza T; si no hay, intenta mapear desde BV
-        let refCli = null;
-        if (vRefCliT != null && vRefCliT !== '') {
-          refCli = String(vRefCliT).trim();
-        } else if (refTeix && state.mapTeixToCli.has(refTeix)) {
-          refCli = state.mapTeixToCli.get(refTeix);
+          // refCli: prioriza T; si no hay, intenta mapear desde BV
+          let refCli = null;
+          if (vRefCliT != null && vRefCliT !== '') {
+            refCli = String(vRefCliT).trim();
+          } else if (refTeix && state.mapTeixToCli.has(refTeix)) {
+            refCli = state.mapTeixToCli.get(refTeix);
+          }
+
+          rows.push({
+            cliente: String(vCli).trim(),
+            fecha, anio, mes,
+            refCli,      // T o mapeo
+            refTeix,     // BV
+            planta: vPlanta!=null? String(vPlanta).trim() : null,
+            qty
+          });
         }
 
-        rows.push({
-          cliente: String(vCli).trim(),
-          fecha, anio, mes,
-          refCli,      // T o mapeo
-          refTeix,     // BV
-          planta: vPlanta!=null? String(vPlanta).trim() : null,
-          qty
-        });
-      }
+        // Siempre desactivar Maestro al cargar LAST/OLD para verlos al instante
+        state.useUnifiedFeed = false;
+        const tu = document.getElementById('toggleUnified'); if (tu) tu.checked = false;
 
-      if(which===1){
-        state.rows = rows.filter(r=> r.fecha instanceof Date && !isNaN(r.fecha));
-      }else{
-        state.rows2 = rows.filter(r=> r.fecha instanceof Date && !isNaN(r.fecha));
+        if(which===1){
+          state.rows = rows.filter(r=> r.fecha instanceof Date && !isNaN(r.fecha));
+        }else{
+          state.rows2 = rows.filter(r=> r.fecha instanceof Date && !isNaN(r.fecha));
 
-        // Toast de diferencias
-        CLIENTS.forEach(cliente => {
-          const rows1 = state.rows.filter(r => matchesClient(r.cliente, cliente));
-          const rows2 = state.rows2.filter(r => matchesClient(r.cliente, cliente));
-          const piezas1 = rows1.reduce((s, r) => s + (Number(r.qty)||0), 0);
-          const piezas2 = rows2.reduce((s, r) => s + (Number(r.qty)||0), 0);
-          const diff = piezas1 - piezas2;
-          if (diff !== 0) {
-            const refsAll = Array.from(new Set(rows1.map(r => r.refCli || r.refTeix || '').concat(rows2.map(r => r.refCli || r.refTeix || '')))).filter(Boolean);
-            const refsDiffs = refsAll.map(ref => {
-              const sum1 = rows1.filter(r => (r.refCli === ref || r.refTeix === ref)).reduce((s, r) => s + (Number(r.qty)||0), 0);
-              const sum2 = rows2.filter(r => (r.refCli === ref || r.refTeix === ref)).reduce((s, r) => s + (Number(r.qty)||0), 0);
-              return { ref, diff: sum1 - sum2 };
-            }).filter(r => r.diff !== 0);
-            const meses1 = new Set(rows1.map(r => r.mes).filter(Boolean));
-            const meses2 = new Set(rows2.map(r => r.mes).filter(Boolean));
-            const mesesAfectados = [...meses1].filter(m => !meses2.has(m)).concat([...meses2].filter(m => !meses1.has(m)));
-            const plantas1 = new Set(rows1.map(r => r.planta).filter(Boolean));
-            const plantas2 = new Set(rows2.map(r => r.planta).filter(Boolean));
-            const plantasAfectadas = [...plantas1].filter(p => !plantas2.has(p)).concat([...plantas2].filter(p => !plantas1.has(p)));
-            showToastDiferencia(cliente, diff, refsAll, mesesAfectados, plantasAfectadas, refsDiffs);
-          }
-        });
+          // Toast de diferencias
+          CLIENTS.forEach(cliente => {
+            const rows1 = state.rows.filter(r => matchesClient(r.cliente, cliente));
+            const rows2 = state.rows2.filter(r => matchesClient(r.cliente, cliente));
+            const piezas1 = rows1.reduce((s, r) => s + (Number(r.qty)||0), 0);
+            const piezas2 = rows2.reduce((s, r) => s + (Number(r.qty)||0), 0);
+            const diff = piezas1 - piezas2;
+            if (diff !== 0) {
+              const refsAll = Array.from(new Set(rows1.map(r => r.refCli || r.refTeix || '').concat(rows2.map(r => r.refCli || r.refTeix || '')))).filter(Boolean);
+              const refsDiffs = refsAll.map(ref => {
+                const sum1 = rows1.filter(r => (r.refCli === ref || r.refTeix === ref)).reduce((s, r) => s + (Number(r.qty)||0), 0);
+                const sum2 = rows2.filter(r => (r.refCli === ref || r.refTeix === ref)).reduce((s, r) => s + (Number(r.qty)||0), 0);
+                return { ref, diff: sum1 - sum2 };
+              }).filter(r => r.diff !== 0);
+              const meses1 = new Set(rows1.map(r => r.mes).filter(Boolean));
+              const meses2 = new Set(rows2.map(r => r.mes).filter(Boolean));
+              const mesesAfectados = [...meses1].filter(m => !meses2.has(m)).concat([...meses2].filter(m => !meses1.has(m)));
+              const plantas1 = new Set(rows1.map(r => r.planta).filter(Boolean));
+              const plantas2 = new Set(rows2.map(r => r.planta).filter(Boolean));
+              const plantasAfectadas = [...plantas1].filter(p => !plantas2.has(p)).concat([...plantas2].filter(p => !plantas1.has(p)));
+              showToastDiferencia(cliente, diff, refsAll, mesesAfectados, plantasAfectadas, refsDiffs);
+            }
+          });
+        }
+        renderPanels();
+      } catch(err){
+        console.error('Error leyendo Excel LAST/OLD:', err);
+        alert('No se pudo leer el Excel (LAST/OLD). Si sigue fallando, envíame un ejemplo para ajustar el lector.');
       }
-      renderPanels();
     }
 
     // ---------- Lectura Excel MCI (robusta por cabeceras + fallback posicional) ----------
@@ -1482,6 +1826,85 @@
       }catch(err){
         console.error('Error leyendo Excel MCI:', err);
         alert('No se pudo leer el Excel de MCI. Asegúrate de que existen columnas Ref., Mes y Año, o que siguen el esquema B=qty, E=mes, F=año, G=ref.');
+      }
+    }
+
+    // ---------- Lectura Excel Unificado ----------
+    async function loadUnifiedExcel(file){
+      try{
+        const isCsv = /\.csv$/i.test(file.name);
+        let wb, ws;
+        if (isCsv){
+          const txt = await file.text();
+          wb = XLSX.read(txt, { type: 'string' });
+        } else {
+          const ab = await file.arrayBuffer();
+          wb = XLSX.read(ab, { type: 'array' });
+        }
+        ws = wb.Sheets[wb.SheetNames[0]];
+        if (!ws || !ws['!ref']) { alert('El Excel unificado está vacío'); return; }
+        const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
+        if (!aoa.length) { alert('El Excel unificado no tiene datos'); return; }
+        const header = (aoa[0]||[]).map(x=> String(x||'').trim());
+        const normH = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'').trim();
+        const idxOf = (...names)=>{
+          const targets = names.map(normH);
+          for (let i=0;i<header.length;i++){
+            const h = normH(header[i]);
+            if (targets.includes(h)) return i;
+          }
+          return -1;
+        };
+        const iCliente = idxOf('cliente','customer','client');
+        const iRef = idxOf('referencia','ref','material','articulo','item');
+        const iVol = idxOf('volumen','qty','cantidad','quantity');
+        const iFact = idxOf('facturacion','revenue','importe','fact');
+        const iPrecio = idxOf('precioventa','precio','price');
+        const iFecha = idxOf('fecha','periodo','period','month','mes','año','anio','year');
+        const rows = [];
+        for (let r=1; r<aoa.length; r++){
+          const row = aoa[r] || [];
+          const cliente = String(row[iCliente]||'').trim();
+          const ref = String(row[iRef]||'').trim();
+          const qty = Number(String(row[iVol]??'').toString().replace(/\./g,'').replace(',','.')) || 0;
+          let fact = (iFact>=0) ? Number(String(row[iFact]??'').toString().replace(/\./g,'').replace(',','.')) : null;
+          const precio = (iPrecio>=0) ? Number(String(row[iPrecio]??'').toString().replace(/\./g,'').replace(',','.')) : null;
+          let fecha = null, anio = null, mes = null;
+          const vf = (iFecha>=0) ? row[iFecha] : null;
+          if (vf!=null){
+            if (typeof vf === 'number'){
+              const d = parseExcelDate(vf); if (d){ fecha = d; anio = d.getFullYear(); mes = d.getMonth()+1; }
+            } else {
+              const s = String(vf).trim();
+              const m1 = s.match(/^(\d{1,2})[\/\-](\d{4})$/); // mm/yyyy
+              const m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/); // dd/mm/yyyy
+              const m3 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); // yyyy-mm-dd
+              if (m1){ mes = +m1[1]; anio = +m1[2]; fecha = new Date(Date.UTC(anio, mes-1, 1)); }
+              else if (m2){ const dd=+m2[1], mm=+m2[2], yy=m2[3].length===2? 2000+ +m2[3] : +m2[3]; fecha = new Date(Date.UTC(yy,mm-1,dd)); anio=yy; mes=mm; }
+              else if (m3){ const yy=+m3[1], mm=+m3[2], dd=+m3[3]; fecha = new Date(Date.UTC(yy,mm-1,dd)); anio=yy; mes=mm; }
+            }
+          }
+          if (!cliente || !ref) continue;
+          if ((fact==null || isNaN(fact)) && (precio!=null && !isNaN(precio))) {
+            fact = qty * precio;
+          }
+          rows.push({ cliente, ref, qty, facturacion: fact, precioVenta: precio, fecha, anio, mes, planta: null, refCli: null, refTeix: null });
+        }
+        state.unifiedRows = rows;
+        // Auto seleccionar primer cliente disponible
+        const allClients = Array.from(new Set(rows.map(r=> inferClientLabel(r.cliente))));
+        if (allClients.length){
+          state.currentClient = allClients.includes(state.currentClient) ? state.currentClient : allClients[0];
+          document.querySelectorAll('.clientTab').forEach(b=>{
+            const isSel = b.dataset.client===state.currentClient;
+            b.classList.toggle('bg-gray-100', isSel);
+            b.classList.toggle('dark:bg-gray-800', isSel);
+          });
+        }
+        renderPanels();
+      }catch(err){
+        console.error('Error leyendo Excel Unificado:', err);
+        alert('No se pudo leer el Excel unificado. Asegúrate de incluir columnas Cliente, Referencia, Volumen y Fecha/Periodo.');
       }
     }
 
@@ -1685,6 +2108,174 @@
       }
       const d = new Date(v);
       return isNaN(d)? null : d;
+    }
+
+    // ---------- Carga masiva ----------
+    function inferClientFromFilename(name){
+      const label = inferClientLabel(name||'');
+      if (CLIENTS.includes(label)) return label;
+      return state.currentClient || 'Vitesco';
+    }
+
+    async function sniffPdfKind(file){
+      try{
+        const ab = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+        const page = await pdf.getPage(1);
+        const textContent = await page.getTextContent();
+        const text = textContent.items.map(it=> (it.str||'')).join(' ').toLowerCase();
+        if (text.includes('pick up date') && text.includes('cum ordered')) return 'mci';
+        if (text.includes('requested dispatch qty')) return 'dispatch';
+      }catch{}
+      return 'unknown';
+    }
+
+    async function loadDispatchPdf(file){
+      const ab = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+      const yTol = 3;
+      let globalRef = null;
+      const out = [];
+      for(let pageNum=1; pageNum<=pdf.numPages; pageNum++){
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const items = textContent.items.map(it => {
+          const [a,b,c,d,e,f] = it.transform;
+          return { str: (it.str || '').trim(), x: e, y: f, width: it.width || 0, height: it.height || 0 };
+        }).filter(x => x.str);
+
+        // Detect reference from "Material Part Number"
+        if (!globalRef){
+          const candRows = mciGroupByRowY(items, yTol);
+          for (const row of candRows){
+            const idx = row.findIndex(t=> t.str.toLowerCase().includes('material') && t.str.toLowerCase().includes('part number'));
+            if (idx>=0){
+              const label = row[idx];
+              const right = row.filter(t=> t.x > label.x + (label.width||0) + 5).sort((a,b)=> a.x-b.x);
+              if (right.length){ globalRef = right[0].str; break; }
+            }
+          }
+        }
+
+        // Find header containing Requested Dispatch Qty and likely a date column
+        const rowsY = mciGroupByRowY(items, yTol);
+        let headerRow = null, qtyX = null, headerY = null;
+        for (const row of rowsY){
+          const lower = row.map(t=> t.str.toLowerCase());
+          if (lower.some(s=> s.includes('requested') && s.includes('dispatch') && s.includes('qty'))){
+            headerRow = row; headerY = row[0].y;
+            const qtyCell = row.find(t=> t.str.toLowerCase().includes('requested') && t.str.toLowerCase().includes('dispatch') && t.str.toLowerCase().includes('qty'));
+            if (qtyCell){ qtyX = qtyCell.x + (qtyCell.width||0)/2; }
+            break;
+          }
+        }
+        if (!headerRow){ continue; }
+        const body = items.filter(it=> it.y < headerY - yTol);
+        const bodyRows = mciGroupByRowY(body, yTol);
+        for (const row of bodyRows){
+          // date token: first token that looks like date (dd/mm/yyyy or mm/yyyy)
+          const dateTok = row.find(t=> mciIsDateToken(t.str));
+          // qty token: numeric near qtyX
+          let qtyTok = null;
+          const nums = row.filter(t=> /[-+]?\d[\d,\.\s]*/.test(t.str));
+          if (qtyX!=null && nums.length){
+            qtyTok = nums.map(t=> ({t, dx: Math.abs((t.x + t.width/2) - qtyX)})).sort((a,b)=> a.dx - b.dx)[0]?.t || null;
+          } else if (nums.length){
+            qtyTok = nums[nums.length-1];
+          }
+          if (!dateTok || !qtyTok) continue;
+          const dateOut = mciNormalizeDateLike(dateTok.str);
+          const qtyNum = Number(String(qtyTok.str).replace(/\s+/g,'').replace(/,/g,''));
+          if (!isFinite(qtyNum)) continue;
+          let anio=null, mes=null, fecha=null;
+          if (dateOut instanceof Date){ fecha = dateOut; anio = fecha.getFullYear(); mes = fecha.getMonth()+1; }
+          else {
+            const s = String(dateOut);
+            const p1 = s.match(/^(\d{1,2})\/(\d{4})$/);
+            const p2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+            if (p1){ mes = +p1[1]; anio = +p1[2]; fecha = new Date(Date.UTC(anio, mes-1, 1)); }
+            else if (p2){ const dd=+p2[1], mm=+p2[2], yy=p2[3].length===2? 2000+ +p2[3] : +p2[3]; fecha = new Date(Date.UTC(yy,mm-1,dd)); anio=yy; mes=mm; }
+          }
+          if (!anio||!mes||!(fecha instanceof Date)||isNaN(fecha)) continue;
+          out.push({ fecha, anio, mes, qty: qtyNum });
+        }
+      }
+
+      // Normalize rows to unified structure
+  const cliente = 'Dumarey';
+      const ref = (globalRef||'').trim() || null;
+  return out.map(r=> ({ cliente, fecha:r.fecha, anio:r.anio, mes:r.mes, ref, planta:null, qty:(Number(r.qty)||0) * 1000 }));
+    }
+
+    async function processBulkFiles(files){
+      if (typeof progressShow === 'function') progressShow('Procesando carga masiva…'); else console.log('Procesando carga masiva…');
+      const master = [];
+      const pushUnified = (arr)=>{
+        (arr||[]).forEach(r=> master.push(r));
+      }
+      try{
+        let done = 0;
+        for (const f of files){
+          if (typeof progressLog === 'function') progressLog(`Leyendo: ${f.name}`); else console.log('Leyendo:', f.name);
+          const lower = f.name.toLowerCase();
+          try{
+            if (lower.endsWith('.pdf')){
+              const kind = await sniffPdfKind(f);
+              if (kind==='mci'){
+                const rowsBefore = state.mciRows.length;
+                await loadMciPdf(f); // rellena state.mciRows
+                const added = state.mciRows.length - rowsBefore;
+                if (typeof progressLog === 'function') progressLog(`PDF MCI: ${added} filas`); else console.log('PDF MCI:', added, 'filas');
+                const newRows = state.mciRows.slice(rowsBefore);
+                pushUnified(newRows.map(x=> ({...x, precioVenta: x.precioVenta??null, facturacion: x.facturacion??null})));
+              } else if (kind==='dispatch'){
+                const rows = await loadDispatchPdf(f);
+                if (typeof progressLog === 'function') progressLog(`PDF Dispatch: ${rows.length} filas`); else console.log('PDF Dispatch:', rows.length, 'filas');
+                pushUnified(rows.map(x=> ({...x, precioVenta: x.precioVenta??null, facturacion: x.facturacion??null})));
+              } else {
+                if (typeof progressLog === 'function') progressLog(`PDF no reconocido: ${f.name}`); else console.warn('PDF no reconocido:', f.name);
+              }
+            } else if (lower.endsWith('.xlsx') || lower.endsWith('.xls')){
+              // Intentar unificado primero; si no, tratar como LAST
+              const buf = await f.arrayBuffer();
+              const wb = XLSX.read(buf, { type: 'array' });
+              const ws = wb.Sheets[wb.SheetNames[0]];
+              const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
+              const header = (aoa[0]||[]).map(x=> String(x||'').trim().toLowerCase());
+              const looksUnified = header.some(h=> /cliente|customer/.test(h)) && header.some(h=> /ref|referencia|material/.test(h));
+              if (looksUnified){
+                await loadUnifiedExcel(f);
+                if (typeof progressLog === 'function') progressLog(`Excel unificado detectado: ${state.unifiedRows.length} filas`); else console.log('Excel unificado detectado:', state.unifiedRows.length, 'filas');
+                pushUnified(state.unifiedRows);
+              } else {
+                await loadExcel(f, 1);
+                if (typeof progressLog === 'function') progressLog(`Excel tipo LAST: ${state.rows.length} filas`); else console.log('Excel tipo LAST:', state.rows.length, 'filas');
+                pushUnified(state.rows.map(x=> ({...x, ref: x.ref||x.refCli||x.refTeix||'', facturacion: x.facturacion??null, precioVenta: x.precioVenta??null})));
+              }
+            } else if (lower.endsWith('.csv')){
+              await loadUnifiedExcel(f); // nuestro parser soporta CSV unificado
+              if (typeof progressLog === 'function') progressLog(`CSV unificado: ${state.unifiedRows.length} filas`); else console.log('CSV unificado:', state.unifiedRows.length, 'filas');
+              pushUnified(state.unifiedRows);
+            } else {
+              if (typeof progressLog === 'function') progressLog(`Tipo no reconocido: ${f.name}`); else console.warn('Tipo no reconocido:', f.name);
+            }
+            done++;
+            if (typeof progressSet === 'function') progressSet(Math.round(done*100/files.length));
+            if (typeof progressYield === 'function') await progressYield(); else await new Promise(r=> setTimeout(r,0));
+          } catch(err){
+            if (typeof progressLog === 'function') progressLog(`Error en ${f.name}: ${err?.message||err}`); else console.error('Error en', f.name, err);
+          }
+        }
+        // Completar facturación si falta
+        master.forEach(r=>{ if ((r.facturacion==null||isNaN(r.facturacion)) && (r.precioVenta!=null && !isNaN(r.precioVenta))) r.facturacion = Number(r.qty||0)*Number(r.precioVenta||0); });
+        state.unifiedRows = master;
+        state.useUnifiedFeed = true;
+        const t = document.getElementById('toggleUnified'); if (t) t.checked = true;
+        if (typeof progressLog === 'function') progressLog(`Maestro consolidado: ${master.length} filas`); else console.log('Maestro consolidado:', master.length, 'filas');
+        renderPanels();
+      } finally {
+        setTimeout(()=> { if (typeof progressHide === 'function') progressHide(); }, 1200);
+      }
     }
 
     // ===== Helpers para Crear Excel (Delfor -> Forecast) =====
@@ -2247,7 +2838,7 @@
           if (g.classList.contains('expanded')) collapse(); else expand();
         });
       }
-      ['grp-vbc','grp-mci','grp-delfor'].forEach(setupAccordion);
+  ['grp-vbc','grp-mci','grp-unificado','grp-bulk','grp-delfor'].forEach(setupAccordion);
 
       const btnD = document.getElementById('loadDelforCE');
       const btnF = document.getElementById('loadForecastCE');
@@ -2466,13 +3057,39 @@
 
     async function stlExists(url){
       try{
-        const res = await fetch(url, { method:'HEAD', cache:'no-store' });
+        let res = await fetch(url, { method:'HEAD', cache:'no-store' });
+        if (res.ok) return true;
+        // Fallback: HEAD no permitido o sin CORS → GET con rango mínimo
+        res = await fetch(url, { method:'GET', headers:{ 'Range':'bytes=0-0' }, cache:'no-store' });
         return res.ok;
       }catch{ return false; }
     }
 
+    // Índice de ficheros STL en GitHub para resolver nombres exactos
+    let _stlIndex = null;
+    async function fetchStlIndex(){
+      if (_stlIndex !== null) return _stlIndex;
+      try{
+        const api = 'https://api.github.com/repos/teixi11/teixis/contents/static/stl';
+        const res = await fetch(api, { cache: 'no-store' });
+        if (!res.ok) throw new Error('Index fetch failed');
+        const data = await res.json();
+        _stlIndex = (Array.isArray(data)? data:[])
+          .filter(x=> x && x.type === 'file' && /\.stl$/i.test(x.name||''))
+          .map(x=> ({ name: x.name }));
+      }catch{
+        _stlIndex = [];
+      }
+      return _stlIndex;
+    }
+
     function buildStlCandidates(ref){
-      const basePaths = ['/static/stl/', 'static/stl/'];
+      const basePaths = [
+        'https://cdn.jsdelivr.net/gh/teixi11/teixis@main/static/stl/',
+        'https://raw.githubusercontent.com/teixi11/teixis/main/static/stl/',
+        '/static/stl/',
+        'static/stl/'
+      ];
       const names = new Set([
         ref,
         String(ref).trim(),
@@ -2494,10 +3111,30 @@
     }
 
     async function resolveStlPath(ref){
+      // 1) Intentar resolver por índice de GitHub (nombre exacto independientemente de mayúsculas)
+      try{
+        const idx = await fetchStlIndex();
+        if (idx && idx.length){
+          const normBase = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+          const target = normBase(String(ref).replace(/\.[^.]+$/,''));
+          let best = null;
+          for(const it of idx){
+            const base = String(it.name||'').replace(/\.[^.]+$/,'');
+            const nb = normBase(base);
+            if (nb === target){ best = it.name; break; }
+            if (!best && nb.includes(target)) best = it.name;
+          }
+          if (best){
+            const cdnUrl = `https://cdn.jsdelivr.net/gh/teixi11/teixis@main/static/stl/${best}`;
+            if (await stlExists(cdnUrl)) return cdnUrl;
+            const rawUrl = `https://raw.githubusercontent.com/teixi11/teixis/main/static/stl/${best}`;
+            if (await stlExists(rawUrl)) return rawUrl;
+          }
+        }
+      }catch{}
+      // 2) Fallback a la lista de patrones
       const cands = buildStlCandidates(ref);
-      for(const url of cands){
-        if(await stlExists(url)) return url;
-      }
+      for(const url of cands){ if(await stlExists(url)) return url; }
       return null;
     }
 
