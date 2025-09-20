@@ -158,6 +158,8 @@
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+  <!-- Three.js for 3D Globe -->
+  <script src="https://unpkg.com/three@0.156.1/build/three.min.js"></script>
 
   <!-- Login modal básico -->
   <div id="loginModal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.12);z-index:100;display:flex;align-items:center;justify-content:center;">
@@ -181,6 +183,9 @@
           <div class="flex items-center gap-2">
             <button id="openLoadMenu" class="px-3 py-2 btn-gradient">Menú cargar</button>
             <button id="openMatrix" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Matriz</button>
+            <button id="openGlobe" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Mundo</button>
+            <input id="globeSearchHeader" type="text" placeholder="Planta/país" class="px-2 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80" style="width:180px;" />
+            <button id="globeGoHeader" class="px-2 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900" title="Buscar en el mundo">Ir</button>
             <button id="exportPDF" class="px-3 py-2 btn-gradient">PDF</button>
             <button id="exportCSV" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">CSV</button>
           </div>
@@ -311,6 +316,38 @@
                 <input id="inpForecastCE" type="file" accept=".xlsx" class="hidden">
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Globe Modal -->
+  <div id="globeModal" class="hidden" style="position:fixed; inset:0; z-index:6000; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center;">
+      <div style="position:relative; width:min(90vw,880px); height:min(90vh,820px); background:#0b1220; border:1px solid #1f2937; border-radius:1rem; box-shadow:0 12px 48px rgba(0,0,0,.45); overflow:hidden;">
+        <div style="position:absolute; inset:0; display:flex; flex-direction:column;">
+          <div style="display:flex; gap:.5rem; align-items:center; padding:.6rem .8rem; background:#0f172a; border-bottom:1px solid #1f2937;">
+            <div style="font-weight:800; color:#93c5fd;">Mundo</div>
+            <input id="globeSearch" type="text" placeholder="Buscar planta o país…" style="flex:1; background:#0b1220; color:#e5e7eb; border:1px solid #1f2937; border-radius:.5rem; padding:.4rem .6rem;" />
+            <button id="closeGlobe" title="Cerrar" style="background:#111827; color:#e5e7eb; border:1px solid #374151; padding:.3rem .6rem; border-radius:.5rem;">Cerrar</button>
+          </div>
+          <div id="globeWrap" style="position:relative; flex:1; display:flex; align-items:center; justify-content:center; color:#9ca3af;">
+            <div id="globeHint" style="text-align:center; max-width:70%;">
+              Usa el buscador o los ejemplos para ubicar una planta o país.
+            </div>
+          </div>
+          <div id="globeLegend" style="padding:.5rem .7rem; background:#0f172a; border-top:1px solid #1f2937; color:#e5e7eb;">
+            <div style="font-weight:700; margin-bottom:.25rem;">Ubicaciones</div>
+            <div id="globePresets" style="display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.4rem;">
+              <button data-preset="Valls" style="background:#111827; border:1px solid #1f2937; color:#e5e7eb; border-radius:.5rem; padding:.25rem .5rem;">Valls</button>
+              <button data-preset="Stuttgart" style="background:#111827; border:1px solid #1f2937; color:#e5e7eb; border-radius:.5rem; padding:.25rem .5rem;">Stuttgart</button>
+              <button data-preset="Iasi" style="background:#111827; border:1px solid #1f2937; color:#e5e7eb; border-radius:.5rem; padding:.25rem .5rem;">Iasi</button>
+              <button data-preset="Mlada Boleslav" style="background:#111827; border:1px solid #1f2937; color:#e5e7eb; border-radius:.5rem; padding:.25rem .5rem;">Mlada Boleslav</button>
+              <button data-preset="Wroclaw" style="background:#111827; border:1px solid #1f2937; color:#e5e7eb; border-radius:.5rem; padding:.25rem .5rem;">Wroclaw</button>
+              <button data-preset="Tangier" style="background:#111827; border:1px solid #1f2937; color:#e5e7eb; border-radius:.5rem; padding:.25rem .5rem;">Tangier</button>
+              <button data-preset="Chennai" style="background:#111827; border:1px solid #1f2937; color:#e5e7eb; border-radius:.5rem; padding:.25rem .5rem;">Chennai</button>
+              <button data-preset="Guadalajara" style="background:#111827; border:1px solid #1f2937; color:#e5e7eb; border-radius:.5rem; padding:.25rem .5rem;">Guadalajara</button>
+            </div>
+            <div id="globeCountries" style="opacity:.9"></div>
           </div>
         </div>
       </div>
@@ -1303,6 +1340,189 @@
       drawChart(state.currentClient, root);
       drawSummaryTable(state.currentClient, root);
     }
+
+    // ===== 3D Globe for Plantas =====
+    const PLANTA_COUNTRY_MAP = {
+      // Ajusta mapeos según tu nomenclatura de planta -> país
+      'Barcelona': 'Spain', 'Valls': 'Spain', 'Iasi': 'Romania', 'Timisoara': 'Romania',
+      'Stuttgart': 'Germany', 'Wolfsburg': 'Germany', 'Paris': 'France', 'Mlada Boleslav': 'Czechia',
+      'Wroclaw': 'Poland', 'Tangier': 'Morocco', 'Chennai': 'India', 'Guadalajara': 'Mexico',
+      'Tanger': 'Morocco', 'Tánger': 'Morocco', 'Sibiu': 'Romania', 'Arad': 'Romania',
+    };
+    const COUNTRY_LATLON = {
+      'Spain':[40.4637,-3.7492], 'Germany':[51.1657,10.4515], 'France':[46.2276,2.2137], 'Czechia':[49.8175,15.4730],
+      'Poland':[51.9194,19.1451], 'Romania':[45.9432,24.9668], 'Morocco':[31.7917,-7.0926], 'India':[20.5937,78.9629],
+      'Mexico':[23.6345,-102.5528]
+    };
+    let _globe = { renderer:null, scene:null, camera:null, animId:null, points:[] };
+    function showGlobeForPlantas(plantas){
+      try{
+        const countries = Array.from(new Set(plantas.map(p=> PLANTA_COUNTRY_MAP[p] || p))).filter(Boolean);
+        const coords = countries.map(c=> ({ c, ll: COUNTRY_LATLON[c]||null })).filter(x=> x.ll);
+        const modal = document.getElementById('globeModal');
+        const wrap = document.getElementById('globeWrap');
+        document.getElementById('globeCountries').textContent = countries.join(', ');
+        modal.classList.remove('hidden');
+        document.getElementById('globeHint')?.classList.add('hidden');
+        // Init Three.js once per open
+        if (_globe.renderer){ try{ cancelAnimationFrame(_globe.animId); }catch{} _globe.points=[]; wrap.innerHTML=''; try{ _globe.renderer.dispose(); }catch{} _globe.renderer=null; }
+        const w = wrap.clientWidth||700, h = wrap.clientHeight||700;
+        const renderer = new THREE.WebGLRenderer({ antialias:true }); renderer.setSize(w,h); wrap.appendChild(renderer.domElement);
+  const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b1220);
+  const camera = new THREE.PerspectiveCamera(45, w/h, 0.1, 1000); camera.position.set(0,0,3.1);
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x0b1220, 0.85); scene.add(hemi);
+  const amb = new THREE.AmbientLight(0xffffff, 0.45); scene.add(amb);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.95); dir.position.set(5,3,6); scene.add(dir);
+  const sphereGeo = new THREE.SphereGeometry(1, 64, 64);
+  const loader = new THREE.TextureLoader();
+  const earthTex = loader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+  const bumpTex = loader.load('https://unpkg.com/three-globe/example/img/earth-topology.png');
+  const sphereMat = new THREE.MeshPhongMaterial({ map: earthTex, bumpMap: bumpTex, bumpScale: 0.6, specular: 0x333333, shininess: 20 });
+        const earth = new THREE.Mesh(sphereGeo, sphereMat); scene.add(earth);
+  // Atmosphere glow
+  const atmoGeo = new THREE.SphereGeometry(1.06, 64, 64);
+  const atmoMat = new THREE.MeshBasicMaterial({ color: 0x5ac8fa, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, side: THREE.BackSide });
+  const atmosphere = new THREE.Mesh(atmoGeo, atmoMat); scene.add(atmosphere);
+        // Points
+  const group = new THREE.Group(); earth.add(group); // lock points to Earth rotation
+        const toXYZ = ([lat,lon])=>{
+          const phi = (90 - lat) * Math.PI/180; const theta = (lon+180) * Math.PI/180;
+          const r = 1.005; // just above surface
+          return new THREE.Vector3(
+            -(r * Math.sin(phi) * Math.cos(theta)),
+            (r * Math.cos(phi)),
+            (r * Math.sin(phi) * Math.sin(theta))
+          );
+        };
+        coords.forEach(({ll})=>{
+          const pos = toXYZ(ll);
+          const n = pos.clone().normalize();
+          const cylGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.24, 12);
+          const cylMat = new THREE.MeshPhongMaterial({ color: 0x22c55e, emissive: 0x0f6f48, emissiveIntensity: 0.85, shininess: 80 });
+          const pin = new THREE.Mesh(cylGeo, cylMat);
+          pin.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), n);
+          pin.position.copy(n.clone().multiplyScalar(1.12));
+          group.add(pin);
+          _globe.points.push(pin);
+        });
+        // Orient Earth so first location faces camera
+        if (coords.length){
+          const lon = coords[0].ll[1];
+          earth.rotation.set(0, -((lon * Math.PI/180) + Math.PI/2), 0);
+        } else {
+          earth.rotation.set(0, 0, 0);
+        }
+        // spin
+  let autoSpin = true;
+  const animate = ()=>{ if (autoSpin) earth.rotation.y += 0.0015; atmosphere.rotation.y = earth.rotation.y; renderer.render(scene,camera); _globe.animId = requestAnimationFrame(animate); };
+        animate();
+  // Interacción: arrastre para girar (solo eje Y) y rueda para zoom
+  const dom = renderer.domElement; dom.style.cursor = 'grab';
+  let isDragging = false; let lastX = 0; let resumeTimer = null;
+  const onDown = (e)=>{ isDragging = true; lastX = e.clientX || (e.touches?.[0]?.clientX||0); dom.style.cursor='grabbing'; autoSpin=false; if(resumeTimer){ clearTimeout(resumeTimer); resumeTimer=null; } };
+  const onMove = (e)=>{ if(!isDragging) return; const x = e.clientX || (e.touches?.[0]?.clientX||0); const dx = x - lastX; lastX = x; earth.rotation.y += dx * 0.005; };
+  const onUp = ()=>{ isDragging = false; dom.style.cursor='grab'; resumeTimer = setTimeout(()=>{ autoSpin=true; }, 1200); };
+  const onWheel = (e)=>{ e.preventDefault(); const delta = Math.sign(e.deltaY); const z = camera.position.z + delta * 0.25; camera.position.z = Math.min(6.5, Math.max(2.2, z)); };
+  dom.addEventListener('mousedown', onDown); window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+  dom.addEventListener('touchstart', onDown, {passive:true}); window.addEventListener('touchmove', onMove, {passive:false}); window.addEventListener('touchend', onUp);
+  dom.addEventListener('wheel', onWheel, {passive:false});
+  _globe = { renderer, scene, camera, animId: _globe.animId, points: _globe.points, handlers:{onDown,onMove,onUp,onWheel} };
+  attachGlobeCloseHandlers();
+      }catch(err){ console.error('Globe error:', err); }
+    }
+
+    // Abrir globo desde el botón global
+    document.getElementById('openGlobe')?.addEventListener('click', ()=>{
+      openGlobeModal();
+    });
+
+    function openGlobeModal(){
+      const modal = document.getElementById('globeModal');
+      const wrap = document.getElementById('globeWrap');
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+      // Reset view without initializing Three.js
+      try{ cancelAnimationFrame(_globe.animId); }catch{}
+      if (_globe.renderer){ try{ _globe.renderer.dispose(); }catch{} _globe.renderer=null; }
+      wrap.innerHTML = '<div id="globeHint" style="text-align:center; max-width:70%; color:#9ca3af;">Usa el buscador o los ejemplos para ubicar una planta o país.</div>';
+      document.getElementById('globeCountries').textContent = '';
+      attachGlobeCloseHandlers();
+    }
+
+    // Centralized close handlers
+    function closeGlobeModal(){
+  const modal = document.getElementById('globeModal');
+      try{ cancelAnimationFrame(_globe.animId); }catch{}
+      try{ _globe.renderer?.dispose(); }catch{}
+      _globe.renderer = null;
+      // Remove interaction listeners if present
+      try{
+        const dom = document.getElementById('globeWrap')?.querySelector('canvas');
+        if (dom && _globe.handlers){
+          dom.removeEventListener('mousedown', _globe.handlers.onDown);
+          window.removeEventListener('mousemove', _globe.handlers.onMove);
+          window.removeEventListener('mouseup', _globe.handlers.onUp);
+          dom.removeEventListener('touchstart', _globe.handlers.onDown);
+          window.removeEventListener('touchmove', _globe.handlers.onMove);
+          window.removeEventListener('touchend', _globe.handlers.onUp);
+          dom.removeEventListener('wheel', _globe.handlers.onWheel);
+        }
+      }catch{}
+  modal.classList.add('hidden');
+  modal.style.display = 'none';
+    }
+    function attachGlobeCloseHandlers(){
+      const modal = document.getElementById('globeModal');
+      const btn = document.getElementById('closeGlobe');
+      if (btn){ btn.onclick = closeGlobeModal; }
+      if (!modal._backdropBound){
+        modal.addEventListener('click', (e)=>{ if(e.target===modal){ closeGlobeModal(); } });
+        modal._backdropBound = true;
+      }
+      if (!document._escGlobeBound){
+        document.addEventListener('keydown', (ev)=>{ if(ev.key==='Escape' && !modal.classList.contains('hidden')) closeGlobeModal(); });
+        document._escGlobeBound = true;
+      }
+    }
+
+    // Header search wiring
+    document.getElementById('globeGoHeader')?.addEventListener('click', ()=>{
+      const q = (document.getElementById('globeSearchHeader')?.value||'').toString().trim();
+      if (!q) { openGlobeModal(); return; }
+      const plantNames = Object.keys(PLANTA_COUNTRY_MAP);
+      const matchPlanta = plantNames.find(p=> p.toLowerCase().includes(q.toLowerCase()));
+      const matchCountry = Object.keys(COUNTRY_LATLON).find(c=> c.toLowerCase().includes(q.toLowerCase()));
+      openGlobeModal();
+      if (matchPlanta) showGlobeForPlantas([matchPlanta]);
+      else if (matchCountry) showGlobeForPlantas([matchCountry]);
+      else showGlobeForPlantas([q]);
+    });
+    document.getElementById('globeSearchHeader')?.addEventListener('keydown', (e)=>{
+      if (e.key==='Enter') { e.preventDefault(); document.getElementById('globeGoHeader')?.click(); }
+    });
+
+    // Búsqueda en globo por planta/país
+    document.getElementById('globeSearch')?.addEventListener('input', (e)=>{
+      const q = (e.target.value||'').toString().trim().toLowerCase();
+      if (!q) return;
+      const plantNames = Object.keys(PLANTA_COUNTRY_MAP);
+      const matchPlanta = plantNames.find(p=> p.toLowerCase().includes(q));
+      const matchCountry = Object.keys(COUNTRY_LATLON).find(c=> c.toLowerCase().includes(q));
+      if (matchPlanta) {
+        showGlobeForPlantas([matchPlanta]);
+      } else if (matchCountry) {
+        // Invertir búsqueda país directo
+        showGlobeForPlantas([matchCountry]);
+      }
+    });
+
+    // Presets
+    document.getElementById('globePresets')?.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button[data-preset]'); if(!btn) return;
+      const val = btn.getAttribute('data-preset');
+      openGlobeModal();
+      showGlobeForPlantas([val]);
+    });
 
     // (Eliminado: etiquetas MCI)
 
