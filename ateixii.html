@@ -155,6 +155,13 @@
     .group-content { max-height: 0; overflow: hidden; transition: max-height .28s ease; border-top: 1px solid rgba(0,0,0,.06); }
     .dark .group-content { border-top-color: #172034; }
     .group-content .inner { padding: .6rem; display: flex; flex-direction: column; gap: .5rem; }
+  /* Explore DnD */
+  .explore-drop{border:1px dashed #cbd5e1; border-radius:.75rem; background:rgba(0,0,0,.02); padding:.375rem; min-height:2.25rem}
+  .dark .explore-drop{border-color:#374151; background:rgba(255,255,255,.02)}
+  .explore-drop.dragover{outline:2px solid #60a5fa}
+  .pill{display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .5rem; border-radius:999px; background:#e5f0ff; color:#0b3b78; font-size:.8rem; cursor:grab; margin:.15rem}
+  .pill[data-type="measure"]{background:#eafaf3; color:#064e3b}
+  .dark .pill{background:#0b1220; color:#93c5fd; border:1px solid #1f2937}
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
@@ -201,6 +208,7 @@
               <div class="grid grid-cols-2 gap-2 mb-3">
                 <button id="openMatrix" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">🧮 Matriz</button>
                 <button id="openGlobe" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">🌍 Mundo</button>
+                <button id="openExplore" class="col-span-2 px-3 py-2 btn-gradient">🧪 Explorar (Drag & Drop)</button>
               </div>
               <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Buscar en el mundo</div>
               <div class="flex gap-2 mb-3">
@@ -504,6 +512,64 @@
       <button id="closeTop5" class="absolute top-4 right-4 text-2xl font-bold text-gray-500 hover:text-red-600">&times;</button>
       <h2 class="text-2xl font-bold mb-6 text-center">Top 5 piezas más pedidas</h2>
       <div id="top5List" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
+    </div>
+  </div>
+
+  <!-- Modal Explorar (Drag & Drop) -->
+  <div id="exploreModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black bg-opacity-60"></div>
+    <div class="absolute inset-4 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-300 dark:border-gray-700 flex flex-col">
+      <div class="p-3 flex items-center gap-3 border-b border-gray-200 dark:border-gray-800">
+        <div class="text-lg font-bold">Explorar datos (arrastra campos a ejes)</div>
+        <div class="ml-auto flex items-center gap-2">
+          <select id="exploreChartType" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <option value="bar">Barras</option>
+            <option value="line">Líneas</option>
+            <option value="horizontalBar">Barras horizontales</option>
+          </select>
+          <button id="closeExplore" class="px-3 py-1 rounded bg-red-600 text-white">Cerrar</button>
+        </div>
+      </div>
+      <div class="flex-1 grid grid-cols-12 gap-3 p-3 overflow-auto">
+        <div class="col-span-3 flex flex-col gap-2 overflow-auto">
+          <div class="text-xs font-semibold text-gray-500">Campos</div>
+          <div id="exploreFields" class="flex flex-col gap-2"></div>
+        </div>
+        <div class="col-span-9 grid grid-cols-12 gap-3 overflow-auto">
+          <div class="col-span-4">
+            <div class="text-xs font-semibold text-gray-500 mb-1">Eje X</div>
+            <div id="exploreDropX" class="explore-drop h-16"></div>
+          </div>
+          <div class="col-span-4">
+            <div class="text-xs font-semibold text-gray-500 mb-1">Eje Y</div>
+            <div id="exploreDropY" class="explore-drop h-16"></div>
+          </div>
+          <div class="col-span-4">
+            <div class="text-xs font-semibold text-gray-500 mb-1">Segmento/Color</div>
+            <div id="exploreDropSeries" class="explore-drop h-16"></div>
+          </div>
+          <div class="col-span-12 grid grid-cols-12 gap-3 mt-2 items-start">
+            <div class="col-span-8">
+              <div class="text-xs font-semibold text-gray-500 mb-1">Filtro (arrastra una dimensión)</div>
+              <div id="exploreDropFilter" class="explore-drop h-10"></div>
+            </div>
+            <div class="col-span-4">
+              <div class="text-xs font-semibold text-gray-500 mb-1">Valores</div>
+              <div class="flex items-center gap-2">
+                <button id="exploreFilterBtn" class="px-3 py-1 rounded-xl border border-gray-200 dark:border-gray-700">Seleccionar…</button>
+                <span id="exploreFilterSummary" class="text-xs text-gray-500">Todos</span>
+              </div>
+            </div>
+          </div>
+          <div id="exploreFilterPopover" class="popover hidden"></div>
+          <div class="col-span-12">
+            <div class="text-xs font-semibold text-gray-500 mb-1">Gráfico</div>
+            <div class="w-full h-[55vh] border border-gray-200 dark:border-gray-800 rounded-xl p-2">
+              <canvas id="exploreChart" style="width:100%; height:100%"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1128,6 +1194,237 @@
     document.getElementById('closeMatrix').addEventListener('click', ()=>{
       document.getElementById('matrixModal').classList.add('hidden');
     });
+
+    // ===== Explorar (Drag & Drop) =====
+    let _exploreChart = null;
+    const EXPLORE_FIELDS = [
+      { key:'cliente', label:'Cliente', type:'dimension' },
+      { key:'ref', label:'Referencia', type:'dimension' },
+      { key:'planta', label:'Planta', type:'dimension' },
+      { key:'anio', label:'Año', type:'dimension' },
+      { key:'mes', label:'Mes', type:'dimension' },
+      { key:'fuente', label:'Fuente', type:'dimension' },
+      { key:'qty', label:'Volumen', type:'measure', agg:'sum' },
+      { key:'facturacion', label:'Facturación', type:'measure', agg:'sum' }
+    ];
+    function openExplore(){
+      const modal = document.getElementById('exploreModal');
+      modal.classList.remove('hidden');
+      buildExploreFields();
+      clearExploreDrops();
+      // Default: X=Año, Y=Volumen, Series=Cliente si existen
+      addPillToDrop({key:'anio',label:'Año',type:'dimension'}, 'X');
+      addPillToDrop({key:'qty',label:'Volumen',type:'measure',agg:'sum'}, 'Y');
+      renderExploreChart();
+    }
+    function closeExplore(){
+      const modal = document.getElementById('exploreModal');
+      modal.classList.add('hidden');
+      if (_exploreChart){ _exploreChart.destroy(); _exploreChart = null; }
+    }
+    document.getElementById('openExplore')?.addEventListener('click', openExplore);
+    document.getElementById('closeExplore')?.addEventListener('click', closeExplore);
+    // Build field list
+    function buildExploreFields(){
+      const box = document.getElementById('exploreFields');
+      box.innerHTML = '';
+      EXPLORE_FIELDS.forEach(f=>{
+        const div = document.createElement('div');
+        div.className = 'pill';
+        div.draggable = true;
+        div.dataset.key = f.key;
+        div.dataset.type = f.type;
+        if (f.type==='measure') div.dataset.agg = f.agg||'sum';
+        div.textContent = f.label + (f.type==='measure'? ' (Σ)':'' );
+        div.addEventListener('dragstart', (e)=>{
+          e.dataTransfer.setData('text/plain', JSON.stringify({key:f.key,label:f.label,type:f.type,agg:f.agg||'sum'}));
+        });
+        box.appendChild(div);
+      });
+      // Make drops droppable
+      ['exploreDropX','exploreDropY','exploreDropSeries'].forEach(id=>{
+        const el = document.getElementById(id);
+        el.addEventListener('dragover', (e)=>{ e.preventDefault(); el.classList.add('dragover'); });
+        el.addEventListener('dragleave', ()=> el.classList.remove('dragover'));
+        el.addEventListener('drop', (e)=>{
+          e.preventDefault(); el.classList.remove('dragover');
+          const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+          const zone = id.endsWith('X') ? 'X' : id.endsWith('Y') ? 'Y' : 'S';
+          addPillToDrop(data, zone);
+          renderExploreChart();
+        });
+      });
+      // Drop para Filtros
+      const fEl = document.getElementById('exploreDropFilter');
+      fEl.addEventListener('dragover', (e)=>{ e.preventDefault(); fEl.classList.add('dragover'); });
+      fEl.addEventListener('dragleave', ()=> fEl.classList.remove('dragover'));
+      fEl.addEventListener('drop', (e)=>{
+        e.preventDefault(); fEl.classList.remove('dragover');
+        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        if (data.type !== 'dimension'){ return; }
+        addPillToDrop(data, 'F');
+        buildFilterValues();
+        renderExploreChart();
+      });
+      document.getElementById('exploreChartType')?.addEventListener('change', renderExploreChart);
+    }
+    function clearExploreDrops(){
+      document.getElementById('exploreDropX').innerHTML='';
+      document.getElementById('exploreDropY').innerHTML='';
+      document.getElementById('exploreDropSeries').innerHTML='';
+      document.getElementById('exploreDropFilter').innerHTML='';
+      const pop = document.getElementById('exploreFilterPopover'); if (pop){ pop.classList.add('hidden'); pop.innerHTML=''; }
+      const sum = document.getElementById('exploreFilterSummary'); if (sum) sum.textContent = 'Todos';
+    }
+    function addPillToDrop(data, zone){
+      const id = zone==='X'? 'exploreDropX' : zone==='Y'? 'exploreDropY' : zone==='S'? 'exploreDropSeries' : 'exploreDropFilter';
+      const holder = document.getElementById(id);
+      // Rule: allow only 1 pill per zone for simplicity now
+      holder.innerHTML = '';
+      const p = document.createElement('div');
+      p.className = 'pill';
+      p.dataset.key = data.key; p.dataset.type = data.type; if (data.agg) p.dataset.agg = data.agg;
+      p.textContent = data.label + (data.type==='measure'? ' (Σ)':'' );
+      const rm = document.createElement('button'); rm.textContent = '×'; rm.style.marginLeft = '.25rem'; rm.onclick = ()=>{ p.remove(); if (zone==='F') document.getElementById('exploreFilterValues').innerHTML=''; renderExploreChart(); };
+      p.appendChild(rm);
+      holder.appendChild(p);
+    }
+    function getFilterSelection(){
+      const pill = document.getElementById('exploreDropFilter').querySelector('.pill');
+      if (!pill) return null;
+      const key = pill.dataset.key;
+      const pop = document.getElementById('exploreFilterPopover');
+      const chosen = pop ? Array.from(pop.querySelectorAll('input[type="checkbox"]:checked')).map(i=> i.value) : [];
+      return { key, values: chosen };
+    }
+    function buildFilterValues(){
+      const pop = document.getElementById('exploreFilterPopover'); if (!pop) return; pop.innerHTML = '';
+      const pill = document.getElementById('exploreDropFilter').querySelector('.pill'); if (!pill) return;
+      const key = pill.dataset.key;
+      const rows = sourceRowsForExplore();
+      const vals = Array.from(new Set(rows.map(r=> String(r[key]??'')))).filter(v=> v!=='' ).sort();
+      // UI: buscador + lista
+      const search = document.createElement('input'); search.placeholder = 'Buscar…'; search.className = 'popover-search';
+      pop.appendChild(search);
+      const list = document.createElement('div'); list.className = 'popover-list'; pop.appendChild(list);
+      const renderList = (q='')=>{
+        list.innerHTML='';
+        const filtr = vals.filter(v=> v.toLowerCase().includes(q.toLowerCase()));
+        filtr.forEach(v=>{
+          const lab = document.createElement('label');
+          const cb = document.createElement('input'); cb.type='checkbox'; cb.value=v; cb.checked = true; cb.onchange = ()=>{ updateFilterSummary(); renderExploreChart(); };
+          lab.appendChild(cb); lab.appendChild(document.createTextNode(' '+v)); list.appendChild(lab);
+        });
+      };
+      renderList('');
+      search.oninput = ()=> renderList(search.value||'');
+      // Botones
+      const btns = document.createElement('div'); btns.className = 'popover-btns';
+      const selAll = document.createElement('button'); selAll.textContent='Todo';
+      const clr = document.createElement('button'); clr.textContent='Nada';
+      const ok = document.createElement('button'); ok.textContent='Cerrar';
+      btns.appendChild(selAll); btns.appendChild(clr); btns.appendChild(ok);
+      pop.appendChild(btns);
+      selAll.onclick = ()=>{ pop.querySelectorAll('input[type="checkbox"]').forEach(c=> c.checked = true); updateFilterSummary(); renderExploreChart(); };
+      clr.onclick = ()=>{ pop.querySelectorAll('input[type="checkbox"]').forEach(c=> c.checked = false); updateFilterSummary(); renderExploreChart(); };
+      ok.onclick = ()=> pop.classList.add('hidden');
+      // Posicionar popover cerca del botón
+      const btn = document.getElementById('exploreFilterBtn');
+      if (btn){ const r = btn.getBoundingClientRect(); pop.style.left = (r.left)+'px'; pop.style.top = (r.bottom+6)+'px'; }
+      pop.classList.remove('hidden');
+      updateFilterSummary();
+    }
+    function updateFilterSummary(){
+      const sum = document.getElementById('exploreFilterSummary'); if (!sum) return;
+      const sel = getFilterSelection();
+      if (!sel || !sel.values) { sum.textContent = 'Todos'; return; }
+      if (sel.values.length===0){ sum.textContent = 'Todos'; return; }
+      sum.textContent = sel.values.length + ' seleccionados';
+    }
+    // Abrir popover al pulsar el botón
+    document.getElementById('exploreFilterBtn')?.addEventListener('click', ()=>{
+      buildFilterValues();
+    });
+    function getExploreSelection(){
+      const read = (id)=>{
+        const el = document.getElementById(id).querySelector('.pill');
+        if(!el) return null;
+        return { key: el.dataset.key, type: el.dataset.type, agg: el.dataset.agg };
+      };
+      return { X: read('exploreDropX'), Y: read('exploreDropY'), S: read('exploreDropSeries') };
+    }
+    function sourceRowsForExplore(){
+      if (state.useUnifiedFeed && state.unifiedRows?.length) {
+        return state.unifiedRows.map(r=> ({ ...r, cliente: inferClientLabel(r.cliente) }));
+      }
+      // Solo LAST en Explore cuando no hay Maestro, normalizando cliente (UAES -> Bosch)
+      return (state.rows||[]).map(r=> ({ ...r, fuente:'LAST', cliente: inferClientLabel(r.cliente) }));
+    }
+    function renderExploreChart(){
+      const sel = getExploreSelection();
+      const chartTypeSel = document.getElementById('exploreChartType')?.value || 'bar';
+      if (!sel.X || !sel.Y){ return; }
+      let rows = sourceRowsForExplore();
+      // Apply filters
+      const fsel = getFilterSelection();
+      if (fsel && fsel.key){
+        if (Array.isArray(fsel.values) && fsel.values.length>0){
+          rows = rows.filter(r=> fsel.values.includes(String(r[fsel.key]??'')));
+        } // si está vacío, tratamos como 'Todos'
+      }
+      // Build categories for X
+      const getLabel = (r)=>{
+        const k = sel.X.key;
+        let v = r[k];
+        if (k==='anio' && v==null && r.fecha instanceof Date) v = r.fecha.getFullYear();
+        if (k==='mes' && v==null && r.fecha instanceof Date) v = r.fecha.getMonth()+1;
+        return v==null? '' : String(v);
+      };
+      const xCats = Array.from(new Set(rows.map(getLabel)));
+      // Group by Series (S) if provided
+  const seriesKey = sel.S?.key || null;
+      const seriesCats = seriesKey ? Array.from(new Set(rows.map(r=> String(r[seriesKey]||'')))) : ['__single'];
+      // Aggregation map: series -> xCat -> value
+      const aggMap = new Map();
+      seriesCats.forEach(s=> aggMap.set(s, new Map(xCats.map(x=> [x, 0]))));
+      const getMeasureVal = (r)=>{
+        if (sel.Y.key==='facturacion') return (r.facturacion!=null && !isNaN(r.facturacion))? Number(r.facturacion): getFacturacionValue(r);
+        return Number(r[sel.Y.key])||0;
+      };
+      rows.forEach(r=>{
+        const s = seriesKey? String(r[seriesKey]||'') : '__single';
+        const x = getLabel(r);
+        if (!aggMap.has(s)) aggMap.set(s, new Map());
+        const row = aggMap.get(s);
+        row.set(x, (row.get(x)||0) + getMeasureVal(r));
+      });
+      // Prepare Chart.js data
+      const labels = xCats;
+      const colors = ['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#14b8a6','#f97316','#84cc16'];
+      const datasets = Array.from(aggMap.entries()).map(([s, row], idx)=>({
+        label: seriesKey? (s||'—') : (sel.Y.key==='facturacion'? 'Facturación':'Volumen'),
+        data: labels.map(l=> row.get(l)||0),
+        borderColor: colors[idx % colors.length],
+        backgroundColor: colors[idx % colors.length] + '80'
+      }));
+      const ctx = document.getElementById('exploreChart').getContext('2d');
+      if (_exploreChart) _exploreChart.destroy();
+      // horizontalBar -> bar with indexAxis:'y'
+      const cfgType = chartTypeSel==='horizontalBar'? 'bar' : chartTypeSel;
+      const indexAxis = chartTypeSel==='horizontalBar'? 'y' : 'x';
+      _exploreChart = new Chart(ctx, {
+        type: cfgType,
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis,
+          interaction: { mode: 'nearest', intersect: false },
+          plugins: { legend: { position:'top' } },
+          scales: { x: { stacked: !!seriesKey }, y: { stacked: !!seriesKey } }
+        }
+      });
+    }
 
     let _matrixChartInstance = null;
     const CLIENT_LOGOS = {
