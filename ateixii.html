@@ -159,9 +159,19 @@
   .explore-drop{border:1px dashed #cbd5e1; border-radius:.75rem; background:rgba(0,0,0,.02); padding:.375rem; min-height:2.25rem}
   .dark .explore-drop{border-color:#374151; background:rgba(255,255,255,.02)}
   .explore-drop.dragover{outline:2px solid #60a5fa}
+  .explore-drop{transition:transform .12s ease, box-shadow .12s ease}
+  .explore-drop:hover{transform:translateY(-1px); box-shadow:0 8px 22px rgba(0,0,0,.06)}
   .pill{display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .5rem; border-radius:999px; background:#e5f0ff; color:#0b3b78; font-size:.8rem; cursor:grab; margin:.15rem}
   .pill[data-type="measure"]{background:#eafaf3; color:#064e3b}
   .dark .pill{background:#0b1220; color:#93c5fd; border:1px solid #1f2937}
+  .pill{transition:transform .12s ease, box-shadow .12s ease}
+  .pill:hover{transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,.08)}
+  .explore-header{background:linear-gradient(90deg,#0ea5e9 0%, #2563eb 50%, #7c3aed 100%); color:#fff}
+  .explore-header .ctrl{background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.22)}
+  .chip{display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .6rem; border-radius:999px; font-size:.78rem; background:#eef2ff; color:#1e40af; border:1px solid #c7d2fe}
+  .chip .x{cursor:pointer; font-weight:700}
+  .chip.muted{background:#f3f4f6; color:#6b7280; border-color:#e5e7eb}
+  .chip.action{background:#ecfeff; color:#155e75; border-color:#a5f3fc}
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
@@ -220,6 +230,10 @@
                 <button id="exportPDF" class="px-3 py-2 btn-gradient">🧾 PDF</button>
                 <button id="exportCSV" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">💾 CSV</button>
                 <button id="clearSavedMaestro" class="col-span-2 px-3 py-2 rounded-xl border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20">🗑️ Borrar Maestro guardado</button>
+              </div>
+              <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 my-2">Ayuda</div>
+              <div class="grid grid-cols-2 gap-2">
+                <button id="menuStartTour" class="col-span-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">🎓 Ver tutorial</button>
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">Atajos: Alt+L (Cargar) · Alt+M (Matriz) · Alt+G (Mundo) · Alt+P (PDF) · Alt+C (CSV) · Alt+A (Acciones)</div>
             </div>
@@ -518,24 +532,27 @@
   <!-- Modal Explorar (Drag & Drop) -->
   <div id="exploreModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black bg-opacity-60"></div>
-    <div class="absolute inset-4 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-300 dark:border-gray-700 flex flex-col">
-      <div class="p-3 flex items-center gap-3 border-b border-gray-200 dark:border-gray-800">
-        <div class="text-lg font-bold">Explorar datos (arrastra campos a ejes)</div>
+  <div class="absolute inset-0 m-0 bg-white dark:bg-gray-900 rounded-none shadow-none border-0 flex flex-col min-h-0">
+      <div class="p-4 flex items-center gap-3 border-b border-gray-200 dark:border-gray-800 explore-header">
+        <div class="text-xl font-extrabold tracking-wide">🧪 Explorar datos — Drag & Drop</div>
         <div class="ml-auto flex items-center gap-2">
-          <select id="exploreChartType" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <select id="exploreChartType" class="px-3 py-2 rounded-xl ctrl">
             <option value="bar">Barras</option>
             <option value="line">Líneas</option>
             <option value="horizontalBar">Barras horizontales</option>
           </select>
-          <button id="closeExplore" class="px-3 py-1 rounded bg-red-600 text-white">Cerrar</button>
+          <button id="closeExplore" class="px-4 py-2 rounded-xl ctrl">Cerrar</button>
         </div>
       </div>
-      <div class="flex-1 grid grid-cols-12 gap-3 p-3 overflow-auto">
-        <div class="col-span-3 flex flex-col gap-2 overflow-auto">
+      <div class="px-4 pt-2 bg-white dark:bg-slate-900">
+        <div id="exploreActiveChips" class="flex flex-wrap items-center gap-2 min-h-[2rem]"></div>
+      </div>
+      <div class="flex-1 min-h-0 overflow-auto grid grid-cols-12 gap-4 p-4 pt-2 bg-white dark:bg-slate-900">
+        <div class="col-span-3 flex flex-col gap-2">
           <div class="text-xs font-semibold text-gray-500">Campos</div>
           <div id="exploreFields" class="flex flex-col gap-2"></div>
         </div>
-        <div class="col-span-9 grid grid-cols-12 gap-3 overflow-auto">
+        <div class="col-span-9 grid grid-cols-12 gap-4">
           <div class="col-span-4">
             <div class="text-xs font-semibold text-gray-500 mb-1">Eje X</div>
             <div id="exploreDropX" class="explore-drop h-16"></div>
@@ -564,7 +581,7 @@
           <div id="exploreFilterPopover" class="popover hidden"></div>
           <div class="col-span-12">
             <div class="text-xs font-semibold text-gray-500 mb-1">Gráfico</div>
-            <div class="w-full h-[55vh] border border-gray-200 dark:border-gray-800 rounded-xl p-2">
+            <div class="w-full h-[68vh] border border-gray-200 dark:border-gray-800 rounded-xl p-2" id="exploreChartWrap">
               <canvas id="exploreChart" style="width:100%; height:100%"></canvas>
             </div>
           </div>
@@ -1197,6 +1214,7 @@
 
     // ===== Explorar (Drag & Drop) =====
     let _exploreChart = null;
+  let exploreFilterState = { key: null, values: null };
     const EXPLORE_FIELDS = [
       { key:'cliente', label:'Cliente', type:'dimension' },
       { key:'ref', label:'Referencia', type:'dimension' },
@@ -1275,6 +1293,8 @@
       document.getElementById('exploreDropFilter').innerHTML='';
       const pop = document.getElementById('exploreFilterPopover'); if (pop){ pop.classList.add('hidden'); pop.innerHTML=''; }
       const sum = document.getElementById('exploreFilterSummary'); if (sum) sum.textContent = 'Todos';
+      exploreFilterState = { key: null, values: null };
+      const chips = document.getElementById('exploreActiveChips'); if (chips) chips.innerHTML = '';
     }
     function addPillToDrop(data, zone){
       const id = zone==='X'? 'exploreDropX' : zone==='Y'? 'exploreDropY' : zone==='S'? 'exploreDropSeries' : 'exploreDropFilter';
@@ -1285,7 +1305,16 @@
       p.className = 'pill';
       p.dataset.key = data.key; p.dataset.type = data.type; if (data.agg) p.dataset.agg = data.agg;
       p.textContent = data.label + (data.type==='measure'? ' (Σ)':'' );
-      const rm = document.createElement('button'); rm.textContent = '×'; rm.style.marginLeft = '.25rem'; rm.onclick = ()=>{ p.remove(); if (zone==='F') document.getElementById('exploreFilterValues').innerHTML=''; renderExploreChart(); };
+      const rm = document.createElement('button'); rm.textContent = '×'; rm.style.marginLeft = '.25rem'; rm.onclick = ()=>{
+        p.remove();
+        if (zone==='F'){
+          const pop = document.getElementById('exploreFilterPopover'); if (pop){ pop.classList.add('hidden'); pop.innerHTML=''; }
+          const sum = document.getElementById('exploreFilterSummary'); if (sum) sum.textContent = 'Todos';
+          exploreFilterState = { key: null, values: null };
+          const chips = document.getElementById('exploreActiveChips'); if (chips) chips.innerHTML = '';
+        }
+        renderExploreChart();
+      };
       p.appendChild(rm);
       holder.appendChild(p);
     }
@@ -1294,8 +1323,16 @@
       if (!pill) return null;
       const key = pill.dataset.key;
       const pop = document.getElementById('exploreFilterPopover');
-      const chosen = pop ? Array.from(pop.querySelectorAll('input[type="checkbox"]:checked')).map(i=> i.value) : [];
-      return { key, values: chosen };
+      const inputs = pop ? Array.from(pop.querySelectorAll('input[type="checkbox"]')) : [];
+      if (inputs.length){
+        const chosen = inputs.filter(i=> i.checked).map(i=> i.value);
+        exploreFilterState = { key, values: chosen };
+        return { key, values: chosen };
+      }
+      if (exploreFilterState.key === key && Array.isArray(exploreFilterState.values)){
+        return { key, values: exploreFilterState.values.slice() };
+      }
+      return { key, values: null };
     }
     function buildFilterValues(){
       const pop = document.getElementById('exploreFilterPopover'); if (!pop) return; pop.innerHTML = '';
@@ -1312,7 +1349,16 @@
         const filtr = vals.filter(v=> v.toLowerCase().includes(q.toLowerCase()));
         filtr.forEach(v=>{
           const lab = document.createElement('label');
-          const cb = document.createElement('input'); cb.type='checkbox'; cb.value=v; cb.checked = true; cb.onchange = ()=>{ updateFilterSummary(); renderExploreChart(); };
+          const cb = document.createElement('input'); cb.type='checkbox'; cb.value=v;
+          const current = (exploreFilterState.key===key && Array.isArray(exploreFilterState.values)) ? new Set(exploreFilterState.values) : null;
+          cb.checked = current ? current.has(v) : true;
+          cb.onchange = ()=>{
+            const allCbs = Array.from(pop.querySelectorAll('input[type="checkbox"]'));
+            exploreFilterState = { key, values: allCbs.filter(i=> i.checked).map(i=> i.value) };
+            updateFilterSummary();
+            renderExploreChips();
+            renderExploreChart();
+          };
           lab.appendChild(cb); lab.appendChild(document.createTextNode(' '+v)); list.appendChild(lab);
         });
       };
@@ -1325,21 +1371,87 @@
       const ok = document.createElement('button'); ok.textContent='Cerrar';
       btns.appendChild(selAll); btns.appendChild(clr); btns.appendChild(ok);
       pop.appendChild(btns);
-      selAll.onclick = ()=>{ pop.querySelectorAll('input[type="checkbox"]').forEach(c=> c.checked = true); updateFilterSummary(); renderExploreChart(); };
-      clr.onclick = ()=>{ pop.querySelectorAll('input[type="checkbox"]').forEach(c=> c.checked = false); updateFilterSummary(); renderExploreChart(); };
+      selAll.onclick = ()=>{
+        exploreFilterState = { key, values: vals.slice() };
+        renderList(search.value||'');
+        updateFilterSummary();
+        renderExploreChips();
+        renderExploreChart();
+      };
+      clr.onclick = ()=>{
+        exploreFilterState = { key, values: [] };
+        renderList(search.value||'');
+        updateFilterSummary();
+        renderExploreChips();
+        renderExploreChart();
+      };
       ok.onclick = ()=> pop.classList.add('hidden');
       // Posicionar popover cerca del botón
       const btn = document.getElementById('exploreFilterBtn');
       if (btn){ const r = btn.getBoundingClientRect(); pop.style.left = (r.left)+'px'; pop.style.top = (r.bottom+6)+'px'; }
       pop.classList.remove('hidden');
+      // Inicializar estado si aún no existe: por defecto todas
+      if (exploreFilterState.key!==key || !Array.isArray(exploreFilterState.values)){
+        exploreFilterState = { key, values: vals.slice() };
+      }
       updateFilterSummary();
+      renderExploreChips();
     }
     function updateFilterSummary(){
       const sum = document.getElementById('exploreFilterSummary'); if (!sum) return;
       const sel = getFilterSelection();
-      if (!sel || !sel.values) { sum.textContent = 'Todos'; return; }
-      if (sel.values.length===0){ sum.textContent = 'Todos'; return; }
+      if (!sel || !Array.isArray(sel.values)) { sum.textContent = 'Todos'; return; }
+      if (sel.values.length===0){ sum.textContent = 'Ninguno'; return; }
       sum.textContent = sel.values.length + ' seleccionados';
+    }
+    function renderExploreChips(){
+      const wrap = document.getElementById('exploreActiveChips'); if (!wrap) return;
+      wrap.innerHTML = '';
+      const pill = document.getElementById('exploreDropFilter').querySelector('.pill');
+      if (!pill) return; // no hay filtro activo
+      const key = pill.dataset.key;
+      const keyMap = { anio:'Año', mes:'Mes', cliente:'Cliente', ref:'Referencia', planta:'Planta', fuente:'Fuente' };
+      const name = keyMap[key] || key;
+      const sel = getFilterSelection();
+      // Chip de acción para quitar filtro
+      const action = document.createElement('span'); action.className = 'chip action'; action.textContent = `Quitar filtro (${name})`;
+      const ax = document.createElement('span'); ax.className = 'x'; ax.textContent = '×';
+      ax.onclick = ()=>{
+        document.getElementById('exploreDropFilter').innerHTML='';
+        const pop = document.getElementById('exploreFilterPopover'); if (pop){ pop.classList.add('hidden'); pop.innerHTML=''; }
+        const sum = document.getElementById('exploreFilterSummary'); if (sum) sum.textContent = 'Todos';
+        exploreFilterState = { key: null, values: null };
+        renderExploreChips();
+        renderExploreChart();
+      };
+      action.appendChild(ax); wrap.appendChild(action);
+      // Chips de valores seleccionados (si hay)
+      if (sel && Array.isArray(sel.values) && sel.values.length){
+        const maxShow = 8;
+        sel.values.slice(0, maxShow).forEach(v=>{
+          const c = document.createElement('span'); c.className = 'chip'; c.textContent = v;
+          const x = document.createElement('span'); x.className = 'x'; x.textContent = '×';
+          x.onclick = ()=>{
+            // quitar valor del estado y actualizar checkboxes si existen
+            if (Array.isArray(exploreFilterState.values)){
+              exploreFilterState.values = exploreFilterState.values.filter(s=> s!==v);
+            }
+            const pop = document.getElementById('exploreFilterPopover');
+            if (pop){ const cb = Array.from(pop.querySelectorAll('input[type="checkbox"]')).find(i=> i.value===v); if (cb) cb.checked = false; }
+            updateFilterSummary();
+            renderExploreChips();
+            renderExploreChart();
+          };
+          c.appendChild(x); wrap.appendChild(c);
+        });
+        if (sel.values.length>maxShow){
+          const more = document.createElement('span'); more.className = 'chip muted'; more.textContent = `+${sel.values.length-maxShow} más`;
+          wrap.appendChild(more);
+        }
+      } else {
+        const all = document.createElement('span'); all.className = 'chip muted'; all.textContent = `${name}: Todos`;
+        wrap.appendChild(all);
+      }
     }
     // Abrir popover al pulsar el botón
     document.getElementById('exploreFilterBtn')?.addEventListener('click', ()=>{
@@ -1355,10 +1467,19 @@
     }
     function sourceRowsForExplore(){
       if (state.useUnifiedFeed && state.unifiedRows?.length) {
-        return state.unifiedRows.map(r=> ({ ...r, cliente: inferClientLabel(r.cliente) }));
+        return state.unifiedRows.map(r=> ({
+          ...r,
+          cliente: inferClientLabel(r.cliente),
+          ref: r.ref || r.refCli || r.refTeix || ''
+        }));
       }
       // Solo LAST en Explore cuando no hay Maestro, normalizando cliente (UAES -> Bosch)
-      return (state.rows||[]).map(r=> ({ ...r, fuente:'LAST', cliente: inferClientLabel(r.cliente) }));
+      return (state.rows||[]).map(r=> ({
+        ...r,
+        fuente:'LAST',
+        cliente: inferClientLabel(r.cliente),
+        ref: r.ref || r.refCli || r.refTeix || ''
+      }));
     }
     function renderExploreChart(){
       const sel = getExploreSelection();
@@ -1367,10 +1488,12 @@
       let rows = sourceRowsForExplore();
       // Apply filters
       const fsel = getFilterSelection();
-      if (fsel && fsel.key){
-        if (Array.isArray(fsel.values) && fsel.values.length>0){
+      if (fsel && fsel.key && Array.isArray(fsel.values)){
+        if (fsel.values.length===0){
+          rows = [];
+        } else {
           rows = rows.filter(r=> fsel.values.includes(String(r[fsel.key]??'')));
-        } // si está vacío, tratamos como 'Todos'
+        }
       }
       // Build categories for X
       const getLabel = (r)=>{
@@ -1401,17 +1524,42 @@
       // Prepare Chart.js data
       const labels = xCats;
       const colors = ['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#14b8a6','#f97316','#84cc16'];
-      const datasets = Array.from(aggMap.entries()).map(([s, row], idx)=>({
-        label: seriesKey? (s||'—') : (sel.Y.key==='facturacion'? 'Facturación':'Volumen'),
-        data: labels.map(l=> row.get(l)||0),
-        borderColor: colors[idx % colors.length],
-        backgroundColor: colors[idx % colors.length] + '80'
-      }));
-      const ctx = document.getElementById('exploreChart').getContext('2d');
+      const ctxEl = document.getElementById('exploreChart');
+      const ctx = ctxEl.getContext('2d');
+      const mkGrad = (hex)=>{
+        const g = ctx.createLinearGradient(0, 0, 0, ctxEl.height);
+        const base = hex;
+        g.addColorStop(0, base+'ee');
+        g.addColorStop(1, base+'22');
+        return g;
+      };
+      const datasets = Array.from(aggMap.entries()).map(([s, row], idx)=>{
+        const col = colors[idx % colors.length];
+        return {
+          label: seriesKey? (s||'—') : (sel.Y.key==='facturacion'? 'Facturación':'Volumen'),
+          data: labels.map(l=> row.get(l)||0),
+          borderColor: col,
+          backgroundColor: mkGrad(col.replace('#','') ? col : '#2563eb'),
+          fill: chartTypeSel!=='line' ? true : false,
+          tension: 0.25,
+          pointRadius: 2,
+          pointHoverRadius: 5
+        };
+      });
       if (_exploreChart) _exploreChart.destroy();
       // horizontalBar -> bar with indexAxis:'y'
       const cfgType = chartTypeSel==='horizontalBar'? 'bar' : chartTypeSel;
       const indexAxis = chartTypeSel==='horizontalBar'? 'y' : 'x';
+      // Build active filters subtitle
+      let subtitle = '';
+      if (fsel && fsel.key){
+        const keyMap = { anio:'Año', mes:'Mes', cliente:'Cliente', ref:'Referencia', planta:'Planta', fuente:'Fuente' };
+        const name = keyMap[fsel.key] || fsel.key;
+        const vals = Array.isArray(fsel.values) ? (fsel.values.length ? fsel.values.join(', ') : 'Ninguno') : 'Todos';
+        subtitle = `${name}: ${vals}`;
+      }
+      const axisTitleX = sel.X?.key ? (sel.X.key==='anio'?'Año': sel.X.key==='mes'?'Mes': sel.X.key==='ref'?'Referencia': sel.X.key.charAt(0).toUpperCase()+sel.X.key.slice(1)) : '';
+      const axisTitleY = sel.Y?.key ? (sel.Y.key==='qty'?'Volumen': sel.Y.key==='facturacion'?'Facturación':'Valor') : '';
       _exploreChart = new Chart(ctx, {
         type: cfgType,
         data: { labels, datasets },
@@ -1420,10 +1568,20 @@
           maintainAspectRatio: false,
           indexAxis,
           interaction: { mode: 'nearest', intersect: false },
-          plugins: { legend: { position:'top' } },
-          scales: { x: { stacked: !!seriesKey }, y: { stacked: !!seriesKey } }
+          animation: { duration: 600, easing: 'easeOutQuart' },
+          plugins: {
+            legend: { position:'top' },
+            title: { display: true, text: 'Explorar — ' + (axisTitleY||'Métrica') + ' por ' + (axisTitleX||'Eje X') },
+            subtitle: { display: !!subtitle, text: subtitle }
+          },
+          scales: {
+            x: { stacked: !!seriesKey, title: { display: !!axisTitleX, text: axisTitleX } },
+            y: { stacked: !!seriesKey, title: { display: !!axisTitleY, text: axisTitleY } }
+          }
         }
       });
+      // Actualizar chips activos
+      renderExploreChips();
     }
 
     let _matrixChartInstance = null;
@@ -4365,11 +4523,10 @@
   .tour-tooltip .controls .primary{background:#0071bc;color:#fff;border-color:#005a91}
   .tour-spotlight{position:relative;z-index:1000001;transform:scale(1.05);transition:transform .22s ease, box-shadow .22s ease;box-shadow:0 0 0 6px rgba(0,113,188,.25),0 12px 42px rgba(0,0,0,.35);animation:spotlightPulse 1.4s ease-in-out infinite}
   @keyframes spotlightPulse{0%,100%{box-shadow:0 0 0 6px rgba(0,113,188,.22),0 10px 36px rgba(0,0,0,.28);transform:scale(1.045)}50%{box-shadow:0 0 0 9px rgba(0,113,188,.28),0 16px 52px rgba(0,0,0,.38);transform:scale(1.06)}}
-  #tourLauncher{position:fixed;right:18px;bottom:18px;z-index:999998;background:linear-gradient(90deg,#60a5fa,#2563eb);color:#fff;border:none;border-radius:999px;padding:.6rem 1rem;font-weight:800;box-shadow:0 8px 24px rgba(37,99,235,.28);cursor:pointer;transition:transform .18s ease, filter .18s ease}
-  #tourLauncher:hover{filter:brightness(1.05);transform:translateY(-1px)}
+  /* launcher moved to Acciones menu */
   .tour-progress{font-size:.8rem;opacity:.7;margin-right:auto}
 </style>
-<button id="tourLauncher" type="button">Ver tutorial</button>
+<!-- Tutorial launcher moved into Acciones menu -->
 <script>
   (function(){
     const qs = (s,root=document)=> root.querySelector(s);
@@ -4524,7 +4681,10 @@
     }
 
   window.tourStart = function(){ bindKeys(); bindTouch(); go(0); };
-    const launcher = document.getElementById('tourLauncher');
-    if (launcher) launcher.addEventListener('click', ()=> window.tourStart());
+    const menuTour = document.getElementById('menuStartTour');
+    if (menuTour) menuTour.addEventListener('click', ()=> {
+      document.getElementById('headerActionsMenu')?.classList.add('hidden');
+      window.tourStart();
+    });
   })();
 </script>
