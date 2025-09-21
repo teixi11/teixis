@@ -834,11 +834,16 @@
     async function tryRestoreMaestro(){
       try{
         let saved = await idbGetBig('unifiedRows');
-        if (!Array.isArray(saved) || !saved.length){
+        if (Array.isArray(saved) && saved.length){
+          console.debug('[Maestro] Restaurado desde IndexedDB (big):', saved.length, 'filas');
+        } else {
           saved = await idbGet('unifiedRows');
-          // Si está en formato compacto, decodifica
           if (saved && saved.compact && Array.isArray(saved.data)){
             saved = decodeRowsCompact(saved.data);
+            console.debug('[Maestro] Restaurado desde IndexedDB (compact):', saved.length, 'filas');
+          } else if (saved && Array.isArray(saved.rows)){
+            saved = saved.rows;
+            console.debug('[Maestro] Restaurado desde IndexedDB (obj.rows):', saved.length, 'filas');
           }
         }
         if (!Array.isArray(saved) || !saved.length){
@@ -868,9 +873,37 @@
             }
           } catch {}
           renderPanels();
+        } else {
+          console.debug('[Maestro] No se encontró Maestro en almacenamiento (IDB/backup/OPFS).');
         }
       }catch(err){ console.warn('No se pudo restaurar Maestro:', err); }
     }
+
+    // Herramienta de depuración rápida en consola
+    window.debugMaestro = async function(){
+      const out = { origin: location.origin, protocol: location.protocol, secure: window.isSecureContext };
+      try {
+        const bigMeta = await idbGet('unifiedRows__meta');
+        out.idbBig = { hasMeta: !!bigMeta, parts: Array.isArray(bigMeta?.parts)? bigMeta.parts.length : 0 };
+      } catch(e){ out.idbBig = { error: String(e) }; }
+      try {
+        const simple = await idbGet('unifiedRows');
+        if (simple && simple.compact && Array.isArray(simple.data)) out.idbSimple = { type: 'compact', length: simple.data.length };
+        else if (simple && Array.isArray(simple.rows)) out.idbSimple = { type: 'obj.rows', length: simple.rows.length };
+        else if (Array.isArray(simple)) out.idbSimple = { type: 'array', length: simple.length };
+        else out.idbSimple = { type: typeof simple };
+      } catch(e){ out.idbSimple = { error: String(e) }; }
+      try {
+        const b = await backupGetLocal();
+        out.backupLocal = { length: Array.isArray(b)? b.length : 0 };
+      } catch(e){ out.backupLocal = { error: String(e) }; }
+      try {
+        const f = await opfsReadMaestro();
+        out.opfs = { length: Array.isArray(f)? f.length : 0 };
+      } catch(e){ out.opfs = { error: String(e) }; }
+      console.log('[debugMaestro]', out);
+      return out;
+    };
 
     // Restaurar Maestro al arrancar (antes de interacción del usuario)
     (async function initRestore(){
