@@ -638,6 +638,52 @@
         tx.onerror = ()=> reject(tx.error);
       });
     }
+    // IndexedDB grande (troceado) para Maestro voluminoso
+    async function idbSetBig(keyBase, rows){
+      try{
+        // Limpiar partes previas
+        const oldMeta = await idbGet(keyBase+'__meta');
+        if (oldMeta && Array.isArray(oldMeta.parts)){
+          for (const k of oldMeta.parts){ try{ await idbDel(k); }catch{} }
+          try{ await idbDel(keyBase+'__meta'); }catch{}
+        }
+        // Contenido compacto para reducir tamaño
+        const compact = encodeRowsCompact(rows||[]);
+        const payload = JSON.stringify({ v: 2, compact: true, data: compact });
+        const partSize = 900000; // ~0.9MB por parte
+        const parts = [];
+        for (let i=0; i<payload.length; i+=partSize){
+          const chunk = payload.slice(i, i+partSize);
+          const partKey = `${keyBase}__part${parts.length}`;
+          await idbSet(partKey, chunk);
+          parts.push(partKey);
+        }
+        await idbSet(keyBase+'__meta', { version:2, parts, t: Date.now() });
+        console.debug('[Maestro] IndexedDB (big) guardado. Partes:', parts.length);
+      }catch(e){ console.warn('[Maestro] idbSetBig falló:', e); throw e; }
+    }
+    async function idbGetBig(keyBase){
+      try{
+        const meta = await idbGet(keyBase+'__meta');
+        if (!meta || !Array.isArray(meta.parts) || !meta.parts.length) return null;
+        let payload = '';
+        for (const k of meta.parts){ payload += (await idbGet(k)) || ''; }
+        const obj = JSON.parse(payload);
+        if (obj && obj.compact && Array.isArray(obj.data)) return decodeRowsCompact(obj.data);
+        if (Array.isArray(obj)) return obj;
+        if (obj && Array.isArray(obj.rows)) return obj.rows;
+        return null;
+      }catch(e){ console.warn('[Maestro] idbGetBig falló:', e); return null; }
+    }
+    async function idbDelBig(keyBase){
+      try{
+        const meta = await idbGet(keyBase+'__meta');
+        if (meta && Array.isArray(meta.parts)){
+          for (const k of meta.parts){ try{ await idbDel(k); }catch{} }
+          try{ await idbDel(keyBase+'__meta'); }catch{}
+        }
+      }catch{}
+    }
     // Utilidades para compresión gzip opcional (mejor capacidad en backup)
     function uint8ToBase64(u8){ let s=''; for(let i=0;i<u8.length;i++) s += String.fromCharCode(u8[i]); return btoa(s); }
     function base64ToUint8(b64){ const bin = atob(b64); const u8 = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i); return u8; }
@@ -669,44 +715,139 @@
       });
     }
 
-    // Respaldo local con compresión cuando sea posible
+    // Respaldo local con compresión y troceado cuando sea necesario
+    function backupClearLocal(){
+      try{
+        const metaStr = localStorage.getItem('unifiedRowsBackup__meta');
+        if (metaStr){
+          const meta = JSON.parse(metaStr);
+          const parts = Array.isArray(meta?.parts) ? meta.parts : [];
+          parts.forEach(k=> localStorage.removeItem(k));
+          localStorage.removeItem('unifiedRowsBackup__meta');
+        }
+        localStorage.removeItem('unifiedRowsBackup');
+      }catch{}
+    }
     async function backupSetLocal(rows){
       try {
+        backupClearLocal();
         const compact = encodeRowsCompact(rows||[]);
         const payload = JSON.stringify({ t: Date.now(), v: 2, compact: true, data: compact });
         const gz = await gzipString(payload);
-        const toStore = gz ? ('gz:'+gz) : payload;
-        localStorage.setItem('unifiedRowsBackup', toStore);
+        const raw = gz ? ('gz:'+gz) : payload;
+        if (raw.length < 4800000){ // ~4.8MB
+          localStorage.setItem('unifiedRowsBackup', raw);
+          return;
+        }
+        // Trocear en partes de ~0.9MB por margen
+        const partSize = 900000;
+        const parts = [];
+        for (let i=0; i<raw.length; i+=partSize){ parts.push(raw.slice(i, i+partSize)); }
+        const keys = [];
+        parts.forEach((chunk, idx)=>{ const key = 'unifiedRowsBackup__part'+idx; localStorage.setItem(key, chunk); keys.push(key); });
+        localStorage.setItem('unifiedRowsBackup__meta', JSON.stringify({ version:2, parts: keys, t: Date.now() }));
       } catch {}
     }
     async function backupGetLocal(){
       try {
+        const metaStr = localStorage.getItem('unifiedRowsBackup__meta');
+        if (metaStr){
+          const meta = JSON.parse(metaStr);
+          const keys = Array.isArray(meta?.parts) ? meta.parts : [];
+          if (keys.length){
+            let raw = '';
+            for (const k of keys){ raw += (localStorage.getItem(k)||''); }
+            if (raw.startsWith('gz:')){
+              const plain = await gunzipToString(raw.slice(3));
+              if (!plain) return null;
+              const o = JSON.parse(plain);
+              return (o && o.compact && Array.isArray(o.data)) ? decodeRowsCompact(o.data) : (Array.isArray(o?.rows)? o.rows : null);
+            } else {
+              const o = JSON.parse(raw);
+              return (o && o.compact && Array.isArray(o.data)) ? decodeRowsCompact(o.data) : (Array.isArray(o?.rows)? o.rows : null);
+            }
+          }
+        }
+        // Formato simple
         const s = localStorage.getItem('unifiedRowsBackup');
         if(!s) return null;
         let text = s;
-        if (s.startsWith('gz:')){
-          const plain = await gunzipToString(s.slice(3));
-          if (!plain) return null;
-          text = plain;
-        }
+        if (s.startsWith('gz:')){ const plain = await gunzipToString(s.slice(3)); if (!plain) return null; text = plain; }
         const o = JSON.parse(text);
         if (o && o.compact && Array.isArray(o.data)) return decodeRowsCompact(o.data);
-        if (Array.isArray(o)) return o; // compat: backups muy antiguos con array directo
-        if (o && Array.isArray(o.rows)) return o.rows; // compat: objeto con rows
+        if (Array.isArray(o)) return o;
+        if (o && Array.isArray(o.rows)) return o.rows;
         return null;
       } catch { return null; }
     }
+    // Fallback adicional: OPFS (Origin Private File System) para volúmenes grandes en orígenes http/https
+    const OPFS_FILE = 'maestro.json';
+    async function opfsAvailable(){ try { return !!(navigator.storage && navigator.storage.getDirectory); } catch { return false; } }
+    async function opfsWriteMaestro(rows){
+      try {
+        if (!await opfsAvailable()) return;
+        const root = await navigator.storage.getDirectory();
+        const handle = await root.getFileHandle(OPFS_FILE, { create: true });
+        const writable = await handle.createWritable();
+        const payload = JSON.stringify({ t: Date.now(), v: 2, compact: true, data: encodeRowsCompact(rows||[]) });
+        await writable.write(new Blob([payload], { type: 'application/json' }));
+        await writable.close();
+        console.debug('[Maestro] OPFS escrito:', OPFS_FILE);
+      } catch (e) { console.warn('[Maestro] OPFS write falló:', e); }
+    }
+    async function opfsReadMaestro(){
+      try {
+        if (!await opfsAvailable()) return null;
+        const root = await navigator.storage.getDirectory();
+        const handle = await root.getFileHandle(OPFS_FILE, { create: false });
+        const file = await handle.getFile();
+        const text = await file.text();
+        const o = JSON.parse(text);
+        if (o && o.compact && Array.isArray(o.data)) return decodeRowsCompact(o.data);
+        if (Array.isArray(o)) return o;
+        if (o && Array.isArray(o.rows)) return o.rows;
+        return null;
+      } catch (e) { return null; }
+    }
+    async function opfsDeleteMaestro(){
+      try{
+        if (!await opfsAvailable()) return;
+        const root = await navigator.storage.getDirectory();
+        await root.removeEntry(OPFS_FILE);
+      }catch{}
+    }
     async function persistMaestro(rows){
       state.unifiedRows = rows || [];
-      try { await idbSet('unifiedRows', state.unifiedRows); console.debug('[Maestro] Guardado en IndexedDB:', state.unifiedRows.length, 'filas'); } catch(e){ console.warn('[Maestro] Falló guardado en IndexedDB:', e); }
+      try {
+        const roughSize = JSON.stringify(state.unifiedRows).length;
+        if (roughSize > 2000000) { // ~2MB
+          await idbSetBig('unifiedRows', state.unifiedRows);
+        } else {
+          const compact = encodeRowsCompact(state.unifiedRows);
+          await idbSet('unifiedRows', { v: 2, compact: true, data: compact });
+        }
+        console.debug('[Maestro] Guardado en IndexedDB:', state.unifiedRows.length, 'filas');
+      } catch(e){ console.warn('[Maestro] Falló guardado en IndexedDB:', e); }
       try { await backupSetLocal(state.unifiedRows); console.debug('[Maestro] Respaldo local actualizado:', state.unifiedRows.length, 'filas'); } catch(e){ console.warn('[Maestro] Falló respaldo local:', e); }
+      try { await opfsWriteMaestro(state.unifiedRows); } catch {}
     }
     async function tryRestoreMaestro(){
       try{
-        let saved = await idbGet('unifiedRows');
+        let saved = await idbGetBig('unifiedRows');
+        if (!Array.isArray(saved) || !saved.length){
+          saved = await idbGet('unifiedRows');
+          // Si está en formato compacto, decodifica
+          if (saved && saved.compact && Array.isArray(saved.data)){
+            saved = decodeRowsCompact(saved.data);
+          }
+        }
         if (!Array.isArray(saved) || !saved.length){
           const b = await backupGetLocal();
           if (Array.isArray(b) && b.length){ saved = b; console.debug('[Maestro] Restaurado desde backup local:', b.length, 'filas'); }
+        }
+        if (!Array.isArray(saved) || !saved.length){
+          const f = await opfsReadMaestro();
+          if (Array.isArray(f) && f.length){ saved = f; console.debug('[Maestro] Restaurado desde OPFS:', f.length, 'filas'); }
         }
         if (Array.isArray(saved) && saved.length){
           if (saved){ console.debug('[Maestro] Restaurado OK. Filas:', saved.length); }
@@ -1791,7 +1932,7 @@
     document.getElementById('menuBuildMaster')?.addEventListener('click', ()=> document.getElementById('btnBuildMaster')?.click());
     document.getElementById('menuExportDetailed')?.addEventListener('click', ()=> document.getElementById('btnExportDetailed')?.click());
     document.getElementById('clearSavedMaestro')?.addEventListener('click', async ()=>{
-      try{ await idbDel('unifiedRows'); try{ (typeof backupClearLocal==='function') ? backupClearLocal() : localStorage.removeItem('unifiedRowsBackup'); }catch{} alert('Maestro guardado borrado.'); }
+      try{ await idbDel('unifiedRows'); try{ await idbDelBig('unifiedRows'); }catch{} try{ (typeof backupClearLocal==='function') ? backupClearLocal() : localStorage.removeItem('unifiedRowsBackup'); }catch{} try{ await opfsDeleteMaestro(); }catch{} alert('Maestro guardado borrado.'); }
       catch(e){ alert('No se pudo borrar el Maestro guardado'); }
     });
 
