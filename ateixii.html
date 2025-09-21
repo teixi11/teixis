@@ -193,6 +193,11 @@
       <h2 style="font-size:1.5rem;font-weight:700;color:#0071bc;text-align:center;">Iniciar sesión</h2>
       <input type="text" id="loginUser" placeholder="Usuario" required style="padding:.7em 1em;border-radius:.7em;border:1px solid #0071bc;font-size:1rem;">
       <input type="password" id="loginPass" placeholder="Contraseña" required style="padding:.7em 1em;border-radius:.7em;border:1px solid #0071bc;font-size:1rem;">
+      <div id="passkeyHint" style="font-size:.85rem;color:#374151;display:none;">Puedes usar Face ID/Touch ID creando una Passkey.</div>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center;">
+        <button id="btnPasskeyLogin" type="button" style="display:none;padding:.6em 1em;border-radius:.7em;border:1px solid #0071bc;background:#0ea5e9;color:#fff;font-weight:700;">Iniciar con Face ID</button>
+        <button id="btnPasskeyRegister" type="button" style="display:none;padding:.6em 1em;border-radius:.7em;border:1px solid #0071bc;background:#ffffff;color:#0f172a;">Crear Passkey</button>
+      </div>
       <button type="submit" style="background:#0071bc;color:#fff;font-weight:700;border-radius:.7em;padding:.7em 1em;font-size:1rem;">Entrar</button>
       <div id="loginError" style="color:#e53935;text-align:center;font-size:.95rem;display:none;">Usuario o contraseña incorrectos</div>
     </form>
@@ -658,6 +663,90 @@
       localStorage.removeItem('loggedUser');
       showLogin();
     });
+
+    // ---------- Passkeys (Face ID/Touch ID vía WebAuthn) ----------
+    function b64uToBytes(b64u){
+      const pad = '='.repeat((4 - (b64u.length % 4)) % 4);
+      const b64 = (b64u + pad).replace(/-/g,'+').replace(/_/g,'/');
+      const str = atob(b64);
+      const bytes = new Uint8Array(str.length);
+      for (let i=0;i<str.length;i++) bytes[i] = str.charCodeAt(i);
+      return bytes;
+    }
+    function bytesToB64u(bytes){
+      let bin = '';
+      bytes = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+      for (let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    }
+    function randomChallenge(len=32){ const a = new Uint8Array(len); crypto.getRandomValues(a); return a; }
+
+    async function isPasskeyAvailable(){
+      if (!window.isSecureContext) return false; // requiere https o localhost
+      if (!('PublicKeyCredential' in window)) return false;
+      try{
+        return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      }catch{ return false; }
+    }
+
+    async function initPasskeyUI(){
+      const hint = document.getElementById('passkeyHint');
+      const btnReg = document.getElementById('btnPasskeyRegister');
+      const btnLogin = document.getElementById('btnPasskeyLogin');
+      const ok = await isPasskeyAvailable();
+      if (!ok){ hint.style.display='none'; btnReg.style.display='none'; btnLogin.style.display='none'; return; }
+      hint.style.display = '';
+      btnReg.style.display = '';
+      // Mostrar login con passkey si ya hay cred guardada
+      const stored = JSON.parse(localStorage.getItem('passkeyProfile')||'null');
+      if (stored?.credId) btnLogin.style.display = '';
+
+      btnReg.onclick = async ()=>{
+        try{
+          const user = document.getElementById('loginUser').value.trim() || 'usuario';
+          const userId = b64uToBytes(bytesToB64u(new TextEncoder().encode(user))); // pseudo estable desde nombre
+          const publicKey = {
+            challenge: randomChallenge(),
+            rp: { name: 'Teixidó Forecast' },
+            user: { id: userId, name: user, displayName: user },
+            pubKeyCredParams: [{ type:'public-key', alg:-7 }, { type:'public-key', alg:-257 }],
+            authenticatorSelection: { authenticatorAttachment:'platform', userVerification:'required', residentKey:'preferred' },
+            timeout: 60000,
+            attestation: 'none'
+          };
+          const cred = await navigator.credentials.create({ publicKey });
+          if (!cred) throw new Error('Operación cancelada');
+          const rawId = new Uint8Array(cred.rawId);
+          const credId = bytesToB64u(rawId);
+          localStorage.setItem('passkeyProfile', JSON.stringify({ user, credId }));
+          document.getElementById('btnPasskeyLogin').style.display = '';
+          alert('Passkey creada. Ya puedes usar Face ID/Touch ID para entrar.');
+        }catch(e){ console.warn('Passkey register error', e); alert('No se pudo crear la Passkey.'); }
+      };
+
+      btnLogin.onclick = async ()=>{
+        try{
+          const stored = JSON.parse(localStorage.getItem('passkeyProfile')||'null');
+          const allow = stored?.credId ? [{ type:'public-key', id: b64uToBytes(stored.credId) }] : undefined;
+          const publicKey = {
+            challenge: randomChallenge(),
+            allowCredentials: allow,
+            userVerification: 'required',
+            timeout: 60000
+          };
+          const assertion = await navigator.credentials.get({ publicKey });
+          if (!assertion) throw new Error('Operación cancelada');
+          const user = stored?.user || 'usuario';
+          localStorage.setItem('loggedUser', user);
+          showMain();
+          document.getElementById('loginError').style.display = 'none';
+          tryRestoreMaestro();
+        }catch(e){ console.warn('Passkey login error', e); alert('No se pudo iniciar con Face ID/Touch ID.'); }
+      };
+    }
+
+    // Inicialización Passkeys
+    initPasskeyUI();
 
   // Mostrar SIEMPRE login al recargar
   showLogin();
