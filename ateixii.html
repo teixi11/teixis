@@ -38,6 +38,7 @@
     }
   </script>
   <style>
+    :root{ --ease: cubic-bezier(.22,.61,.36,1); }
     .btn-limpiar-filtros {
       background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb 100%);
       color: #005a91;
@@ -70,10 +71,11 @@
     .popover-btns { display:flex; gap:.5rem; justify-content:flex-end; }
     .logo-bling { filter:drop-shadow(0 8px 28px rgba(0,113,188,.25)); border-radius:.7rem; width:120px; height:48px; object-fit:contain; }
     @keyframes glowPulse{from{box-shadow:0 0 0 rgba(22,163,74,0)} to{box-shadow:0 0 42px rgba(22,163,74,.45)}}
-    .segmented{display:inline-flex; background:rgba(0,0,0,.04); border:1px solid rgba(0,0,0,.08); border-radius:9999px; padding:4px}
-    .dark .segmented{background:rgba(255,255,255,.04); border-color:#1f2937}
-    .segmented button{padding:.4rem .8rem; border-radius:9999px; font-size:.9rem}
-    .segmented button.is-active{background:#0071bc; color:#fff; box-shadow:0 4px 14px rgba(0,113,188,.25)}
+  .segmented{display:inline-flex; background:rgba(0,0,0,.04); border:1px solid rgba(0,0,0,.08); border-radius:9999px; padding:4px}
+  .dark .segmented{background:rgba(255,255,255,.04); border-color:#1f2937}
+  .segmented button{padding:.4rem .8rem; border-radius:9999px; font-size:.9rem; transition: transform .14s var(--ease), background-color .18s var(--ease), box-shadow .18s var(--ease)}
+  .segmented button:active{ transform: scale(.96) }
+  .segmented button.is-active{background:#0071bc; color:#fff; box-shadow:0 6px 18px rgba(0,113,188,.25)}
     @keyframes cardPeek { 0% { transform: translateY(0); box-shadow: 0 2px 8px rgba(0,113,188,.10); } 100% { transform: translateY(-10px); box-shadow: 0 2px 18px 2px #0071bc33; } }
     [data-client-tab] { transition: box-shadow 0.2s, transform 0.2s; will-change: transform, box-shadow; }
     [data-client-tab]:hover { animation: cardPeek 0.38s cubic-bezier(.4,1.6,.6,1) forwards; box-shadow: 0 2px 18px 2px #0071bc33; z-index: 2; }
@@ -153,6 +155,8 @@
     .group-header .chev { transition: transform .22s ease; }
     .group.expanded .group-header .chev { transform: rotate(90deg); }
     .group-content { max-height: 0; overflow: hidden; transition: max-height .28s ease; border-top: 1px solid rgba(0,0,0,.06); }
+  .group-content{ opacity: 0; transition: max-height .28s ease, opacity .24s var(--ease); }
+  .group.expanded .group-content{ opacity: 1; }
     .dark .group-content { border-top-color: #172034; }
     .group-content .inner { padding: .6rem; display: flex; flex-direction: column; gap: .5rem; }
   /* Explore DnD */
@@ -172,6 +176,61 @@
   .chip .x{cursor:pointer; font-weight:700}
   .chip.muted{background:#f3f4f6; color:#6b7280; border-color:#e5e7eb}
   .chip.action{background:#ecfeff; color:#155e75; border-color:#a5f3fc}
+
+    /* Header dropdown animation */
+    .dropdown{ opacity: 0; transform: translateY(6px); pointer-events: none; transition: opacity .18s var(--ease), transform .18s var(--ease); }
+    .dropdown.open{ opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+  /* Squarer buttons inside Actions menu */
+  #headerActionsMenu button{ border-radius: .5rem !important; }
+
+    /* Panels fade */
+    #panels.fade-out{ opacity: 0; transform: translateY(6px); transition: opacity .18s var(--ease), transform .18s var(--ease); }
+    #panels.fade-in{ opacity: 1; transform: translateY(0); transition: opacity .22s var(--ease), transform .22s var(--ease); }
+
+  /* Dashboard epic entry */
+  @keyframes dashIn { from { opacity:0; transform: translateY(10px) scale(.985); filter: blur(4px) } to { opacity:1; transform:none; filter: blur(0) } }
+  #mainContent.dashboard-enter{ animation: dashIn .6s var(--ease) both }
+
+  /* Client tabs active blue */
+  .clientTab{ transition: background-color .16s var(--ease), color .16s var(--ease), transform .16s var(--ease), box-shadow .18s var(--ease) }
+  .clientTab.is-active{ background:#0071bc !important; color:#fff !important; box-shadow:0 6px 18px rgba(0,113,188,.25); transform: translateY(-1px) }
+  .clientTab:not(.is-active):hover{ box-shadow:0 4px 12px rgba(0,0,0,.08) }
+
+  /* Login modal pop */
+    #loginModal{ opacity: 0; transition: opacity .22s var(--ease); }
+    #loginModal.is-open{ opacity: 1; }
+    #loginModal form{ opacity: 0; transform: translateY(12px) scale(.985); transition: opacity .24s var(--ease), transform .28s var(--ease); }
+    #loginModal.is-open form{ opacity: 1; transform: translateY(0) scale(1); }
+
+  /* Generic modal overlays + panels */
+  .modal-overlay{ opacity: 0; transition: opacity .24s var(--ease); }
+  .modal-overlay.is-open{ opacity: 1; }
+  .modal-panel{ opacity: 0; transform: translateY(12px) scale(.985); transition: opacity .28s var(--ease), transform .28s var(--ease); }
+  .modal-overlay.is-open .modal-panel{ opacity: 1; transform: translateY(0) scale(1); }
+
+  /* Smooth progress panel */
+  #progressPanel{ opacity: 0; transform: translateY(8px); transition: opacity .2s var(--ease), transform .24s var(--ease); }
+  #progressPanel.is-open{ opacity: 1; transform: translateY(0); }
+
+    /* Login button pro */
+    .btn-login{ position: relative; overflow: hidden; }
+    .btn-login__label{ transition: opacity .14s var(--ease); }
+    .btn-login__spinner, .btn-login__check{ position:absolute; inset:0; display:grid; place-items:center; opacity:0; pointer-events:none; transition: opacity .18s var(--ease), transform .18s var(--ease); }
+    .btn-login__spinner::after{ content:""; width:18px; height:18px; border-radius:999px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg) } }
+    .btn-login--loading .btn-login__label{ opacity:0; }
+    .btn-login--loading .btn-login__spinner{ opacity:1; }
+    .btn-login--success{ background:#22c55e !important; }
+    .btn-login--success .btn-login__label{ opacity:0; }
+    .btn-login--success .btn-login__check{ opacity:1; transform: scale(1); }
+    .shake{ animation: shake .28s ease-out; }
+    @keyframes shake { 0%{ transform: translateX(0) } 25%{ transform: translateX(-6px) } 50%{ transform: translateX(6px) } 75%{ transform: translateX(-3px) } 100%{ transform: translateX(0) } }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      *{ animation: none !important; transition: none !important }
+    }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
@@ -188,7 +247,7 @@
 
   <!-- Login modal básico -->
   <div id="loginModal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.12);z-index:100;display:flex;align-items:center;justify-content:center;">
-    <form id="loginForm" style="background:#fff;padding:2rem 2.5rem;border-radius:1rem;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:320px;display:flex;flex-direction:column;gap:1.2rem;">
+  <form id="loginForm" style="background:#fff;padding:2rem 2.5rem;border-radius:1rem;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:320px;display:flex;flex-direction:column;gap:1.2rem;">
       <img src="teixido.png" alt="Teixidó" style="width:120px; margin:0 auto 1.2em auto; display:block; border-radius:1em; box-shadow:0 4px 24px rgba(0,113,188,.18); background:#fff;" />
       <h2 style="font-size:1.5rem;font-weight:700;color:#0071bc;text-align:center;">Iniciar sesión</h2>
       <input type="text" id="loginUser" placeholder="Usuario" required style="padding:.7em 1em;border-radius:.7em;border:1px solid #0071bc;font-size:1rem;">
@@ -198,7 +257,11 @@
         <button id="btnPasskeyLogin" type="button" style="display:none;padding:.6em 1em;border-radius:.7em;border:1px solid #0071bc;background:#0ea5e9;color:#fff;font-weight:700;">Iniciar con Face ID</button>
         <button id="btnPasskeyRegister" type="button" style="display:none;padding:.6em 1em;border-radius:.7em;border:1px solid #0071bc;background:#ffffff;color:#0f172a;">Crear Passkey</button>
       </div>
-      <button type="submit" style="background:#0071bc;color:#fff;font-weight:700;border-radius:.7em;padding:.7em 1em;font-size:1rem;">Entrar</button>
+      <button id="loginSubmit" type="submit" class="btn-login" style="background:#0071bc;color:#fff;font-weight:700;border-radius:.7em;padding:.7em 1em;font-size:1rem;min-width:140px;">
+        <span class="btn-login__label">Entrar</span>
+        <span class="btn-login__spinner" aria-hidden="true"></span>
+        <span class="btn-login__check" aria-hidden="true">✓</span>
+      </button>
       <div id="loginError" style="color:#e53935;text-align:center;font-size:.95rem;display:none;">Usuario o contraseña incorrectos</div>
     </form>
   </div>
@@ -212,35 +275,21 @@
         <div class="flex items-center gap-2 flex-1 justify-between">
           <div id="actionsWrapper" class="relative">
             <button id="headerActionsBtn" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Acciones ▾</button>
-            <div id="headerActionsMenu" class="hidden absolute left-0 mt-2 z-50 w-[360px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl p-3">
+            <div id="headerActionsMenu" class="hidden dropdown absolute left-0 mt-2 z-50 w-[360px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl p-3">
               <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Datos</div>
               <div class="grid grid-cols-2 gap-2 mb-3">
-                <button id="openLoadMenu" class="px-3 py-2 btn-gradient">📥 Menú cargar</button>
-                <button id="menuBuildMaster" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">🏗️ Construir Maestro</button>
-                <button id="menuExportDetailed" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 col-span-2">📤 Exportar Detallado</button>
+                <button id="openLoadMenu" class="px-3 py-2 btn-gradient col-span-2">📥 Menú cargar</button>
               </div>
               <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Visualización</div>
               <div class="grid grid-cols-2 gap-2 mb-3">
-                <button id="openMatrix" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">🧮 Matriz</button>
                 <button id="openGlobe" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">🌍 Mundo</button>
-                <button id="openExplore" class="col-span-2 px-3 py-2 btn-gradient">🧪 Explorar (Drag & Drop)</button>
-              </div>
-              <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Buscar en el mundo</div>
-              <div class="flex gap-2 mb-3">
-                <input id="globeSearchHeader" type="text" placeholder="Planta/país" class="flex-1 px-2 py-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-900/80" />
-                <button id="globeGoHeader" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900" title="Buscar">Ir</button>
+                <button id="openExplore" class="px-3 py-2 btn-gradient">🧪 Explorar</button>
               </div>
               <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Exportar</div>
               <div class="grid grid-cols-2 gap-2">
-                <button id="exportPDF" class="px-3 py-2 btn-gradient">🧾 PDF</button>
-                <button id="exportCSV" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">💾 CSV</button>
-                <button id="clearSavedMaestro" class="col-span-2 px-3 py-2 rounded-xl border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20">🗑️ Borrar Maestro guardado</button>
+                <button id="exportPDF" class="px-3 py-2 btn-gradient col-span-2">🧾 PDF</button>
               </div>
-              <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 my-2">Ayuda</div>
-              <div class="grid grid-cols-2 gap-2">
-                <button id="menuStartTour" class="col-span-2 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">🎓 Ver tutorial</button>
-              </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">Atajos: Alt+L (Cargar) · Alt+M (Matriz) · Alt+G (Mundo) · Alt+P (PDF) · Alt+C (CSV) · Alt+A (Acciones)</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">Atajos: Alt+L (Cargar) · Alt+G (Mundo) · Alt+P (PDF) · Alt+A (Acciones)</div>
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -376,8 +425,8 @@
     </div>
 
     <!-- Globe Modal -->
-  <div id="globeModal" class="hidden" style="position:fixed; inset:0; z-index:6000; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center;">
-      <div style="position:relative; width:min(90vw,880px); height:min(90vh,820px); background:#0b1220; border:1px solid #1f2937; border-radius:1rem; box-shadow:0 12px 48px rgba(0,0,0,.45); overflow:hidden;">
+  <div id="globeModal" class="hidden modal-overlay" style="position:fixed; inset:0; z-index:6000; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center;">
+      <div class="modal-panel" style="position:relative; width:min(90vw,880px); height:min(90vh,820px); background:#0b1220; border:1px solid #1f2937; border-radius:1rem; box-shadow:0 12px 48px rgba(0,0,0,.45); overflow:hidden;">
         <div style="position:absolute; inset:0; display:flex; flex-direction:column;">
           <div style="display:flex; gap:.5rem; align-items:center; padding:.6rem .8rem; background:#0f172a; border-bottom:1px solid #1f2937;">
             <div style="font-weight:800; color:#93c5fd;">Mundo</div>
@@ -526,8 +575,8 @@
   </template>
 
   <!-- Modal Top 5 -->
-  <div id="top5Modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden">
-    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-4 max-w-md w-full relative border border-gray-300 dark:border-gray-700" style="max-height:80vh; overflow-y:auto;">
+  <div id="top5Modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden modal-overlay">
+    <div class="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-4 max-w-md w-full relative border border-gray-300 dark:border-gray-700 modal-panel" style="max-height:80vh; overflow-y:auto;">
       <button id="closeTop5" class="absolute top-4 right-4 text-2xl font-bold text-gray-500 hover:text-red-600">&times;</button>
       <h2 class="text-2xl font-bold mb-6 text-center">Top 5 piezas más pedidas</h2>
       <div id="top5List" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
@@ -535,9 +584,9 @@
   </div>
 
   <!-- Modal Explorar (Drag & Drop) -->
-  <div id="exploreModal" class="fixed inset-0 z-50 hidden">
+  <div id="exploreModal" class="fixed inset-0 z-50 hidden modal-overlay">
     <div class="absolute inset-0 bg-black bg-opacity-60"></div>
-  <div class="absolute inset-0 m-0 bg-white dark:bg-gray-900 rounded-none shadow-none border-0 flex flex-col min-h-0">
+  <div class="absolute inset-0 m-0 bg-white dark:bg-gray-900 rounded-none shadow-none border-0 flex flex-col min-h-0 modal-panel">
       <div class="p-4 flex items-center gap-3 border-b border-gray-200 dark:border-gray-800 explore-header">
         <div class="text-xl font-extrabold tracking-wide">🧪 Explorar datos — Drag & Drop</div>
         <div class="ml-auto flex items-center gap-2">
@@ -596,9 +645,9 @@
   </div>
 
   <!-- Modal Matriz (pantalla completa) -->
-  <div id="matrixModal" class="fixed inset-0 z-50 hidden">
+  <div id="matrixModal" class="fixed inset-0 z-50 hidden modal-overlay">
     <div class="absolute inset-0 bg-black bg-opacity-60"></div>
-    <div class="absolute inset-2 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-300 dark:border-gray-700 flex flex-col">
+    <div class="absolute inset-2 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-300 dark:border-gray-700 flex flex-col modal-panel">
       <div class="p-3 flex items-center gap-3 border-b border-gray-200 dark:border-gray-800">
         <div class="text-lg font-bold">Matriz referencias × clientes</div>
         <div class="segmented ml-4" id="matrixMode">
@@ -641,22 +690,48 @@
     ];
 
     function isLoggedIn() { return localStorage.getItem('loggedUser'); }
-    function showLogin() { document.getElementById('loginModal').style.display = 'flex'; document.getElementById('mainContent').style.display = 'none'; }
-  function showMain() { document.getElementById('loginModal').style.display = 'none'; document.getElementById('mainContent').style.display = 'block'; }
+    function showLogin() {
+      const modal = document.getElementById('loginModal');
+      const main = document.getElementById('mainContent');
+      if (main) main.style.display = 'none';
+      if (!modal) return;
+      modal.style.display = 'flex';
+      requestAnimationFrame(()=> modal.classList.add('is-open'));
+    }
+    function showMain() {
+      const modal = document.getElementById('loginModal');
+      const main = document.getElementById('mainContent');
+      if (modal){
+        modal.classList.remove('is-open');
+        setTimeout(()=>{ modal.style.display = 'none'; }, 220);
+      }
+      if (main){
+        main.style.display = 'block';
+        // epic dashboard entry
+        main.classList.remove('dashboard-enter');
+        void main.offsetWidth; // reflow
+        main.classList.add('dashboard-enter');
+      }
+    }
 
     document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
       const u = document.getElementById('loginUser').value.trim();
       const p = document.getElementById('loginPass').value;
+      const btn = document.getElementById('loginSubmit');
+      if (btn) btn.classList.add('btn-login--loading');
       const found = USERS.find(x => x.user === u && x.pass === p);
-      if (found) {
-        localStorage.setItem('loggedUser', u);
-        showMain();
-        document.getElementById('loginError').style.display = 'none';
-        tryRestoreMaestro();
-      } else {
-        document.getElementById('loginError').style.display = 'block';
-      }
+      setTimeout(()=>{
+        if (found) {
+          localStorage.setItem('loggedUser', u);
+          document.getElementById('loginError').style.display = 'none';
+          if (btn){ btn.classList.remove('btn-login--loading'); btn.classList.add('btn-login--success'); }
+          setTimeout(()=>{ showMain(); tryRestoreMaestro(); if(btn){ btn.classList.remove('btn-login--success'); } }, 800);
+        } else {
+          document.getElementById('loginError').style.display = 'block';
+          if (btn){ btn.classList.remove('btn-login--loading'); btn.classList.add('shake'); setTimeout(()=> btn.classList.remove('shake'), 350); }
+        }
+      }, 400);
     });
 
     document.getElementById('logoutBtn').addEventListener('click', function() {
@@ -1038,8 +1113,9 @@
                 state.currentClient = allClients[0];
                 document.querySelectorAll('.clientTab').forEach(b=>{
                   const isSel = b.dataset.client===state.currentClient;
-                  b.classList.toggle('bg-gray-100', isSel);
-                  b.classList.toggle('dark:bg-gray-800', isSel);
+                  b.classList.toggle('bg-gray-100', false);
+                  b.classList.toggle('dark:bg-gray-800', false);
+                  b.classList.toggle('is-active', isSel);
                 });
               }
             }
@@ -1188,10 +1264,17 @@
     // ---------- Tabs cliente ----------
     document.querySelectorAll('.clientTab').forEach(btn=>{
       btn.addEventListener('click', ()=>{
-        document.querySelectorAll('.clientTab').forEach(b=> b.classList.remove('bg-gray-100','dark:bg-gray-800'));
-        btn.classList.add('bg-gray-100','dark:bg-gray-800');
+        document.querySelectorAll('.clientTab').forEach(b=> b.classList.remove('bg-gray-100','dark:bg-gray-800','is-active'));
+        btn.classList.add('is-active');
         state.currentClient = btn.dataset.client;
-        renderPanels();
+        const panels = document.getElementById('panels');
+        if (panels){
+          panels.classList.remove('fade-in');
+          panels.classList.add('fade-out');
+          setTimeout(()=>{ renderPanels(); panels.classList.remove('fade-out'); panels.classList.add('fade-in'); }, 120);
+        } else {
+          renderPanels();
+        }
       });
     });
 
@@ -1216,8 +1299,9 @@
           state.currentClient = 'Dumarey';
           document.querySelectorAll('.clientTab').forEach(b=>{
             const isSel = b.dataset.client==='Dumarey';
-            b.classList.toggle('bg-gray-100', isSel);
-            b.classList.toggle('dark:bg-gray-800', isSel);
+            b.classList.toggle('bg-gray-100', false);
+            b.classList.toggle('dark:bg-gray-800', false);
+            b.classList.toggle('is-active', isSel);
           });
           renderPanels();
         } else {
@@ -1246,8 +1330,9 @@
           state.currentClient = 'Dumarey';
           document.querySelectorAll('.clientTab').forEach(b=>{
             const isSel = b.dataset.client==='Dumarey';
-            b.classList.toggle('bg-gray-100', isSel);
-            b.classList.toggle('dark:bg-gray-800', isSel);
+            b.classList.toggle('bg-gray-100', false);
+            b.classList.toggle('dark:bg-gray-800', false);
+            b.classList.toggle('is-active', isSel);
           });
           renderPanels();
         }catch(err){
@@ -1267,7 +1352,7 @@
 
     // ---------- Export ----------
     document.querySelector('#exportPDF').addEventListener('click', ()=>{ window.print(); });
-    document.querySelector('#exportCSV').addEventListener('click', ()=>{
+  document.getElementById('exportCSV')?.addEventListener('click', ()=>{
       const root = document.querySelector(`.clientPanel[data-client="${state.currentClient}"]`);
       const rows = getFilteredRows(state.currentClient, root);
       if(!rows.length){ alert('No hay datos filtrados'); return; }
@@ -1294,12 +1379,20 @@
     const esc = s => ('"'+String(s).replace(/"/g,'""')+'"' );
 
     // ---------- Matriz: abrir/cerrar ----------
-    document.querySelector('#openMatrix').addEventListener('click', ()=>{
-      buildAndShowMatrix();
-    });
-    document.getElementById('closeMatrix').addEventListener('click', ()=>{
-      document.getElementById('matrixModal').classList.add('hidden');
-    });
+    // ---------- Generic modal helpers ----------
+    function modalOpen(id){
+      const m = document.getElementById(id); if(!m) return;
+      m.classList.remove('hidden'); m.style.display='flex';
+      requestAnimationFrame(()=> m.classList.add('is-open'));
+    }
+    function modalClose(id){
+      const m = document.getElementById(id); if(!m) return;
+      m.classList.remove('is-open');
+      setTimeout(()=>{ m.classList.add('hidden'); m.style.display='none'; }, 240);
+    }
+
+  document.getElementById('openMatrix')?.addEventListener('click', ()=>{ buildAndShowMatrix(); });
+    document.getElementById('closeMatrix').addEventListener('click', ()=>{ modalClose('matrixModal'); });
 
     // ===== Explorar (Drag & Drop) =====
     let _exploreChart = null;
@@ -1315,8 +1408,16 @@
       { key:'facturacion', label:'Facturación', type:'measure', agg:'sum' }
     ];
     function openExplore(){
+      modalOpen('exploreModal');
       const modal = document.getElementById('exploreModal');
-      modal.classList.remove('hidden');
+      if (modal && !modal._boundBackdrop){
+        modal.addEventListener('click', (e)=>{ if (!e.target.closest('.modal-panel')) closeExplore(); });
+        modal._boundBackdrop = true;
+      }
+      if (modal && !modal._escBound){
+        document.addEventListener('keydown', (ev)=>{ if(ev.key==='Escape' && !modal.classList.contains('hidden')) closeExplore(); });
+        modal._escBound = true;
+      }
       buildExploreFields();
       clearExploreDrops();
       // Default: X=Año, Y=Volumen, Series=Cliente si existen
@@ -1325,8 +1426,7 @@
       renderExploreChart();
     }
     function closeExplore(){
-      const modal = document.getElementById('exploreModal');
-      modal.classList.add('hidden');
+      modalClose('exploreModal');
       if (_exploreChart){ _exploreChart.destroy(); _exploreChart = null; }
     }
     document.getElementById('openExplore')?.addEventListener('click', openExplore);
@@ -1860,7 +1960,15 @@
         mode.querySelectorAll('button').forEach(b=> b.classList.remove('is-active'));
         mode.querySelector('[data-mode="table"]').classList.add('is-active');
       }
-      modal.classList.remove('hidden');
+      modalOpen('matrixModal');
+      if (modal && !modal._boundBackdrop){
+        modal.addEventListener('click', (e)=>{ if (!e.target.closest('.modal-panel')) modalClose('matrixModal'); });
+        modal._boundBackdrop = true;
+      }
+      if (modal && !modal._escBound){
+        document.addEventListener('keydown', (ev)=>{ if(ev.key==='Escape' && !modal.classList.contains('hidden')) modalClose('matrixModal'); });
+        modal._escBound = true;
+      }
     }
 
     // Cambiar modo Matriz
@@ -2244,6 +2352,12 @@
       updateKPIs(rootEl);
       drawChart(state.currentClient, rootEl);
       drawSummaryTable(state.currentClient, rootEl);
+      // subtle fade-in after render
+      const wrap = document.getElementById('panels');
+      if (wrap){
+        wrap.classList.remove('fade-out');
+        requestAnimationFrame(()=> wrap.classList.add('fade-in'));
+      }
     }
 
     function onFilterChange(root){
@@ -2438,8 +2552,7 @@
     function openGlobeModal(){
       const modal = document.getElementById('globeModal');
       const wrap = document.getElementById('globeWrap');
-  modal.classList.remove('hidden');
-  modal.style.display = 'flex';
+      modalOpen('globeModal');
       // Reset view without initializing Three.js
       try{ cancelAnimationFrame(_globe.animId); }catch{}
       if (_globe.renderer){ try{ _globe.renderer.dispose(); }catch{} _globe.renderer=null; }
@@ -2480,15 +2593,17 @@
       const btn = document.getElementById('headerActionsBtn');
       const menu = document.getElementById('headerActionsMenu');
       if (!btn || !menu) return;
-      const toggle = ()=> menu.classList.toggle('hidden');
+      const open = ()=>{ menu.classList.remove('hidden'); requestAnimationFrame(()=> menu.classList.add('open')); };
+      const close = ()=>{ menu.classList.remove('open'); setTimeout(()=> menu.classList.add('hidden'), 180); };
+      const toggle = ()=> menu.classList.contains('hidden') ? open() : close();
       btn.addEventListener('click', (e)=>{ e.stopPropagation(); toggle(); });
       document.addEventListener('click', (e)=>{
         if (!menu.classList.contains('hidden')){
           const wrapper = document.getElementById('actionsWrapper');
-          if (wrapper && !wrapper.contains(e.target)) menu.classList.add('hidden');
+          if (wrapper && !wrapper.contains(e.target)) close();
         }
       });
-      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') menu.classList.add('hidden'); });
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') close(); });
     })();
 
     // Open/close load menu helpers
@@ -2505,13 +2620,7 @@
     // Ensure buttons control the load menu
     document.getElementById('openLoadMenu')?.addEventListener('click', (e)=>{ e.preventDefault(); openLoadMenuPanel(); });
     document.getElementById('closeLoadMenu')?.addEventListener('click', (e)=>{ e.preventDefault(); closeLoadMenuPanel(); });
-    // Proxy Maestro actions from Actions menu
-    document.getElementById('menuBuildMaster')?.addEventListener('click', ()=> document.getElementById('btnBuildMaster')?.click());
-    document.getElementById('menuExportDetailed')?.addEventListener('click', ()=> document.getElementById('btnExportDetailed')?.click());
-    document.getElementById('clearSavedMaestro')?.addEventListener('click', async ()=>{
-      try{ await idbDel('unifiedRows'); try{ await idbDelBig('unifiedRows'); }catch{} try{ (typeof backupClearLocal==='function') ? backupClearLocal() : localStorage.removeItem('unifiedRowsBackup'); }catch{} try{ await opfsDeleteMaestro(); }catch{} alert('Maestro guardado borrado.'); }
-      catch(e){ alert('No se pudo borrar el Maestro guardado'); }
-    });
+    // (Removed extra actions from Actions menu)
 
     // Keyboard shortcuts (Alt+ key), ignore when typing in inputs
     document.addEventListener('keydown', (e)=>{
@@ -2525,8 +2634,7 @@
       if (k==='l'){ prevent(); openLoadMenuPanel(); }
       if (k==='m'){ prevent(); document.getElementById('openMatrix')?.click(); }
       if (k==='g'){ prevent(); openGlobeModal(); }
-      if (k==='p'){ prevent(); document.getElementById('exportPDF')?.click(); }
-      if (k==='c'){ prevent(); document.getElementById('exportCSV')?.click(); }
+  if (k==='p'){ prevent(); document.getElementById('exportPDF')?.click(); }
     });
 
     // Centralized close handlers
@@ -2548,8 +2656,7 @@
           dom.removeEventListener('wheel', _globe.handlers.onWheel);
         }
       }catch{}
-  modal.classList.add('hidden');
-  modal.style.display = 'none';
+  modalClose('globeModal');
     }
     function attachGlobeCloseHandlers(){
       const modal = document.getElementById('globeModal');
@@ -3209,8 +3316,9 @@
         state.currentClient = 'MCI';
         document.querySelectorAll('.clientTab').forEach(b=>{
           const isMci = b.dataset.client==='MCI';
-          b.classList.toggle('bg-gray-100', isMci);
-          b.classList.toggle('dark:bg-gray-800', isMci);
+          b.classList.toggle('bg-gray-100', false);
+          b.classList.toggle('dark:bg-gray-800', false);
+          b.classList.toggle('is-active', isMci);
         });
         renderPanels();
       }catch(err){
@@ -3293,8 +3401,9 @@
           state.currentClient = allClients.includes(state.currentClient) ? state.currentClient : allClients[0];
           document.querySelectorAll('.clientTab').forEach(b=>{
             const isSel = b.dataset.client===state.currentClient;
-            b.classList.toggle('bg-gray-100', isSel);
-            b.classList.toggle('dark:bg-gray-800', isSel);
+            b.classList.toggle('bg-gray-100', false);
+            b.classList.toggle('dark:bg-gray-800', false);
+            b.classList.toggle('is-active', isSel);
           });
         }
   progressSet(95); renderPanels(); setTimeout(()=> progressHide(), 600);
@@ -3773,11 +3882,11 @@
       const panel = document.getElementById('progressPanel');
       if (!panel) return null;
       const btn = panel.querySelector('#progressClose');
-      if (btn && !btn._bound){ btn._bound = true; btn.onclick = ()=> panel.style.display='none'; }
+      if (btn && !btn._bound){ btn._bound = true; btn.onclick = ()=> { panel.classList.remove('is-open'); setTimeout(()=> panel.style.display='none', 220); }; }
       return panel;
     }
-    function progressShow(title){ const panel = ensureProgressUI(); if (!panel) return; panel.style.display='block'; document.getElementById('progressTitle').textContent = title||'Procesando…'; progressSet(0); progressClear(); }
-    function progressHide(){ const panel = document.getElementById('progressPanel'); if (panel) panel.style.display='none'; }
+    function progressShow(title){ const panel = ensureProgressUI(); if (!panel) return; panel.style.display='block'; requestAnimationFrame(()=> panel.classList.add('is-open')); document.getElementById('progressTitle').textContent = title||'Procesando…'; progressSet(0); progressClear(); }
+    function progressHide(){ const panel = document.getElementById('progressPanel'); if (panel){ panel.classList.remove('is-open'); setTimeout(()=> panel.style.display='none', 220); } }
     function progressSet(pct){ const el = document.getElementById('progressBar'); if (el) el.style.width = Math.max(0, Math.min(100, pct||0)) + '%'; }
     function progressLog(msg){ const el = document.getElementById('progressLog'); if (!el) return; const t = new Date(); const ts = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`; el.insertAdjacentHTML('beforeend', `<div>[${ts}] ${msg}</div>`); el.scrollTop = el.scrollHeight; }
     function progressClear(){ const el = document.getElementById('progressLog'); if (el) el.innerHTML=''; }
@@ -4410,9 +4519,16 @@
     // ---------- Modal Top 5: open/close ----------
     document.addEventListener("DOMContentLoaded", () => {
       const top5Modal = document.getElementById("top5Modal");
-      const closeTop5 = document.getElementById("closeTop5");
-      if (closeTop5) closeTop5.onclick = () => top5Modal.classList.add("hidden");
-      document.body.addEventListener("click", e => { if (e.target === top5Modal) top5Modal.classList.add("hidden"); });
+  const closeTop5 = document.getElementById("closeTop5");
+  if (closeTop5) closeTop5.onclick = () => modalClose('top5Modal');
+      if (!top5Modal._backdropBound){
+        document.body.addEventListener("click", e => { if (e.target === top5Modal) modalClose('top5Modal'); });
+        top5Modal._backdropBound = true;
+      }
+      if (!top5Modal._escBound){
+        document.addEventListener('keydown', (ev)=>{ if(ev.key==='Escape' && !top5Modal.classList.contains('hidden')) modalClose('top5Modal'); });
+        top5Modal._escBound = true;
+      }
     });
 
     // ---------- Top 5 logic (único handler) ----------
@@ -4462,7 +4578,7 @@
           setTimeout(() => renderTop5Model(refBV, `top5-3d-${idx}`), 100);
         });
 
-        document.getElementById("top5Modal").classList.remove("hidden");
+  modalOpen('top5Modal');
       }
     });
 
@@ -4772,7 +4888,8 @@
   window.tourStart = function(){ bindKeys(); bindTouch(); go(0); };
     const menuTour = document.getElementById('menuStartTour');
     if (menuTour) menuTour.addEventListener('click', ()=> {
-      document.getElementById('headerActionsMenu')?.classList.add('hidden');
+  const _ham = document.getElementById('headerActionsMenu');
+  if (_ham){ _ham.classList.remove('open'); setTimeout(()=> _ham.classList.add('hidden'), 180); }
       window.tourStart();
     });
   })();
