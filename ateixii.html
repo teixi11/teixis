@@ -476,6 +476,13 @@
             <select id="globeClientSelect" style="background:#0b1220; color:#e5e7eb; border:1px solid #1f2937; border-radius:.5rem; padding:.35rem .5rem;">
               <option value="">Cliente…</option>
             </select>
+            <select id="globePinMode" title="Modo de pines" style="background:#0b1220; color:#e5e7eb; border:1px solid #1f2937; border-radius:.5rem; padding:.35rem .5rem;">
+              <option value="barras">Barras</option>
+              <option value="puntos">Puntos</option>
+              <option value="halos">Halos</option>
+              <option value="pulso">Pulso</option>
+              <option value="emoji">Emoji</option>
+            </select>
             <input id="globeSearch" type="text" placeholder="Buscar planta o país…" style="flex:1; background:#0b1220; color:#e5e7eb; border:1px solid #1f2937; border-radius:.5rem; padding:.4rem .6rem;" />
             <button id="closeGlobe" title="Cerrar" style="background:#111827; color:#e5e7eb; border:1px solid #374151; padding:.3rem .6rem; border-radius:.5rem;">Cerrar</button>
           </div>
@@ -486,6 +493,7 @@
             <div id="globeKPI" style="position:absolute; left:12px; top:12px; z-index:20; background:rgba(15,23,42,.82); backdrop-filter:blur(4px); color:#e5e7eb; border:1px solid #1f2937; border-radius:.75rem; padding:.55rem .7rem .6rem; display:none; min-width:220px; max-width:320px; line-height:1.15; font-size:.78rem; box-shadow:0 4px 18px -2px rgba(0,0,0,.5); pointer-events:none;">
               <!-- KPI overlay content injected dynamically -->
             </div>
+            <div id="globePinTip" style="position:absolute; top:8px; right:8px; display:none; z-index:30; background:rgba(17,24,39,.92); color:#f1f5f9; border:1px solid #1e293b; padding:.45rem .6rem; border-radius:.55rem; font-size:.7rem; line-height:1.15; pointer-events:none; box-shadow:0 4px 12px -2px rgba(0,0,0,.55); max-width:220px;"></div>
           </div>
           <!-- Legend de ubicaciones removido a petición del usuario -->
           <div id="globeLegend" style="display:none"></div>
@@ -2538,25 +2546,47 @@
     let _globe = { renderer:null, scene:null, camera:null, animId:null, points:[] };
     function showGlobeForPlantas(plantas, opts){
       try{
+        // Helper local (cache) para textura emoji 📍
+        if(!window._emojiPinCache){ window._emojiPinCache = {}; }
+        function getEmojiPinTexture(chr='📍'){
+          if(window._emojiPinCache[chr]) return window._emojiPinCache[chr];
+            const canvas = document.createElement('canvas');
+            const size = 256; canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0,0,size,size);
+            ctx.textAlign='center'; ctx.textBaseline='middle';
+            // Glow / sombra
+            ctx.shadowColor='rgba(0,0,0,.55)'; ctx.shadowBlur=18; ctx.shadowOffsetX=2; ctx.shadowOffsetY=4;
+            const fontSize = 180; // grande para buena resolución
+            ctx.font = `bold ${fontSize}px system-ui, 'Segoe UI Emoji', 'Apple Color Emoji', 'Twemoji Mozilla', sans-serif`;
+            ctx.fillText(chr, size/2, size/2 + 10);
+            const tex = new THREE.CanvasTexture(canvas); tex.anisotropy = 4; tex.needsUpdate = true;
+            window._emojiPinCache[chr] = tex; return tex;
+        }
         // Si opts.client existe y tenemos filas con ubicacion (nueva columna), usar esas ubicaciones únicas
         let countries = [];
+        let all = [];
         if (opts && opts.client){
           const cli = opts.client;
-          // Unir fuentes según cliente
-          let all = [];
           if (cli==='MCI') all = state.mciRows||[]; else if (cli==='Dumarey') all = state.rapRows||[]; else if (cli==='Tremec') all = state.tremecRows||[]; else all = (state.rows||[]).filter(r=> matchesClient(r.cliente, cli));
           if (state.useUnifiedFeed && state.unifiedRows && state.unifiedRows.length){
             all = all.concat(state.unifiedRows.filter(r=> matchesClient(r.cliente, cli)));
           }
           const ubicSet = new Set(all.map(r=> r.ubicacion).filter(Boolean));
-          if (ubicSet.size){
-            countries = Array.from(ubicSet);
-          }
+          if (ubicSet.size){ countries = Array.from(ubicSet); }
         }
         if (!countries.length){
           countries = Array.from(new Set(plantas.map(p=> PLANTA_COUNTRY_MAP[p] || p))).filter(Boolean);
         }
         const coords = countries.map(c=> ({ c, ll: COUNTRY_LATLON[c]||null })).filter(x=> x.ll);
+        if (!coords.length){
+          // Si no hay coords válidas, mostrar mensaje y salir limpio
+          const hint = document.getElementById('globeHint');
+          if (hint){
+            hint.classList.remove('hidden');
+            hint.textContent = 'No hay ubicaciones con coordenadas para este cliente todavía.';
+          }
+        }
   const modal = document.getElementById('globeModal');
   const wrap = document.getElementById('globeWrap');
   // (Lista de ubicaciones eliminada del pie del modal)
@@ -2596,16 +2626,73 @@
             (r * Math.sin(phi) * Math.sin(theta))
           );
         };
-        coords.forEach(({ll})=>{
+        // --- Volumetría por ubicación para pin escalado ---
+        const volByLoc = {};
+        all.forEach(r=>{ const loc=r?.ubicacion; if(!loc) return; volByLoc[loc] = (volByLoc[loc]||0) + (Number(r.qty)||0); });
+        const maxVol = Object.values(volByLoc).reduce((m,v)=> v>m? v:m, 0) || 1;
+        const pinMode = (document.getElementById('globePinMode')?.value)||'barras';
+        const colorLow = new THREE.Color(0x3b82f6); // azul
+        const colorHigh = new THREE.Color(0xef4444); // rojo
+        const pulseObjects = [];
+        coords.forEach(({c,ll})=>{
+          const vol = volByLoc[c] || 0;
+          const tLin = vol / maxVol;
+          const t = Math.min(1, Math.max(0, Math.log10(1 + 9*tLin)));
           const pos = toXYZ(ll);
           const n = pos.clone().normalize();
-          const cylGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.24, 12);
-          const cylMat = new THREE.MeshPhongMaterial({ color: 0x22c55e, emissive: 0x0f6f48, emissiveIntensity: 0.85, shininess: 80 });
-          const pin = new THREE.Mesh(cylGeo, cylMat);
-          pin.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), n);
-          pin.position.copy(n.clone().multiplyScalar(1.12));
-          group.add(pin);
-          _globe.points.push(pin);
+          const col = colorLow.clone().lerp(colorHigh, t);
+          if (pinMode==='puntos'){
+            const geo = new THREE.SphereGeometry(0.028 + 0.055*t, 18, 18);
+            const mat = new THREE.MeshBasicMaterial({ color: col.getHex(), transparent:true, opacity:0.9 });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(n.clone().multiplyScalar(1.02));
+            mesh.userData = { ubicacion:c, volumen:vol, t };
+            group.add(mesh); _globe.points.push(mesh);
+          } else if (pinMode==='halos'){
+            const radius = 0.12 + 0.28*t;
+            const ringGeo = new THREE.RingGeometry(radius*0.65, radius, 48, 1);
+            const ringMat = new THREE.MeshBasicMaterial({ color: col.getHex(), transparent:true, opacity:0.45, side:THREE.DoubleSide });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.lookAt(new THREE.Vector3(0,0,0));
+            ring.position.copy(n.clone().multiplyScalar(1.001));
+            ring.userData = { ubicacion:c, volumen:vol, t };
+            group.add(ring); _globe.points.push(ring);
+          } else if (pinMode==='pulso'){
+            const baseGeo = new THREE.SphereGeometry(0.02 + 0.042*t, 16, 16);
+            const baseMat = new THREE.MeshBasicMaterial({ color: col.getHex(), transparent:true, opacity:0.95 });
+            const core = new THREE.Mesh(baseGeo, baseMat);
+            core.position.copy(n.clone().multiplyScalar(1.015));
+            core.userData = { ubicacion:c, volumen:vol, t };
+            group.add(core); _globe.points.push(core);
+            const pulseGeo = new THREE.SphereGeometry(0.055 + 0.09*t, 24, 24);
+            const pulseMat = new THREE.MeshBasicMaterial({ color: col.getHex(), transparent:true, opacity:0.4 });
+            const pulse = new THREE.Mesh(pulseGeo, pulseMat);
+            pulse.position.copy(n.clone().multiplyScalar(1.015));
+            pulse.userData = { ubicacion:c, volumen:vol, t, _pulse:true, _r0: pulseGeo.parameters.radius };
+            group.add(pulse); pulseObjects.push(pulse); _globe.points.push(pulse);
+          } else if (pinMode==='emoji') {
+            const tex = getEmojiPinTexture('📍');
+            const mat = new THREE.SpriteMaterial({ map: tex, transparent:true, depthWrite:false });
+            const sprite = new THREE.Sprite(mat);
+            const scale = 0.28 + 0.55 * (0.35 + 0.65*t); // volumen modula tamaño
+            sprite.scale.set(scale, scale, 1);
+            sprite.position.copy(n.clone().multiplyScalar(1.045));
+            sprite.userData = { ubicacion:c, volumen:vol, t };
+            group.add(sprite); _globe.points.push(sprite);
+          } else { // barras
+            const h = 0.10 + 0.45 * t; // (antes 0.12 + 0.95*t) ahora mucho más bajo
+            const radiusTop = 0.012 + 0.016 * t;
+            const cylGeo = new THREE.CylinderGeometry(radiusTop*0.55, radiusTop*0.9, h, 14, 1, true);
+            const cylMat = new THREE.MeshPhongMaterial({ color: col.getHex(), emissive: col.getHex(), emissiveIntensity: 0.55 + 0.4*t, shininess: 60, transparent:true, opacity:0.92 });
+            const pin = new THREE.Mesh(cylGeo, cylMat);
+            pin.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), n);
+            const centerR = 1 + (h/2) + 0.01; pin.position.copy(n.clone().multiplyScalar(centerR));
+            pin.userData = { ubicacion:c, volumen:vol, t };
+            group.add(pin); _globe.points.push(pin);
+            const headGeo = new THREE.SphereGeometry(radiusTop*0.85, 18, 18);
+            const headMat = new THREE.MeshBasicMaterial({ color: col.getHex(), transparent:true, opacity:0.95 });
+            const head = new THREE.Mesh(headGeo, headMat); head.position.copy(n.clone().multiplyScalar(1 + h + 0.015)); group.add(head);
+          }
         });
         // Orient Earth so first location faces camera
         if (coords.length){
@@ -2650,11 +2737,39 @@
         }
         // spin
         let autoSpin = true;
+        // Declaramos pointer/raycaster antes de iniciar animación para evitar TDZ
+        let pointer = null;
+        let raycaster = null;
         const animate = ()=>{
           if (autoSpin) earth.rotation.y += 0.0015;
+          if (pinMode==='pulso'){
+            const tNow = performance.now()*0.001;
+            group.children.forEach(o=>{
+              if(o.userData && o.userData._pulse){
+                const scale = 1 + 0.35*Math.sin(tNow*2 + o.userData.t*4);
+                o.scale.set(scale,scale,scale);
+                o.material.opacity = 0.25 + 0.18*(Math.sin(tNow*2 + o.userData.t*4)+1)/2;
+              }
+            });
+          }
           // Mantener la atmósfera alineada con la Tierra (todas las rotaciones)
           atmosphere.quaternion.copy(earth.quaternion);
           // (Animación de aviones eliminada)
+          // Hover detection
+          if (raycaster && pointer) {
+            raycaster.setFromCamera(pointer, camera);
+            const intersects = raycaster.intersectObjects(group.children, false);
+            let found = null;
+            for (const it of intersects){ if (it.object.userData && it.object.userData.ubicacion){ found = it.object; break; } }
+            const tip = document.getElementById('globePinTip');
+            if (found){
+              const d = found.userData;
+              tip.style.display='block';
+              tip.innerHTML = `<strong>${d.ubicacion}</strong><br><span style='opacity:.8'>Vol: ${fmt.format(d.volumen||0)}</span>`;
+            } else if (tip) {
+              tip.style.display='none';
+            }
+          }
           renderer.render(scene,camera);
           _globe.animId = requestAnimationFrame(animate);
         };
@@ -2671,6 +2786,8 @@
           autoSpin=false;
           if(resumeTimer){ clearTimeout(resumeTimer); resumeTimer=null; }
         };
+  pointer = new THREE.Vector2();
+  raycaster = new THREE.Raycaster();
         const onMove = (e)=>{
           if(!isDragging) return;
           const x = e.clientX || (e.touches?.[0]?.clientX||0);
@@ -2686,6 +2803,16 @@
           atmosphere.quaternion.copy(earth.quaternion);
           if (e.cancelable) e.preventDefault();
         };
+        // Actualizar pointer para raycaster en movimientos (aunque no se esté arrastrando)
+        const updatePointer = (e)=>{
+          const rect = renderer.domElement.getBoundingClientRect();
+          const clientX = e.clientX || (e.touches?.[0]?.clientX||0);
+          const clientY = e.clientY || (e.touches?.[0]?.clientY||0);
+          pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+          pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+        };
+        renderer.domElement.addEventListener('mousemove', updatePointer, {passive:true});
+        renderer.domElement.addEventListener('touchmove', updatePointer, {passive:true});
         const onUp = ()=>{ isDragging = false; dom.style.cursor='grab'; resumeTimer = setTimeout(()=>{ autoSpin=true; }, 1200); };
         const onWheel = (e)=>{ e.preventDefault(); const delta = Math.sign(e.deltaY); const z = camera.position.z + delta * 0.25; camera.position.z = Math.min(6.5, Math.max(2.2, z)); };
   dom.addEventListener('mousedown', onDown); window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
@@ -2729,6 +2856,13 @@
           const cli = this.value; if (!cli) return;
           showGlobeForPlantas([cli], { client: cli, planta: null });
         };
+        const modeSel = document.getElementById('globePinMode');
+        if (modeSel){
+          modeSel.onchange = ()=>{
+            const cli = sel.value || state.currentClient || clients[0];
+            if (cli) showGlobeForPlantas([cli], { client: cli, planta: null });
+          };
+        }
         if (sel.value){
           const cli = sel.value; showGlobeForPlantas([cli], { client: cli, planta: null });
         }
@@ -2803,6 +2937,8 @@
           window.removeEventListener('touchend', _globe.handlers.onUp);
           dom.removeEventListener('wheel', _globe.handlers.onWheel);
         }
+        // Ocultar tooltip si abierto
+        const tip = document.getElementById('globePinTip'); if (tip) tip.style.display='none';
       }catch{}
   modalClose('globeModal');
     }
