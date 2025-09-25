@@ -181,9 +181,6 @@
     .dropdown{ opacity: 0; transform: translateY(6px); pointer-events: none; transition: opacity .18s var(--ease), transform .18s var(--ease); }
     .dropdown.open{ opacity: 1; transform: translateY(0); pointer-events: auto; }
 
-  /* Squarer buttons inside Actions menu */
-  #headerActionsMenu button{ border-radius: .5rem !important; }
-
     /* Panels fade */
     #panels.fade-out{ opacity: 0; transform: translateY(6px); transition: opacity .18s var(--ease), transform .18s var(--ease); }
     #panels.fade-in{ opacity: 1; transform: translateY(0); transition: opacity .22s var(--ease), transform .22s var(--ease); }
@@ -194,7 +191,19 @@
 
   /* Client tabs active blue */
   .clientTab{ transition: background-color .16s var(--ease), color .16s var(--ease), transform .16s var(--ease), box-shadow .18s var(--ease) }
-  .clientTab.is-active{ background:#0071bc !important; color:#fff !important; box-shadow:0 6px 18px rgba(0,113,188,.25); transform: translateY(-1px) }
+  .clientTab.is-active{
+    background:linear-gradient(135deg,#0ea5e9,#3b82f6 55%,#6366f1);
+    color:#fff !important;
+    box-shadow:0 0 0 1px rgba(59,130,246,.6),0 6px 18px -4px rgba(59,130,246,.45),0 0 16px 4px rgba(59,130,246,.35);
+    position:relative;
+    transform: translateY(-1px);
+  }
+  .clientTab.is-active::after{
+    content:"";
+    position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.35),rgba(255,255,255,0) 60%);
+    mix-blend-mode:overlay; opacity:.9;
+  }
   .clientTab:not(.is-active):hover{ box-shadow:0 4px 12px rgba(0,0,0,.08) }
 
   /* Login modal pop */
@@ -280,6 +289,7 @@
               <div class="grid grid-cols-2 gap-2 mb-3">
                 <button id="openLoadMenu" class="px-3 py-2 btn-gradient col-span-2">📥 Menú cargar</button>
               </div>
+              <div class="text-[10px] text-gray-500 dark:text-gray-400 mb-3 leading-snug">Columna M del Maestro: <strong>Ubicacion Planta</strong>. Si está vacía se generan ubicaciones ficticias.</div>
               <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Visualización</div>
               <div class="grid grid-cols-2 gap-2 mb-3">
                 <button id="openGlobe" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">🌍 Mundo</button>
@@ -288,6 +298,7 @@
               <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Exportar</div>
               <div class="grid grid-cols-2 gap-2">
                 <button id="exportPDF" class="px-3 py-2 btn-gradient col-span-2">🧾 PDF</button>
+                <button id="exportMaestroUbic" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 col-span-2">🌍 Export Maestro + Ubic</button>
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">Atajos: Alt+L (Cargar) · Alt+G (Mundo) · Alt+P (PDF) · Alt+A (Acciones)</div>
             </div>
@@ -350,11 +361,43 @@
                   <input id="fileMci" type="file" accept="application/pdf,.pdf" class="hidden">
                   <span>Cargar PDF MCI</span>
                 </label>
+                <button id="exportMCIExcel" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 w-full">Exportar Excel MCI</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grupo TREMEC -->
+          <div class="group" id="grp-tremec">
+            <button type="button" class="group-header rounded-md border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800">
+              <span>TREMEC</span>
+              <span class="chev">›</span>
+            </button>
+            <div class="group-content">
+              <div class="inner">
+                <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient w-full justify-center">
+                  <input id="fileTremec" type="file" accept=".xlsx,.xls" class="hidden">
+                  <span>Cargar Excel TREMEC</span>
+                </label>
+                <div class="text-xs text-gray-600 dark:text-gray-300">
+                  Formato: Col A Ref Cliente · Col B Ref Teixido · Fechas en columnas C..O (H y O = Subtotales, se ignoran)
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grupo DUMAREY -->
+          <div class="group" id="grp-dumarey">
+            <button type="button" class="group-header rounded-md border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800">
+              <span>DUMAREY</span>
+              <span class="chev">›</span>
+            </button>
+            <div class="group-content">
+              <div class="inner">
                 <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient w-full justify-center">
                   <input id="fileRap" type="file" accept="application/pdf,.pdf" class="hidden">
                   <span>Cargar PDF DUMAREY</span>
                 </label>
-                <button id="exportMCIExcel" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 w-full">Exportar Excel MCI</button>
+                <div class="text-xs text-gray-600 dark:text-gray-300">Archivo PDF con Requested Dispatch Qty.</div>
               </div>
             </div>
           </div>
@@ -440,14 +483,12 @@
             <div id="globeHint" style="text-align:center; max-width:70%;">
               Usa el buscador o los ejemplos para ubicar una planta o país.
             </div>
-            <div id="globeKPI" style="position:absolute; left:12px; top:12px; z-index:20; background:rgba(15,23,42,.85); color:#e5e7eb; border:1px solid #1f2937; border-radius:.75rem; padding:.6rem .8rem; display:none; min-width:240px;">
+            <div id="globeKPI" style="position:absolute; left:12px; top:12px; z-index:20; background:rgba(15,23,42,.82); backdrop-filter:blur(4px); color:#e5e7eb; border:1px solid #1f2937; border-radius:.75rem; padding:.55rem .7rem .6rem; display:none; min-width:220px; max-width:320px; line-height:1.15; font-size:.78rem; box-shadow:0 4px 18px -2px rgba(0,0,0,.5); pointer-events:none;">
               <!-- KPI overlay content injected dynamically -->
             </div>
           </div>
-          <div id="globeLegend" style="padding:.5rem .7rem; background:#0f172a; border-top:1px solid #1f2937; color:#e5e7eb;">
-            <div style="font-weight:700; margin-bottom:.25rem;">Ubicaciones</div>
-            <div id="globeCountries" style="opacity:.9"></div>
-          </div>
+          <!-- Legend de ubicaciones removido a petición del usuario -->
+          <div id="globeLegend" style="display:none"></div>
         </div>
       </div>
     </div>
@@ -460,6 +501,7 @@
         <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Bosch" data-client-tab>BOSCH</button>
         <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="MCI" data-client-tab>MCI</button>
         <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Dumarey" data-client-tab>DUMAREY</button>
+        <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Tremec" data-client-tab>TREMEC</button>
       </div>
       <!-- Per-client panels -->
       <section id="panels" class="mt-4 space-y-8"></section>
@@ -836,6 +878,7 @@
       rows2: [], // Excel 2
       mciRows: [], // Excel MCI
       rapRows: [], // PDF RAP/Dispatch
+  tremecRows: [], // TREMEC Excel rows
       unifiedRows: [], // Excel Unificado centralizado
       useUnifiedFeed: false, // usar maestro para gráficos/tablas
       mapCliToTeix: new Map(), // A->B (Hoja2)
@@ -948,7 +991,8 @@
         r.mes||null,
         r.planta||null,
         r.refCli||null,
-        r.refTeix||null
+        r.refTeix||null,
+        r.ubicacion||null
       ]);
     }
     function decodeRowsCompact(data){
@@ -957,7 +1001,7 @@
         return {
           cliente: a[0]||'', ref: a[1]||'', qty: Number(a[2])||0,
           facturacion: (a[3]!=null? Number(a[3]) : null), precioVenta: (a[4]!=null? Number(a[4]) : null),
-          fecha: d, anio: a[6]||null, mes: a[7]||null, planta: a[8]||null, refCli: a[9]||null, refTeix: a[10]||null
+          fecha: d, anio: a[6]||null, mes: a[7]||null, planta: a[8]||null, refCli: a[9]||null, refTeix: a[10]||null, ubicacion: a[11]||null
         };
       });
     }
@@ -1153,6 +1197,30 @@
       return out;
     };
 
+    // Helpers de depuración para TREMEC
+    window.debugTremecByRef = function(refLike){
+      try{
+        const ref = String(refLike||'').trim().toUpperCase();
+        const rows = (state.tremecRows||[]).filter(r=> String(r.refCli||r.ref||'').toUpperCase().includes(ref));
+        const sample = rows.slice(0, 12).map(r=> ({fecha: r.fecha instanceof Date? r.fecha.toISOString().slice(0,10): r.fecha, mes:r.mes, anio:r.anio, qty:r.qty, ref:r.refCli||r.ref}));
+        console.table(sample);
+        console.log('Total filas TREMEC para', refLike, ':', rows.length);
+        return rows;
+      }catch(e){ console.error('debugTremecByRef error:', e); return []; }
+    };
+    window.debugTremecSummary = function(){
+      try{
+        const map = new Map();
+        (state.tremecRows||[]).forEach(r=>{
+          const k = (r.refCli||r.ref||'').toString();
+          map.set(k, (map.get(k)||0) + 1);
+        });
+        const arr = Array.from(map.entries()).map(([ref,count])=>({ref,count})).sort((a,b)=> b.count-a.count);
+        console.table(arr);
+        return arr;
+      }catch(e){ console.error('debugTremecSummary error:', e); return []; }
+    };
+
     // Restaurar Maestro al arrancar (antes de interacción del usuario)
     (async function initRestore(){
       try { await tryRestoreMaestro(); }
@@ -1175,8 +1243,8 @@
       }catch{}
     })();
 
-  const CLIENTS = ['Vitesco','Continental','Bosch','MCI','Dumarey'];
-  const LOGO_MAP = { Vitesco:'VT.jpg', Continental:'CONTINENTAL.jpg', Bosch:'BOSCH.jpg', MCI:'MCI.jpg', Dumarey:['duma.jpg','RAP.jpg'] };
+  const CLIENTS = ['Vitesco','Continental','Bosch','MCI','Dumarey','Tremec'];
+  const LOGO_MAP = { Vitesco:'VT.jpg', Continental:'CONTINENTAL.jpg', Bosch:'BOSCH.jpg', MCI:'MCI.jpg', Dumarey:['duma.jpg','RAP.jpg'], Tremec:'TREMEC.jpg' };
   const LOGO_BASE = './logos/';
   const fmt = new Intl.NumberFormat('es-ES');
   const eurFmt = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
@@ -1235,7 +1303,8 @@
       continental: ['continental','conti','aumov'],
       bosch: ['bosch','uaes'],
       mci: ['mci'],
-      dumarey: ['dumarey','duma','rap']
+      dumarey: ['dumarey','duma','rap'],
+      tremec: ['tremec']
     };
     const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
     function matchesClient(cellValue, tabName){
@@ -1267,6 +1336,11 @@
         document.querySelectorAll('.clientTab').forEach(b=> b.classList.remove('bg-gray-100','dark:bg-gray-800','is-active'));
         btn.classList.add('is-active');
         state.currentClient = btn.dataset.client;
+        // Si el globo está abierto y cambiamos a Tremec (o cualquier cliente) refrescar KPI base país
+        const globeModal = document.getElementById('globeModal');
+        if (globeModal && !globeModal.classList.contains('hidden')){
+          showGlobeForPlantas([state.currentClient], { client: state.currentClient, planta: null });
+        }
         const panels = document.getElementById('panels');
         if (panels){
           panels.classList.remove('fade-in');
@@ -1290,26 +1364,11 @@
       const f = e.target.files?.[0];
       if(!f) return;
       try{
-        const kind = await sniffPdfKind(f);
-        if (kind==='mci') await loadMciPdf(f);
-        else if (kind==='dispatch'){
-          const rows = await loadDispatchPdf(f);
-          // Merge into DUMAREY bucket
-          rows.forEach(r=> state.rapRows.push(r));
-          state.currentClient = 'Dumarey';
-          document.querySelectorAll('.clientTab').forEach(b=>{
-            const isSel = b.dataset.client==='Dumarey';
-            b.classList.toggle('bg-gray-100', false);
-            b.classList.toggle('dark:bg-gray-800', false);
-            b.classList.toggle('is-active', isSel);
-          });
-          renderPanels();
-        } else {
-          await loadMciPdf(f); // fallback
-        }
+        // Forzar parser MCI aquí (sin sniff) para evitar falsos positivos
+        await loadMciPdf(f);
       }catch(err){
-        console.error('Error leyendo PDF:', err);
-        alert('No se pudo leer el PDF.');
+        console.error('Error leyendo PDF MCI:', err);
+        alert('No se pudo leer el PDF de MCI. Asegúrate que no sea una imagen escaneada.');
       }
     });
     // Unificado: Excel o CSV central con todas las líneas
@@ -1326,6 +1385,7 @@
           const rows = await loadDispatchPdf(f);
           // Guardar en bucket DUMAREY (no activar Maestro automáticamente)
           state.rapRows = (state.rapRows||[]).concat(rows);
+          ensureLocations();
           // Ir a pestaña DUMAREY
           state.currentClient = 'Dumarey';
           document.querySelectorAll('.clientTab').forEach(b=>{
@@ -1341,6 +1401,20 @@
         }
       });
     }
+    // TREMEC: ahora Excel (antes PDF). Columnas: A ref cliente, B ref teixido, C..O meses (H y O subtotales => ignorar)
+    const tremecInput = document.querySelector('#fileTremec');
+    if (tremecInput) {
+      tremecInput.addEventListener('change', async (e)=>{
+        const f = e.target.files?.[0];
+        if (!f) return;
+        try{
+          await loadTremecExcel(f);
+        }catch(err){
+          console.error('Error leyendo Excel TREMEC:', err);
+          alert('No se pudo leer el Excel TREMEC.');
+        }
+      });
+    }
     // Carga masiva: múltiples archivos distintos
     document.querySelector('#fileBulk').addEventListener('change', e=>{
       const files = Array.from(e.target.files||[]); if(!files.length) return;
@@ -1352,19 +1426,38 @@
 
     // ---------- Export ----------
     document.querySelector('#exportPDF').addEventListener('click', ()=>{ window.print(); });
+    document.getElementById('exportMaestroUbic')?.addEventListener('click', ()=>{
+      const rows = (state.unifiedRows||[]);
+      if(!rows.length){ alert('No hay Maestro cargado'); return; }
+      const headers = ['Cliente','Referencia','Volumen','Facturación','Precio','Fecha','Año','Mes','Planta','Ubicacion Planta'];
+      const aoa = [headers];
+      rows.forEach(r=>{
+        const d = (r.fecha instanceof Date && !isNaN(r.fecha)) ? r.fecha.toISOString().slice(0,10) : '';
+        aoa.push([
+          r.cliente||'', r.ref||'', r.qty||0, r.facturacion!=null? r.facturacion: '', r.precioVenta!=null? r.precioVenta:'', d, r.anio||'', r.mes||'', r.planta||'', r.ubicacion||''
+        ]);
+      });
+      try{
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        ws['!cols'] = headers.map(h=>({wch: Math.max(12, h.length+2)}));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Maestro');
+        XLSX.writeFile(wb, 'maestro_ubicaciones.xlsx');
+      }catch(err){ console.error('No se pudo exportar Maestro ubic:', err); alert('Error exportando Maestro con ubicaciones'); }
+    });
   document.getElementById('exportCSV')?.addEventListener('click', ()=>{
       const root = document.querySelector(`.clientPanel[data-client="${state.currentClient}"]`);
       const rows = getFilteredRows(state.currentClient, root);
       if(!rows.length){ alert('No hay datos filtrados'); return; }
       const hasPrecio = rows.some(r=> r.precioVenta!=null);
       const hasFact = rows.some(r=> r.facturacion!=null);
-      const header = ['cliente','fecha','año','mes','referencia','ref_cliente','ref_teixido','planta','cantidad']
+  const header = ['cliente','fecha','año','mes','referencia','ref_cliente','ref_teixido','planta','ubicacion','cantidad']
         .concat(hasPrecio?['precio_venta']:[])
         .concat(hasFact?['facturacion']:[]);
       const csv = [header.join(',')].concat(rows.map(r=>{
         const base = [
           esc(r.cliente), (r.fecha instanceof Date && !isNaN(r.fecha))? r.fecha.toISOString().slice(0,10) : '', r.anio||'', r.mes||'',
-          esc(r.ref||''), esc(r.refCli||''), esc(r.refTeix||''), esc(r.planta||''), r.qty||0
+          esc(r.ref||''), esc(r.refCli||''), esc(r.refTeix||''), esc(r.planta||''), esc(r.ubicacion||''), r.qty||0
         ];
         if (hasPrecio) base.push(r.precioVenta!=null? String(r.precioVenta).replace(',', '.') : '');
         if (hasFact) base.push(r.facturacion!=null? String(r.facturacion).replace(',', '.') : '');
@@ -1377,6 +1470,8 @@
       URL.revokeObjectURL(url);
     });
     const esc = s => ('"'+String(s).replace(/"/g,'""')+'"' );
+
+    // (Eliminado exportar Excel TREMEC)
 
     // ---------- Matriz: abrir/cerrar ----------
     // ---------- Generic modal helpers ----------
@@ -1808,7 +1903,7 @@
       try {
       const out = [];
       // Diagnóstico: contadores por fuente
-      const diag = { last: 0, old: 0, mci: 0, dumarey: 0 };
+  const diag = { last: 0, old: 0, mci: 0, dumarey: 0, tremec: 0 };
       const push = (arr, source)=>{
         (arr||[]).forEach(r=>{
           const cliente = inferClientLabel(r.cliente||'');
@@ -1825,11 +1920,13 @@
             mes: r.mes || (r.fecha instanceof Date? r.fecha.getMonth()+1: null),
             planta: r.planta||null,
             refCli: r.refCli||null,
-            refTeix: r.refTeix||null
+            refTeix: r.refTeix||null,
+            ubicacion: r.ubicacion || null
           });
           // Incrementar métricas por fuente visible
           if (source==='mci' || cliente==='MCI') diag.mci++;
           else if (source==='dumarey' || cliente==='Dumarey') diag.dumarey++;
+          else if (source==='tremec' || cliente==='Tremec') diag.tremec++;
           else if (source==='old') diag.old++;
           else diag.last++;
         });
@@ -1838,6 +1935,7 @@
       push(state.rows2, 'old');
       push(state.mciRows, 'mci');
       push(state.rapRows, 'dumarey');
+      push(state.tremecRows, 'tremec');
       // Completar facturación si falta y hay precio
       out.forEach(r=>{
         if ((r.facturacion==null || isNaN(r.facturacion)) && (r.precioVenta!=null && !isNaN(r.precioVenta))) {
@@ -1848,7 +1946,7 @@
       const agg = new Map();
       for (const r of out){
         const refKey = r.ref || r.refCli || r.refTeix || '';
-        const key = [r.cliente||'', refKey, r.anio||'', r.mes||'', r.planta||''].join('||');
+  const key = [r.cliente||'', refKey, r.anio||'', r.mes||'', r.planta||'', r.ubicacion||''].join('||');
         if (!agg.has(key)){
           agg.set(key, { ...r });
         } else {
@@ -1866,12 +1964,14 @@
         if ((x.facturacion==null || isNaN(x.facturacion)) && (x.precioVenta!=null && !isNaN(x.precioVenta))) {
           x.facturacion = Number(x.qty||0) * Number(x.precioVenta||0);
         }
+        if (!x.ubicacion) x.ubicacion = x.planta || 'Ubicacion Ficticia';
         return x;
       });
       if (!unified.length) {
         alert('No hay datos para construir el Maestro. No se reemplaza el guardado anterior.');
       } else {
         await persistMaestro(unified);
+  ensureLocations();
         state.useUnifiedFeed = true;
         const t = document.getElementById('toggleUnified'); if (t) t.checked = true;
         renderPanels();
@@ -1915,18 +2015,20 @@
             anio,
             refCli: r.refCli||null,
             refTeix: r.refTeix||null,
-            planta: r.planta||null
+            planta: r.planta||null,
+            ubicacion: r.ubicacion || null
           });
         });
       };
       push(state.rows, 'LAST');
   push(state.rows2, 'OLD');
-      push(state.mciRows, 'MCI');
-      push(state.rapRows, 'DUMAREY');
+  push(state.mciRows, 'MCI');
+  push(state.rapRows, 'DUMAREY');
+  push(state.tremecRows, 'TREMEC');
 
       if (!collect.length){ alert('No hay filas para exportar. Carga datos primero.'); return; }
 
-      const headers = ['Fuente','Cliente','Referencia','Volumen','Facturacion','Precio Venta','Fecha','Mes','Año','Ref Cliente','Ref Teixido','Planta'];
+  const headers = ['Fuente','Cliente','Referencia','Volumen','Facturacion','Precio Venta','Fecha','Mes','Año','Ref Cliente','Ref Teixido','Planta','Ubicacion Planta'];
       const aoa = [headers];
       collect.forEach(r=>{
         let dateStr = '';
@@ -1937,11 +2039,11 @@
           dateStr = `${dd}/${mm}/${yy}`;
         }
         aoa.push([
-          r.fuente, r.cliente||'', r.ref||'', r.qty||0, r.facturacion??'', r.precioVenta??'', dateStr, r.mes||'', r.anio||'', r.refCli||'', r.refTeix||'', r.planta||''
+          r.fuente, r.cliente||'', r.ref||'', r.qty||0, r.facturacion??'', r.precioVenta??'', dateStr, r.mes||'', r.anio||'', r.refCli||'', r.refTeix||'', r.planta||'', r.ubicacion||''
         ]);
       });
       const ws = XLSX.utils.aoa_to_sheet(aoa);
-      ws['!cols'] = [{wch:10},{wch:16},{wch:18},{wch:10},{wch:14},{wch:14},{wch:12},{wch:6},{wch:6},{wch:18},{wch:18},{wch:12}];
+  ws['!cols'] = [{wch:10},{wch:16},{wch:18},{wch:10},{wch:14},{wch:14},{wch:12},{wch:6},{wch:6},{wch:18},{wch:18},{wch:12},{wch:18}];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Detallado');
       XLSX.writeFile(wb, 'Detallado_fuentes.xlsx');
@@ -2008,6 +2110,7 @@
         pushRows(state.rows2, null);
   pushRows(state.mciRows, 'MCI');
   pushRows(state.rapRows, 'Dumarey');
+  pushRows(state.tremecRows, 'Tremec');
       }
 
       // Conjuntos
@@ -2263,6 +2366,8 @@
           ? state.mciRows.slice()
           : (state.currentClient==='Dumarey')
             ? state.rapRows.slice()
+            : (state.currentClient==='Tremec')
+              ? state.tremecRows.slice()
             : state.rows.filter(r=> matchesClient(r.cliente, state.currentClient));
 
       const years = [...new Set(rowsC.map(r=> r.anio).filter(Boolean))].sort((a,b)=>a-b);
@@ -2274,11 +2379,11 @@
       rowsC.forEach(r=>{
         if(r.refCli) refSet.add('CLI:'+r.refCli);
         if(r.refTeix) refSet.add('TEI:'+r.refTeix);
-        if(r.ref) refSet.add('REF:'+r.ref);
       });
+      // Solo mostrar referencias de cliente (CLI) y Teix (TEI) según petición usuario
       selRef.innerHTML = [...refSet].sort().map(tag=>{
         const [type,val] = tag.split(':');
-        const label = (type==='CLI'?'[CLI] ': type==='TEI'?'[TEI] ':'[REF] ') + val;
+        const label = (type==='CLI'?'[CLI] ':'[TEI] ') + val;
         return `<option value="${val}">${label}</option>`;
       }).join('');
 
@@ -2369,7 +2474,7 @@
         const { plantas } = getFilters(root);
         if (plantas && plantas.length){
           const client = state.currentClient;
-          const country = getCountryForClient(client) || PLANTA_COUNTRY_MAP[plantas[0]] || plantas[0];
+          const country = PLANTA_COUNTRY_MAP[plantas[0]] || plantas[0];
           openGlobeModal();
           showGlobeForPlantas([country], { client, planta: plantas[0] });
         }
@@ -2385,30 +2490,76 @@
       'Tanger': 'Morocco', 'Tánger': 'Morocco', 'Sibiu': 'Romania', 'Arad': 'Romania',
     };
     const COUNTRY_LATLON = {
+      // Países
       'Spain':[40.4637,-3.7492], 'Germany':[51.1657,10.4515], 'France':[46.2276,2.2137], 'Czechia':[49.8175,15.4730],
       'Poland':[51.9194,19.1451], 'Romania':[45.9432,24.9668], 'Morocco':[31.7917,-7.0926], 'India':[20.5937,78.9629],
-      'Mexico':[23.6345,-102.5528], 'Egypt':[26.8206,30.8025], 'Saudi Arabia':[23.8859,45.0792]
+      'Mexico':[23.6345,-102.5528], 'Egypt':[26.8206,30.8025], 'Saudi Arabia':[23.8859,45.0792],
+      // Ciudades (aprox)
+      'Barcelona':[41.3851,2.1734], 'Stuttgart':[48.7758,9.1829], 'Paris':[48.8566,2.3522], 'Iasi':[47.1585,27.6014],
+      'Wroclaw':[51.1079,17.0385], 'Tangier':[35.7595,-5.8340], 'Tanger':[35.7595,-5.8340], 'Tánger':[35.7595,-5.8340],
+      'Chennai':[13.0827,80.2707], 'Guadalajara':[20.6597,-103.3496], 'Mlada Boleslav':[50.4114,14.9146], 'Timisoara':[45.7489,21.2087],
+      'Arad':[46.1866,21.3123], 'Sibiu':[45.7930,24.1430], 'Valls':[41.2861,1.2492], 'Wolfsburg':[52.4227,10.7865]
     };
-    // Client to country mapping per user's request
-    const CLIENT_COUNTRY_MAP = {
-      'MCI': 'Germany',
-      'Vitesco': 'Spain',
-      'Continental': 'France',
-      'Bosch': 'Egypt',
-      'Dumarey': 'Saudi Arabia'
-    };
-    function getCountryForClient(client){
-      const c = CLIENT_COUNTRY_MAP[client];
-      return c || null;
+    // Pool global de ciudades para asignación aleatoria (mundo)
+    const CITY_POOL = [
+      {n:'New York', ll:[40.7128,-74.0060]}, {n:'Los Angeles', ll:[34.0522,-118.2437]}, {n:'Chicago', ll:[41.8781,-87.6298]},
+      {n:'Toronto', ll:[43.6532,-79.3832]}, {n:'Mexico City', ll:[19.4326,-99.1332]}, {n:'Sao Paulo', ll:[-23.5505,-46.6333]},
+      {n:'Buenos Aires', ll:[-34.6037,-58.3816]}, {n:'Lima', ll:[-12.0464,-77.0428]}, {n:'London', ll:[51.5074,-0.1278]},
+      {n:'Madrid', ll:[40.4168,-3.7038]}, {n:'Rome', ll:[41.9028,12.4964]}, {n:'Berlin', ll:[52.52,13.4050]},
+      {n:'Moscow', ll:[55.7558,37.6173]}, {n:'Istanbul', ll:[41.0082,28.9784]}, {n:'Cairo', ll:[30.0444,31.2357]},
+      {n:'Lagos', ll:[6.5244,3.3792]}, {n:'Johannesburg', ll:[-26.2041,28.0473]}, {n:'Dubai', ll:[25.2048,55.2708]},
+      {n:'Singapore', ll:[1.3521,103.8198]}, {n:'Jakarta', ll:[-6.2088,106.8456]}, {n:'Bangkok', ll:[13.7563,100.5018]},
+      {n:'Tokyo', ll:[35.6762,139.6503]}, {n:'Seoul', ll:[37.5665,126.9780]}, {n:'Sydney', ll:[-33.8688,151.2093]},
+      {n:'Melbourne', ll:[-37.8136,144.9631]}
+    ];
+    // Insertar ciudades en el mapa si no existen
+    CITY_POOL.forEach(c=>{ if(!COUNTRY_LATLON[c.n]) COUNTRY_LATLON[c.n] = c.ll; });
+
+    function ensureLocations(){
+      const assign = (arr)=>{
+        if (!Array.isArray(arr)) return;
+        arr.forEach(r=>{
+          if (!r) return;
+            if (!r.ubicacion || r.ubicacion===''){
+              const pick = CITY_POOL[Math.floor(Math.random()*CITY_POOL.length)];
+              r.ubicacion = pick.n;
+            }
+        });
+      };
+      assign(state.unifiedRows);
+      assign(state.rows);
+      assign(state.rows2);
+      assign(state.mciRows);
+      assign(state.rapRows);
+      assign(state.tremecRows);
     }
+    // (Eliminado mapeo fijo cliente->país; ahora usamos ubicaciones por planta desde el Maestro)
+    function getCountryForClient(client){ return null; }
     let _globe = { renderer:null, scene:null, camera:null, animId:null, points:[] };
     function showGlobeForPlantas(plantas, opts){
       try{
-        const countries = Array.from(new Set(plantas.map(p=> PLANTA_COUNTRY_MAP[p] || p))).filter(Boolean);
+        // Si opts.client existe y tenemos filas con ubicacion (nueva columna), usar esas ubicaciones únicas
+        let countries = [];
+        if (opts && opts.client){
+          const cli = opts.client;
+          // Unir fuentes según cliente
+          let all = [];
+          if (cli==='MCI') all = state.mciRows||[]; else if (cli==='Dumarey') all = state.rapRows||[]; else if (cli==='Tremec') all = state.tremecRows||[]; else all = (state.rows||[]).filter(r=> matchesClient(r.cliente, cli));
+          if (state.useUnifiedFeed && state.unifiedRows && state.unifiedRows.length){
+            all = all.concat(state.unifiedRows.filter(r=> matchesClient(r.cliente, cli)));
+          }
+          const ubicSet = new Set(all.map(r=> r.ubicacion).filter(Boolean));
+          if (ubicSet.size){
+            countries = Array.from(ubicSet);
+          }
+        }
+        if (!countries.length){
+          countries = Array.from(new Set(plantas.map(p=> PLANTA_COUNTRY_MAP[p] || p))).filter(Boolean);
+        }
         const coords = countries.map(c=> ({ c, ll: COUNTRY_LATLON[c]||null })).filter(x=> x.ll);
-        const modal = document.getElementById('globeModal');
-        const wrap = document.getElementById('globeWrap');
-        document.getElementById('globeCountries').textContent = countries.join(', ');
+  const modal = document.getElementById('globeModal');
+  const wrap = document.getElementById('globeWrap');
+  // (Lista de ubicaciones eliminada del pie del modal)
         modal.classList.remove('hidden');
         document.getElementById('globeHint')?.classList.add('hidden');
         // Init Three.js once per open
@@ -2471,8 +2622,9 @@
           if (client) title = `${client.toUpperCase()} — KPIs`;
           // Base SOLO desde LAST (o fuente nativa MCI/Dumarey)
           let base = [];
-          if (client==='MCI') base = (state.mciRows||[]);
+        if (client==='MCI') base = (state.mciRows||[]);
           else if (client==='Dumarey') base = (state.rapRows||[]);
+          else if (client==='Tremec') base = (state.tremecRows||[]);
           else base = (state.rows||[]).filter(r=> !client || matchesClient(r.cliente, client));
           let rows = base;
           if (planta) rows = rows.filter(r=> String(r.planta||'').toLowerCase()===String(planta).toLowerCase());
@@ -2480,15 +2632,19 @@
           const fact = rows.reduce((s,r)=> s + ((r.facturacion!=null && !isNaN(r.facturacion))? Number(r.facturacion): getFacturacionValue(r)), 0);
           const refs = new Set(rows.map(r=> r.ref || r.refCli || r.refTeix || '')); refs.delete('');
           const plantas = new Set(rows.map(r=> r.planta||'')); plantas.delete('');
-          const country = (client && getCountryForClient(client)) || (countries[0]||'');
+          // Si hay ubicaciones, añadir también para contar diversidad geográfica
+          const ubiSet = new Set(rows.map(r=> r.ubicacion||'').filter(Boolean));
+          const totalLocs = (countries||[]).length;
+          const sample = (countries||[]).slice(0,6).join(', ');
+          const extra = totalLocs>6 ? ` … (+${totalLocs-6})` : '';
           const html = `
-            <div style="font-weight:800; color:#93c5fd; margin-bottom:.35rem">${title}</div>
-            <div style=\"font-size:.9rem; opacity:.9\">País: <strong>${country||'—'}</strong>${planta? ` · Planta: <strong>${planta}</strong>`:''}</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin-top:.5rem;">
-              <div><div style="font-size:.72rem; opacity:.7;">Volumen</div><div style="font-weight:800; font-size:1.2rem; color:#60a5fa;">${fmt.format(qty)}</div></div>
-              <div><div style="font-size:.72rem; opacity:.7;">Facturación</div><div style="font-weight:800; font-size:1.2rem; color:#34d399;">${eurFmt.format(fact)}</div></div>
-              <div><div style="font-size:.72rem; opacity:.7;">Refs únicas</div><div style="font-weight:700;">${fmt.format(refs.size)}</div></div>
-              <div><div style="font-size:.72rem; opacity:.7;">Plantas</div><div style="font-weight:700;">${fmt.format(plantas.size)}</div></div>
+            <div style="font-weight:800; color:#93c5fd; margin-bottom:.25rem; font-size:.85rem; letter-spacing:.5px;">${title}</div>
+            <div style="font-size:.67rem; opacity:.75; line-height:1.2;">${planta?`<strong>${planta}</strong> · `:''}Ubicaciones únicas: <strong>${fmt.format(totalLocs)}</strong>${totalLocs?`<br><span style='opacity:.85'>Ejemplos: ${sample}${extra}</span>`:''}</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:.4rem .8rem; margin-top:.55rem;">
+              <div><div style="font-size:.6rem; opacity:.65; text-transform:uppercase; letter-spacing:.5px;">Volumen</div><div style="font-weight:800; font-size:1.05rem; color:#60a5fa;">${fmt.format(qty)}</div></div>
+              <div><div style="font-size:.6rem; opacity:.65; text-transform:uppercase; letter-spacing:.5px;">Facturación</div><div style="font-weight:800; font-size:1.05rem; color:#34d399;">${eurFmt.format(fact)}</div></div>
+              <div><div style="font-size:.6rem; opacity:.65; text-transform:uppercase; letter-spacing:.5px;">Refs únicas</div><div style="font-weight:700; font-size:.85rem;">${fmt.format(refs.size)}</div></div>
+              <div><div style="font-size:.6rem; opacity:.65; text-transform:uppercase; letter-spacing:.5px;">Plantas</div><div style="font-weight:700; font-size:.85rem;">${fmt.format(plantas.size)}</div></div>
             </div>`;
           box.innerHTML = html; box.style.display = 'block';
         }
@@ -2562,27 +2718,19 @@
       if (hint){ hint.classList.remove('hidden'); hint.textContent = 'Usa el buscador o los ejemplos para ubicar una planta o país.'; }
       const kpiBox = document.getElementById('globeKPI');
       if (kpiBox){ kpiBox.style.display = 'none'; kpiBox.innerHTML = ''; }
-      document.getElementById('globeCountries').textContent = '';
+  // (Lista de ubicaciones eliminada)
       // Populate client dropdown
       const sel = document.getElementById('globeClientSelect');
       if (sel){
-        const clients = ['Vitesco','Continental','Bosch','MCI','Dumarey'];
+  const clients = ['Vitesco','Continental','Bosch','MCI','Dumarey','Tremec'];
         sel.innerHTML = '<option value="">Cliente…</option>' + clients.map(c=>`<option value="${c}">${c}</option>`).join('');
         sel.value = state.currentClient || '';
         sel.onchange = function(){
-          const cli = this.value;
-          if (!cli) return;
-          const country = getCountryForClient(cli);
-          if (!country || !COUNTRY_LATLON[country]) return;
-          showGlobeForPlantas([country], { client: cli, planta: null });
+          const cli = this.value; if (!cli) return;
+          showGlobeForPlantas([cli], { client: cli, planta: null });
         };
-        // Auto render KPIs for current client if mapping exists
         if (sel.value){
-          const cli = sel.value;
-          const country = getCountryForClient(cli);
-          if (country && COUNTRY_LATLON[country]){
-            showGlobeForPlantas([country], { client: cli, planta: null });
-          }
+          const cli = sel.value; showGlobeForPlantas([cli], { client: cli, planta: null });
         }
       }
       attachGlobeCloseHandlers();
@@ -2732,6 +2880,8 @@
         base = state.mciRows.slice();
       } else if (client==='Dumarey') {
         base = state.rapRows.slice();
+      } else if (client==='Tremec') {
+        base = state.tremecRows.slice();
       } else {
         base = (which===2 ? state.rows2 : state.rows).filter(r=> matchesClient(r.cliente, client));
       }
@@ -2741,8 +2891,9 @@
         if(years.length && !years.includes(Number(r.anio))) return false;
         if(months.length && !months.includes(Number(r.mes))) return false;
         if(refs.length){
-          const rc = (r.refCli||''); const rt = (r.refTeix||''); const rm = (r.ref||'');
-          const hit = refs.includes(rc) || refs.includes(rt) || refs.includes(rm);
+          const rc = (r.refCli||'');
+          const rt = (r.refTeix||'');
+          const hit = refs.includes(rc) || refs.includes(rt);
           if(!hit) return false;
         }
         if(plantas.length && !plantas.includes(r.planta)) return false;
@@ -2753,8 +2904,9 @@
     // Filtrado SOLO desde LAST (o fuente nativa para MCI/Dumarey), ignorando Maestro
     function getFilteredRowsLastOnly(client, root){
       let base = [];
-      if (client==='MCI') base = state.mciRows.slice();
-      else if (client==='Dumarey') base = state.rapRows.slice();
+  if (client==='MCI') base = state.mciRows.slice();
+  else if (client==='Dumarey') base = state.rapRows.slice();
+  else if (client==='Tremec') base = state.tremecRows.slice();
       else base = state.rows.filter(r=> matchesClient(r.cliente, client));
       if(!root) return base;
       const {years, months, refs, plantas} = getFilters(root);
@@ -2762,8 +2914,9 @@
         if(years.length && !years.includes(Number(r.anio))) return false;
         if(months.length && !months.includes(Number(r.mes))) return false;
         if(refs.length){
-          const rc = (r.refCli||''); const rt = (r.refTeix||''); const rm = (r.ref||'');
-          const hit = refs.includes(rc) || refs.includes(rt) || refs.includes(rm);
+          const rc = (r.refCli||'');
+          const rt = (r.refTeix||'');
+          const hit = refs.includes(rc) || refs.includes(rt);
           if(!hit) return false;
         }
         if(plantas.length && !plantas.includes(r.planta)) return false;
@@ -2839,6 +2992,9 @@
     rows2 = [];
   } else if (client==='Dumarey') {
     rows1 = getFilteredRows('Dumarey', root);
+    rows2 = [];
+  } else if (client==='Tremec') {
+    rows1 = getFilteredRows('Tremec', root);
     rows2 = [];
   } else {
     rows1 = getFilteredRowsLastOnly(client, root);
@@ -2971,6 +3127,9 @@
     rows2 = [];
   } else if (client==='Dumarey') {
     rows1 = getFilteredRows('Dumarey', root);
+    rows2 = [];
+  } else if (client==='Tremec') {
+    rows1 = getFilteredRows('Tremec', root);
     rows2 = [];
   } else {
     rows1 = getFilteredRowsLastOnly(client, root);
@@ -3214,6 +3373,8 @@
             }
           });
         }
+        // Asegurar ubicaciones aleatorias inmediatas para que el globo funcione sin construir Maestro
+        ensureLocations();
         progressSet(95);
         renderPanels(); setTimeout(()=> progressHide(), 600);
       } catch(err){
@@ -3311,6 +3472,7 @@
           });
         }
         state.mciRows = rows.filter(r=> r.fecha instanceof Date && !isNaN(r.fecha));
+  ensureLocations();
 
         // Cambiar a la pestaña MCI y re-render
         state.currentClient = 'MCI';
@@ -3354,12 +3516,14 @@
           }
           return -1;
         };
-        const iCliente = idxOf('cliente','customer','client');
-        const iRef = idxOf('referencia','ref','material','articulo','item');
-        const iVol = idxOf('volumen','qty','cantidad','quantity');
-        const iFact = idxOf('facturacion','revenue','importe','fact');
-        const iPrecio = idxOf('precioventa','precio','price');
-        const iFecha = idxOf('fecha','periodo','period','month','mes','año','anio','year');
+  const iCliente = idxOf('cliente','customer','client');
+  const iRef = idxOf('referencia','ref','material','articulo','item');
+  const iVol = idxOf('volumen','qty','cantidad','quantity');
+  const iFact = idxOf('facturacion','revenue','importe','fact');
+  const iPrecio = idxOf('precioventa','precio','price');
+  const iFecha = idxOf('fecha','periodo','period','month','mes','año','anio','year');
+  const iPlanta = idxOf('planta','plant','factory','site');
+  const iUbic = idxOf('ubicacion','ubicación','ubicacionplanta','ubicaciónplanta','location','pais','país','country'); // Nueva columna M (Ubicación Planta)
         const rows = [];
   for (let r=1; r<aoa.length; r++){
           const row = aoa[r] || [];
@@ -3387,9 +3551,26 @@
           if ((fact==null || isNaN(fact)) && (precio!=null && !isNaN(precio))) {
             fact = qty * precio;
           }
-          rows.push({ cliente, ref, qty, facturacion: fact, precioVenta: precio, fecha, anio, mes, planta: null, refCli: null, refTeix: null });
+          let planta = (iPlanta>=0) ? String(row[iPlanta]||'').trim() : '';
+          let ubic = (iUbic>=0) ? String(row[iUbic]||'').trim() : '';
+          if (!planta) planta = null;
+          if (!ubic) ubic = null;
+          rows.push({ cliente, ref, qty, facturacion: fact, precioVenta: precio, fecha, anio, mes, planta, ubicacion: ubic, refCli: null, refTeix: null });
         }
-        state.unifiedRows = rows; progressSet(85);
+  state.unifiedRows = rows; progressSet(85);
+  ensureLocations();
+        // Asignar ubicaciones sintéticas si faltan (inventadas temporalmente)
+        // Ciudades ficticias (puedes reemplazar luego). Importante: añadimos coords abajo si faltan.
+        const fallbackLocations = [
+          'Barcelona','Stuttgart','Paris','Iasi','Wroclaw','Tangier','Chennai','Guadalajara','Mlada Boleslav','Timisoara','Arad','Sibiu'
+        ];
+        let locIdx = 0;
+        state.unifiedRows.forEach(r=>{
+          if (!r.ubicacion) {
+            r.ubicacion = fallbackLocations[locIdx % fallbackLocations.length];
+            locIdx++;
+          }
+        });
         if (rows && rows.length) {
           try{ await persistMaestro(rows); }catch(e){ console.warn('No se pudo guardar Maestro (unificado):', e); }
         } else {
@@ -3499,13 +3680,21 @@
     function mciNormalizeDateLike(s) {
       const raw = (s || '').trim(); if (!raw) return raw;
       const t = raw.replace(/^[^0-9]+/, '');
-      let m = t.match(/^(\d{1,2})[.\-_\/](\d{1,2})[.\-_\/](\d{2}|\d{4})$/);
+      // dd/mm/yyyy or dd-mm-yyyy or dd.mm.yyyy
+      let m = t.match(/^(\d{1,2})[.\-_\/(](\d{1,2})[.\-_\/(](\d{2}|\d{4})$/);
       if (m) {
         let [ , dd, mm, yy ] = m;
         let yyyy = yy.length === 2 ? (parseInt(yy,10) >= 70 ? `19${yy}` : `20${yy}`) : yy;
         const d = new Date(parseInt(yyyy,10), parseInt(mm,10)-1, parseInt(dd,10));
         if (!isNaN(d.getTime())) return d;
         return `${String(dd).padStart(2,'0')}/${String(mm).padStart(2,'0')}/${yyyy}`;
+      }
+      // yyyy-mm-dd (ISO-ish)
+      m = t.match(/^(\d{4})[.\-_\/(](\d{1,2})[.\-_\/(](\d{1,2})$/);
+      if (m) {
+        const yyyy = +m[1], mm = +m[2], dd = +m[3];
+        const d = new Date(yyyy, mm-1, dd);
+        if (!isNaN(d.getTime())) return d;
       }
       m = t.match(/^(\d{1,2})[.\-_\/](\d{4})$/);
       if (m) {
@@ -3516,7 +3705,9 @@
     }
     function mciIsDateToken(s){
       const raw = String(s||'').trim().replace(/^[^0-9]+/, '');
-      return /^(\d{1,2})[.\-_\/](\d{1,2})[.\-_\/](\d{2}|\d{4})$/.test(raw) || /^(\d{1,2})[.\-_\/](\d{4})$/.test(raw);
+      return /^(\d{1,2})[.\-_\/(](\d{1,2})[.\-_\/(](\d{2}|\d{4})$/.test(raw)
+        || /^(\d{4})[.\-_\/(](\d{1,2})[.\-_\/(](\d{1,2})$/.test(raw)
+        || /^(\d{1,2})[.\-_\/(](\d{4})$/.test(raw);
     }
     function mciGroupByRowY(items, yTol){
       const sorted = items.slice().sort((a,b)=> b.y - a.y);
@@ -3632,8 +3823,11 @@
         const page = await pdf.getPage(1);
         const textContent = await page.getTextContent();
         const text = textContent.items.map(it=> (it.str||'')).join(' ').toLowerCase();
-        if (text.includes('pick up date') && text.includes('cum ordered')) return 'mci';
-        if (text.includes('requested dispatch qty')) return 'dispatch';
+  if (text.includes('pick up date') && text.includes('cum ordered')) return 'mci';
+  if (text.includes('requested dispatch qty')) return 'dispatch';
+  // TREMEC: aceptar 'purchase order' o 'purchase orders' y que existan pistas de 'due' y 'delivery'
+  const hasPO = text.includes('purchase orders') || text.includes('purchase order');
+  if (hasPO && (text.includes('due date') || text.includes('due')) && (text.includes('delivery') || text.includes('qty') || text.includes('quantity'))) return 'tremec';
       }catch{}
       return 'unknown';
     }
@@ -3718,6 +3912,140 @@
   return result;
     }
 
+    // ---------- Lectura Excel TREMEC ----------
+    async function loadTremecExcel(file){
+      progressShow('Cargando Excel TREMEC…'); progressSet(5); progressLog(`Abriendo ${file.name}…`);
+      const buf = await file.arrayBuffer(); progressSet(25);
+      const wb = XLSX.read(buf, { type: 'array', cellDates:true, cellNF:true, cellText:false });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      if (!ws){ progressHide(); throw new Error('Sin hoja'); }
+      const rng = XLSX.utils.decode_range(ws['!ref']);
+      // Heurística cabecera: fila 2 (r=1) preferente; si no detecta fechas, probar fila 1 (r=0)
+      function extractDateCols(headerRowIndex){
+        const out = [];
+        const yearsDetected = [];
+        for (let c=2; c<=rng.e.c; c++){
+          const addr = XLSX.utils.encode_cell({c, r: headerRowIndex});
+            const cell = ws[addr];
+          if (!cell) continue;
+          let val = cell.v;
+          let txt = cell.w != null ? String(cell.w).trim() : (val instanceof Date ? '' : String(val??'').trim());
+          // Detect columnas de año subtotal (solo 4 dígitos y >=2020)
+          if (/^\d{4}$/.test(txt) && +txt >= 2020 && +txt < 2100){ yearsDetected.push(c); continue; }
+          let fecha = null;
+          if (val instanceof Date){
+            fecha = new Date(Date.UTC(val.getFullYear(), val.getMonth(), val.getDate()));
+          } else if (typeof val === 'number' && val>20000 && val<90000 && XLSX.SSF){
+            try{ const d = XLSX.SSF.parse_date_code(val); if (d && d.y){ fecha = new Date(Date.UTC(d.y, d.m-1, d.d)); } }catch{}
+          } else {
+            // Probar varios separadores dd/mm/yyyy , dd-mm-yyyy , dd.mm.yyyy
+            const m = txt.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+            if (m){ let dd=+m[1], mm=+m[2], yy=+m[3]; if (yy<100) yy=2000+yy; fecha = new Date(Date.UTC(yy,mm-1,dd)); }
+          }
+          if (fecha && !isNaN(fecha)) out.push({c, fecha});
+        }
+        console.debug('[TREMEC] Header scan filaExcel='+(headerRowIndex+1), {fechas: out.map(o=>({col:o.c, iso:o.fecha.toISOString().slice(0,10)})), years: yearsDetected});
+        return out;
+      }
+      let headerRow = 1; // intentado
+      let dateCols = extractDateCols(headerRow);
+      if (dateCols.length<2){
+        headerRow = 0; dateCols = extractDateCols(headerRow);
+      }
+      if (!dateCols.length){
+        // Fallback: buscar primera fila (0..4) con al menos 2 fechas
+        for (let tryRow=0; tryRow<=4 && !dateCols.length; tryRow++){
+          dateCols = extractDateCols(tryRow);
+          if (dateCols.length) headerRow = tryRow;
+        }
+      }
+      if (!dateCols.length){
+        console.warn('[TREMEC] Sin fechas tras fallback');
+        alert('No se detectaron fechas en cabecera TREMEC (intenta que las fechas estén en la fila 2).');
+        progressHide(); return [];
+      }
+      // Datos: comienzan fila siguiente a cabecera hasta última fila con algo en col A o B
+      function rowHasData(r){
+        const a = ws[XLSX.utils.encode_cell({c:0,r})];
+        const b = ws[XLSX.utils.encode_cell({c:1,r})];
+        return !!( (a && String(a.v||a.w||'').trim()) || (b && String(b.v||b.w||'').trim()) );
+      }
+      let rStart = headerRow+1;
+      let rEnd = rng.e.r;
+      // Limitar si hay muchas filas: cortar al último con datos en A/B
+      while (rEnd>=rStart && !rowHasData(rEnd)) rEnd--;
+  // Forzar límite máximo fila 28 (index 27) y descartar fila 29
+  if (rEnd > 27) rEnd = 27;
+      const rowsOut = [];
+      for (let r=rStart; r<=rEnd; r++){
+        if (!rowHasData(r)) continue;
+        const refCliCell = ws[XLSX.utils.encode_cell({c:0, r})];
+        const refTeixCell = ws[XLSX.utils.encode_cell({c:1, r})];
+        let refCli = refCliCell ? String(refCliCell.v||refCliCell.w||'').trim() : '';
+        let refTeix = refTeixCell ? String(refTeixCell.v||refTeixCell.w||'').trim() : '';
+        // Normalizar ref cliente quitando sufijo _00 o similares
+        if (refCli) refCli = refCli.replace(/[_-]00$/i,'');
+        for (const dc of dateCols){
+          const cell = ws[XLSX.utils.encode_cell({c: dc.c, r})];
+          if (!cell) continue;
+          let valRaw = cell.v!=null? cell.v : cell.w;
+          if (valRaw==null || valRaw==='') continue;
+          let qty;
+          if (typeof valRaw === 'number') qty = valRaw;
+          else {
+            let s = String(valRaw).trim();
+            // Caso 17.955 -> 17955 ; 31.255 -> 31255 ; 201.495 -> 201495 (parecen miles no decimales)
+            // Heurística: si tiene más de un punto o un punto y ningún comma, y los grupos son de 3, quitar puntos.
+            if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g,'');
+            // Reemplazar coma decimal por punto
+            s = s.replace(/,(\d+)/g, '.$1');
+            // Quitar espacios
+            s = s.replace(/\s+/g,'');
+            qty = Number(s);
+          }
+          if (!isFinite(qty) || qty===0) continue;
+          const fecha = dc.fecha; const anio = fecha.getUTCFullYear(); const mes = fecha.getUTCMonth()+1;
+          rowsOut.push({ cliente:'Tremec', fecha, anio, mes, ref: refTeix||refCli||null, refCli: refCli||null, refTeix: refTeix||null, planta:null, qty });
+        }
+      }
+      if (!rowsOut.length){
+        alert('Excel TREMEC leído pero sin cantidades (>0).');
+      }
+      console.debug('TREMEC Excel parse:', {filas: rowsOut.length, fechas: dateCols.map(d=> d.fecha.toISOString().slice(0,10))});
+  // Reemplazar completamente (evitar duplicados en recargas)
+  state.tremecRows = rowsOut;
+    ensureLocations();
+      state.currentClient = 'Tremec';
+      document.querySelectorAll('.clientTab').forEach(b=>{
+        const isSel = b.dataset.client==='Tremec';
+        b.classList.toggle('bg-gray-100', false);
+        b.classList.toggle('dark:bg-gray-800', false);
+        b.classList.toggle('is-active', isSel);
+      });
+  // (Eliminado: actualización de badgeTremecCnt)
+      renderPanels();
+      // Forzar actualización KPIs immediate (si panel ya montado)
+      try {
+        const root = document.querySelector(`.clientPanel[data-client="Tremec"]`);
+        if (root) updateKPIs(root);
+      } catch {}
+      progressSet(95); setTimeout(()=> progressHide(), 500);
+      return rowsOut;
+    }
+
+    // Stub anterior PDF (ya no usado) para evitar errores si alguna ruta legacy lo llama
+    async function loadTremecPdf(){
+      alert('La carga de PDF TREMEC ha sido reemplazada por Excel.');
+      return [];
+    }
+
+    // Depuración rápida total Tremec
+    window.debugTremecTotal = function(){
+      const total = (state.tremecRows||[]).reduce((s,r)=> s + (Number(r.qty)||0), 0);
+      console.log('[TREMEC] Filas:', state.tremecRows?.length||0, 'Total qty:', total);
+      return { filas: state.tremecRows?.length||0, total };
+    };
+
     async function processBulkFiles(files){
       if (typeof progressShow === 'function') progressShow('Procesando carga masiva…'); else console.log('Procesando carga masiva…');
       const master = [];
@@ -3743,6 +4071,8 @@
                 const rows = await loadDispatchPdf(f);
                 if (typeof progressLog === 'function') progressLog(`PDF Dispatch: ${rows.length} filas`); else console.log('PDF Dispatch:', rows.length, 'filas');
                 pushUnified(rows.map(x=> ({...x, precioVenta: x.precioVenta??null, facturacion: x.facturacion??null})));
+              } else if (kind==='tremec'){
+                if (typeof progressLog === 'function') progressLog('Ignorando PDF Tremec (soporte removido).');
               } else {
                 if (typeof progressLog === 'function') progressLog(`PDF no reconocido: ${f.name}`); else console.warn('PDF no reconocido:', f.name);
               }
@@ -3754,10 +4084,21 @@
               const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
               const header = (aoa[0]||[]).map(x=> String(x||'').trim().toLowerCase());
               const looksUnified = header.some(h=> /cliente|customer/.test(h)) && header.some(h=> /ref|referencia|material/.test(h));
+              // Heurística Excel Tremec: fila 2 (aoa[1]) tiene fechas dd/mm/yyyy empezando en col C, y hay al menos 5 fechas; col A en datos (fila 2+) no vacía
+              const headerCandidate = (aoa[1]||[]).length ? aoa[1] : (aoa[0]||[]);
+              const headerRow2 = headerCandidate.slice(2, Math.min(headerCandidate.length, 25)).map(x=> String(x||'').trim());
+              const dateLikeCount = headerRow2.filter(s=> /\d{1,2}\/[0-9]{1,2}\/\d{2,4}/.test(s)).length;
+              const looksTremec = !looksUnified && dateLikeCount>=2 && ( (aoa[2]&& (aoa[2][0]||aoa[2][1])) || (aoa[3]&&(aoa[3][0]||aoa[3][1])) );
               if (looksUnified){
                 await loadUnifiedExcel(f);
                 if (typeof progressLog === 'function') progressLog(`Excel unificado detectado: ${state.unifiedRows.length} filas`); else console.log('Excel unificado detectado:', state.unifiedRows.length, 'filas');
                 pushUnified(state.unifiedRows);
+              } else if (looksTremec){
+                const before = (state.tremecRows||[]).length;
+                const rows = await loadTremecExcel(new File([buf], f.name, {type:f.type}));
+                const added = (state.tremecRows||[]).length - before;
+                if (typeof progressLog === 'function') progressLog(`Excel TREMEC: ${added} filas`); else console.log('Excel TREMEC:', added, 'filas');
+                pushUnified(rows.map(x=> ({...x, precioVenta:null, facturacion:null})));
               } else {
                 // Heurística por nombre: si contiene 'old' -> which=2, si no -> which=1 (LAST)
                 const isOld = /\bold\b/i.test(f.name) || f.name.toLowerCase().includes('old');
@@ -3790,6 +4131,7 @@
           if (typeof progressLog === 'function') progressLog('Sin filas consolidadas: no se reemplaza Maestro guardado.');
         } else {
           state.unifiedRows = master;
+          ensureLocations();
           state.useUnifiedFeed = true;
           const t = document.getElementById('toggleUnified'); if (t) t.checked = true;
           if (typeof progressLog === 'function') progressLog(`Maestro consolidado: ${master.length} filas`); else console.log('Maestro consolidado:', master.length, 'filas');
@@ -4361,7 +4703,7 @@
           if (g.classList.contains('expanded')) collapse(); else expand();
         });
       }
-  ['grp-vbc','grp-mci','grp-unificado','grp-bulk','grp-delfor'].forEach(setupAccordion);
+  ['grp-vbc','grp-mci','grp-tremec','grp-dumarey','grp-unificado','grp-bulk','grp-delfor'].forEach(setupAccordion);
 
       const btnD = document.getElementById('loadDelforCE');
       const btnF = document.getElementById('loadForecastCE');
