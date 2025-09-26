@@ -64,6 +64,7 @@
     .skeleton::after{content:"";position:absolute;inset:0;animation:shim 1.2s infinite}
     @keyframes shim{0%{transform:translateX(-100%)}100%{transform:translateX(100%)} }
     .popover{position:absolute; z-index:50; min-width:220px; background:#fff; border-radius:1rem; box-shadow:0 8px 32px rgba(0,0,0,.18); padding:1rem; }
+  .hidden{ display:none !important; }
     .popover-search { width:100%; margin-bottom:.5rem; padding:.4rem .7rem; border-radius:.7rem; border:1px solid #0071bc; }
     .popover-list { max-height:220px; overflow:auto; margin-bottom:.5rem; }
     .popover-list label { display:flex; align-items:center; gap:.5rem; padding:.2rem .1rem; cursor:pointer; }
@@ -328,141 +329,84 @@
           <div class="text-lg font-bold">Menú cargar</div>
           <button id="closeLoadMenu" class="px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">Volver</button>
         </div>
-        <div class="flex flex-col gap-3">
-          <!-- Grupo VT/BOSCH/CONTI -->
-          <div class="group" id="grp-vbc">
-            <button type="button" class="group-header rounded-md border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800">
-              <span>VT · BOSCH · CONTI</span>
-              <span class="chev">›</span>
-            </button>
-            <div class="group-content">
-              <div class="inner">
-                <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient w-full justify-center">
-                  <input id="fileInput" type="file" accept=".xlsx,.xls" class="hidden">
-                  <span>LAST</span>
-                </label>
-                <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient w-full justify-center">
-                  <input id="fileInput2" type="file" accept=".xlsx,.xls" class="hidden">
-                  <span>OLD</span>
-                </label>
-              </div>
-            </div>
+        <div class="flex flex-col gap-2">
+          <!-- Botones directos para Excel -->
+          <div class="grid grid-cols-2 gap-2">
+            <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient justify-center text-sm">
+              <input id="fileInput" type="file" accept=".xlsx,.xls" class="hidden">
+              <span>LAST Excel</span>
+            </label>
+            <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient justify-center text-sm">
+              <input id="fileInput2" type="file" accept=".xlsx,.xls" class="hidden">
+              <span>OLD Excel</span>
+            </label>
           </div>
 
-          <!-- Grupo MCI -->
-          <div class="group" id="grp-mci">
-            <button type="button" class="group-header rounded-md border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800">
-              <span>MCI</span>
-              <span class="chev">›</span>
-            </button>
-            <div class="group-content">
-              <div class="inner">
-                <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient w-full justify-center">
-                  <input id="fileMci" type="file" accept="application/pdf,.pdf" class="hidden">
-                  <span>Cargar PDF MCI</span>
-                </label>
-                <button id="exportMCIExcel" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 w-full">Exportar Excel MCI</button>
-              </div>
-            </div>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient justify-center text-sm">
+              <input id="fileTremec" type="file" accept=".xlsx,.xls" class="hidden">
+              <span>TREMEC Excel</span>
+            </label>
+            <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient justify-center text-sm">
+              <input id="fileTenneco" type="file" accept=".xlsx,.xls" class="hidden">
+              <span>TENNECO Excel</span>
+            </label>
           </div>
 
-          <!-- Grupo TREMEC -->
-          <div class="group" id="grp-tremec">
-            <button type="button" class="group-header rounded-md border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800">
-              <span>TREMEC</span>
-              <span class="chev">›</span>
-            </button>
-            <div class="group-content">
-              <div class="inner">
-                <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient w-full justify-center">
-                  <input id="fileTremec" type="file" accept=".xlsx,.xls" class="hidden">
-                  <span>Cargar Excel TREMEC</span>
-                </label>
-                <div class="text-xs text-gray-600 dark:text-gray-300">
-                  Formato: Col A Ref Cliente · Col B Ref Teixido · Fechas en columnas C..O (H y O = Subtotales, se ignoran)
-                </div>
-              </div>
-            </div>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient justify-center text-sm">
+              <input id="filePhinia" type="file" accept=".xlsx,.xls" class="hidden">
+              <span>PHINIA Excel</span>
+            </label>
+            <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient justify-center text-sm">
+              <input id="fileUnified" type="file" accept=".xlsx,.xls,.csv" class="hidden">
+              <span>Excel Unificado</span>
+            </label>
           </div>
 
-          <!-- Grupo DUMAREY -->
-          <div class="group" id="grp-dumarey">
-            <button type="button" class="group-header rounded-md border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800">
-              <span>DUMAREY</span>
-              <span class="chev">›</span>
-            </button>
-            <div class="group-content">
-              <div class="inner">
-                <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient w-full justify-center">
-                  <input id="fileRap" type="file" accept="application/pdf,.pdf" class="hidden">
-                  <span>Cargar PDF DUMAREY</span>
-                </label>
-                <div class="text-xs text-gray-600 dark:text-gray-300">Archivo PDF con Requested Dispatch Qty.</div>
-              </div>
-            </div>
+          <!-- Separador -->
+          <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+
+          <!-- Botones directos para PDF -->
+          <div class="grid grid-cols-2 gap-2">
+            <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient justify-center text-sm">
+              <input id="fileMci" type="file" accept="application/pdf,.pdf" class="hidden">
+              <span>MCI PDF</span>
+            </label>
+            <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient justify-center text-sm">
+              <input id="fileRap" type="file" accept="application/pdf,.pdf" class="hidden">
+              <span>DUMAREY PDF</span>
+            </label>
           </div>
 
-          <!-- Botones sueltos eliminados (movidos al header o al grupo MCI) -->
+          <!-- Separador -->
+          <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
 
-          <!-- Grupo UNIFICADO -->
-          <div class="group" id="grp-unificado">
-            <button type="button" class="group-header rounded-md border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800">
-              <span>UNIFICADO</span>
-              <span class="chev">›</span>
-            </button>
-            <div class="group-content">
-              <div class="inner">
-                <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient w-full justify-center">
-                  <input id="fileUnified" type="file" accept=".xlsx,.xls,.csv" class="hidden">
-                  <span>Cargar Excel Unificado</span>
-                </label>
-                <div class="text-xs text-gray-600 dark:text-gray-300">
-                  Formato: Cliente | Referencia | Volumen | Facturación | Precio Venta | Fecha/Periodo
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Botones de utilidades -->
+          <button id="exportMCIExcel" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 w-full text-sm">Exportar Excel MCI</button>
 
-          <!-- Grupo CARGA MASIVA -->
-          <div class="group" id="grp-bulk">
-            <button type="button" class="group-header rounded-md border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800">
-              <span>CARGA MASIVA</span>
-              <span class="chev">›</span>
-            </button>
-            <div class="group-content">
-              <div class="inner">
-                <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient w-full justify-center">
-                  <input id="fileBulk" type="file" accept=".pdf,.xlsx,.xls,.csv" class="hidden" multiple>
-                  <span>Seleccionar múltiples archivos</span>
-                </label>
-                <button id="btnProcessBulk" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 w-full">Procesar y construir Maestro</button>
-                <div class="text-xs text-gray-600 dark:text-gray-300">Acepta PDFs (MCI y futuros), Excel/CSV de clientes o Unificado. Mezcla todo en el Maestro.</div>
-              </div>
-            </div>
-          </div>
+          <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 btn-gradient justify-center text-sm">
+            <input id="fileBulk" type="file" accept=".pdf,.xlsx,.xls,.csv" class="hidden" multiple>
+            <span>Carga Masiva</span>
+          </label>
+          <button id="btnProcessBulk" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 w-full text-sm">Procesar Carga Masiva</button>
 
-          <!-- Grupo TRANSFORMAR DELFOR -->
-          <div class="group" id="grp-delfor">
-            <button type="button" class="group-header rounded-md border border-transparent hover:bg-gray-50 dark:hover:bg-gray-800">
-              <span>TRANSFORMAR DELFOR</span>
-              <span class="chev">›</span>
-            </button>
-            <div class="group-content">
-              <div class="inner">
-                <div class="flex items-center gap-2">
-                  <button id="loadDelforCE" class="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Cargar Delfor</button>
-                  <span id="badgeDelforCE" class="text-xs px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800">—</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <button id="loadForecastCE" class="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Cargar Forecast</button>
-                  <span id="badgeForecastCE" class="text-xs px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800">—</span>
-                </div>
-                <button id="createExcel" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 w-full">Descargar Forecast actualizado</button>
-                <input id="inpDelforCE" type="file" accept=".csv,.xlsx" class="hidden">
-                <input id="inpForecastCE" type="file" accept=".xlsx" class="hidden">
-              </div>
-            </div>
+          <!-- Separador -->
+          <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+
+          <!-- Delfor Tools -->
+          <div class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">DELFOR Tools</div>
+          <div class="flex items-center gap-2 mb-2">
+            <button id="loadDelforCE" class="flex-1 px-2 py-1 rounded border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 text-xs">Cargar Delfor</button>
+            <span id="badgeDelforCE" class="text-xs px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800">—</span>
           </div>
+          <div class="flex items-center gap-2 mb-2">
+            <button id="loadForecastCE" class="flex-1 px-2 py-1 rounded border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 text-xs">Cargar Forecast</button>
+            <span id="badgeForecastCE" class="text-xs px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800">—</span>
+          </div>
+          <button id="createExcel" class="px-2 py-1 rounded border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 w-full text-xs">Descargar Forecast actualizado</button>
+          <input id="inpDelforCE" type="file" accept=".csv,.xlsx" class="hidden">
+          <input id="inpForecastCE" type="file" accept=".xlsx" class="hidden">
         </div>
       </div>
     </div>
@@ -510,6 +454,8 @@
         <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="MCI" data-client-tab>MCI</button>
         <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Dumarey" data-client-tab>DUMAREY</button>
         <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Tremec" data-client-tab>TREMEC</button>
+  <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Tenneco" data-client-tab>TENNECO</button>
+        <button class="clientTab px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 font-medium" data-client="Phinia" data-client-tab>PHINIA</button>
       </div>
       <!-- Per-client panels -->
       <section id="panels" class="mt-4 space-y-8"></section>
@@ -887,6 +833,8 @@
       mciRows: [], // Excel MCI
       rapRows: [], // PDF RAP/Dispatch
   tremecRows: [], // TREMEC Excel rows
+    tennecoRows: [], // TENNECO Excel rows
+      phiniaRows: [], // PHINIA Excel rows
       unifiedRows: [], // Excel Unificado centralizado
       useUnifiedFeed: false, // usar maestro para gráficos/tablas
       mapCliToTeix: new Map(), // A->B (Hoja2)
@@ -1251,8 +1199,8 @@
       }catch{}
     })();
 
-  const CLIENTS = ['Vitesco','Continental','Bosch','MCI','Dumarey','Tremec'];
-  const LOGO_MAP = { Vitesco:'VT.jpg', Continental:'CONTINENTAL.jpg', Bosch:'BOSCH.jpg', MCI:'MCI.jpg', Dumarey:['duma.jpg','RAP.jpg'], Tremec:'TREMEC.jpg' };
+  const CLIENTS = ['Vitesco','Continental','Bosch','MCI','Dumarey','Tremec','Tenneco','Phinia'];
+  const LOGO_MAP = { Vitesco:'VT.jpg', Continental:'CONTINENTAL.jpg', Bosch:'BOSCH.jpg', MCI:'MCI.jpg', Dumarey:['duma.jpg','RAP.jpg'], Tremec:'TREMEC.jpg', Tenneco:'TENNECO.jpg', Phinia:'PHINIA.jpg' };
   const LOGO_BASE = './logos/';
   const fmt = new Intl.NumberFormat('es-ES');
   const eurFmt = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
@@ -1312,7 +1260,9 @@
       bosch: ['bosch','uaes'],
       mci: ['mci'],
       dumarey: ['dumarey','duma','rap'],
-      tremec: ['tremec']
+  tremec: ['tremec'],
+  tenneco: ['tenneco'],
+  phinia: ['phinia','delphi']
     };
     const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
     function matchesClient(cellValue, tabName){
@@ -1423,6 +1373,263 @@
         }
       });
     }
+    // TENNECO: Excel con columnas A..U, cabecera fila 1, datos desde fila 2. A=refCli, B=cantidad en miles con punto, T=fecha dd/mm/yyyy
+    const tennecoInput = document.querySelector('#fileTenneco');
+    if (tennecoInput){
+      tennecoInput.addEventListener('change', async (e)=>{
+        const f = e.target.files?.[0]; if (!f) return;
+        try{
+          await loadTennecoExcel(f);
+        }catch(err){ console.error('Error leyendo Excel TENNECO:', err); alert('No se pudo leer el Excel TENNECO.'); }
+      });
+    }
+    // PHINIA: Excel con matriz de datos, cabecera fila 7, datos filas 8-43, fechas columnas T-CU
+    const phiniaInput = document.querySelector('#filePhinia');
+    if (phiniaInput){
+      phiniaInput.addEventListener('change', async (e)=>{
+        const f = e.target.files?.[0]; if (!f) return;
+        try{
+          await loadPhiniaExcel(f);
+        }catch(err){ console.error('Error leyendo Excel PHINIA:', err); alert('No se pudo leer el Excel PHINIA.'); }
+      });
+    }
+
+    async function loadTennecoExcel(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            
+            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 1 });
+
+            const rows = json.map(row => {
+              const refCli = row[0]; // Columna A
+              const qtyRaw = row[1]; // Columna B
+              const fechaRaw = row[19]; // Columna T
+
+              const qty = parseFloat(String(qtyRaw || '0').replace(/\./g, '').replace(',', '.'));
+
+              let fecha = null;
+              if (fechaRaw instanceof Date && !isNaN(fechaRaw)) {
+                fecha = fechaRaw;
+              } else if (typeof fechaRaw === 'string') {
+                const parts = fechaRaw.split('/');
+                if (parts.length === 3) {
+                  fecha = new Date(parts[2], parts[1] - 1, parts[0]);
+                }
+              }
+              
+              if (!refCli || isNaN(qty)) return null;
+
+              // --- INICIO DEL CAMBIO IMPORTANTE: Mapeo a la estructura del Maestro ---
+              return {
+                cliente: 'Tenneco',                      // Para la "columna B" del Maestro
+                ref: String(refCli).trim(),              // Col A -> "columna C" del Maestro
+                qty: qty,                                // Col B -> "columna D" del Maestro
+                fecha: fecha,                            // Col T -> "columna G" del Maestro
+                mes: fecha ? fecha.getMonth() + 1 : null, // -> "columna H" del Maestro
+                anio: fecha ? fecha.getFullYear() : null,  // -> "columna I" del Maestro
+                
+                // Propiedades adicionales para consistencia
+                refCli: String(refCli).trim(),
+                planta: 'Tenneco'
+              };
+              // --- FIN DEL CAMBIO IMPORTANTE ---
+
+            }).filter(Boolean);
+
+            // Añadir las filas ya mapeadas directamente al Maestro
+            state.unifiedRows = (state.unifiedRows || []).concat(rows);
+            
+            // También las guardo en su propio array por si se necesita para algo específico de la pestaña Tenneco
+            state.tennecoRows = (state.tennecoRows || []).concat(rows);
+            
+            state.currentClient = 'Tenneco';
+            document.querySelectorAll('.clientTab').forEach(b => {
+              b.classList.toggle('is-active', b.dataset.client === 'Tenneco');
+              b.classList.remove('bg-gray-100', 'dark:bg-gray-800');
+            });
+            
+            renderPanels();
+            showToast(`Cargadas ${rows.length} filas de Tenneco al Maestro.`);
+            resolve();
+          } catch (err) {
+            console.error("Error procesando el archivo Tenneco:", err);
+            showToast("Error procesando el Excel de Tenneco.", "error");
+            reject(err);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    async function loadPhiniaExcel(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            
+            // Leer todo el sheet y extraer la fila 7 manualmente
+            const allData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+            console.log('Total filas leídas:', allData.length);
+            
+            if (allData.length < 7) {
+              throw new Error(`El Excel solo tiene ${allData.length} filas, pero necesita al menos 7 filas para las cabeceras`);
+            }
+            
+            const headerRow = allData[6] || []; // Fila 7 = índice 6
+            console.log('Cabeceras fila 7:', headerRow.slice(0, 30)); // Debug: mostrar primeras 30 columnas
+            
+            // Buscar columnas con más flexibilidad
+            const plantNameIdx = headerRow.findIndex(h => {
+              const str = String(h || '').toLowerCase().trim();
+              return str.includes('plant') && (str.includes('delphi') || str.includes('name'));
+            });
+            
+            const materialIdx = headerRow.findIndex(h => {
+              const str = String(h || '').toLowerCase().trim();
+              return str.includes('material');
+            });
+            
+            console.log('Índices encontrados - Plant:', plantNameIdx, 'Material:', materialIdx);
+            
+            if (plantNameIdx === -1) {
+              console.error('Columnas disponibles:', headerRow.map((h, i) => `${i}: "${h}"`));
+              throw new Error('No se encontró columna de planta. Busca columnas con "plant", "delphi" o "name"');
+            }
+            
+            if (materialIdx === -1) {
+              console.error('Columnas disponibles:', headerRow.map((h, i) => `${i}: "${h}"`));
+              throw new Error('No se encontró columna "Material". Debe existir una columna que contenga la palabra "material"');
+            }
+            
+            // Extraer fechas desde columna T (índice 19) hasta CU (índice 98)
+            console.log('Buscando fechas en columnas T-CU (19-98)...');
+            const dateColumns = [];
+            for (let colIdx = 19; colIdx <= 98; colIdx++) { // T=19, CU=98
+              const dateStr = headerRow[colIdx];
+              if (dateStr) {
+                const str = String(dateStr).trim();
+                // Probar varios formatos de fecha
+                if (str.match(/^\d{4}\.\d{2}\.\d{2}$/)) {
+                  const parts = str.split('.');
+                  const fecha = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                  if (!isNaN(fecha.getTime())) {
+                    dateColumns.push({ colIdx, fecha, dateStr: str });
+                  }
+                } else if (str.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                  const parts = str.split('-');
+                  const fecha = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                  if (!isNaN(fecha.getTime())) {
+                    dateColumns.push({ colIdx, fecha, dateStr: str });
+                  }
+                } else if (str.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                  const parts = str.split('/');
+                  const fecha = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+                  if (!isNaN(fecha.getTime())) {
+                    dateColumns.push({ colIdx, fecha, dateStr: str });
+                  }
+                }
+              }
+            }
+            console.log(`Encontradas ${dateColumns.length} columnas de fecha:`, dateColumns.slice(0, 5));
+            
+            // Usar las filas ya leídas (filas 8-43 = índices 7-42)
+            const dataRows = allData.slice(7, 43); // Desde fila 8 hasta 43
+            console.log(`Leyendo ${dataRows.length} filas de datos...`);
+            
+            if (dateColumns.length === 0) {
+              throw new Error('No se encontraron columnas de fecha válidas en formato yyyy.mm.dd');
+            }
+            
+            const rows = [];
+            dataRows.forEach((row, rowIdx) => {
+              const plantName = row[plantNameIdx];
+              const material = row[materialIdx];
+              
+              if (!plantName || !material) {
+                console.log(`Fila ${rowIdx + 8} omitida: planta="${plantName}", material="${material}"`);
+                return; // Saltar filas sin datos clave
+              }
+              
+              // Para cada fecha, crear un registro si hay volumen
+              let rowCount = 0;
+              dateColumns.forEach(({ colIdx, fecha }) => {
+                const qtyRaw = row[colIdx];
+                const qty = parseFloat(qtyRaw) || 0;
+                if (qty > 0) { // Solo registros con volumen > 0
+                  rows.push({
+                    cliente: 'Phinia',
+                    ref: String(material).trim(),
+                    qty: qty,
+                    fecha: fecha,
+                    mes: fecha.getMonth() + 1,
+                    anio: fecha.getFullYear(),
+                    planta: String(plantName).trim(),
+                    refCli: String(material).trim()
+                  });
+                  rowCount++;
+                }
+              });
+              if (rowCount > 0) {
+                console.log(`Fila ${rowIdx + 8}: ${String(plantName).trim()} - ${String(material).trim()} - ${rowCount} fechas con volumen`);
+              }
+            });
+            
+            console.log(`Procesados ${rows.length} registros con volumen > 0`);
+            console.log('Muestra de datos procesados:', rows.slice(0, 3));
+            
+            if (rows.length === 0) {
+              throw new Error('No se encontraron registros con volumen > 0');
+            }
+            
+            // Añadir al estado
+            state.phiniaRows = (state.phiniaRows || []).concat(rows);
+            state.unifiedRows = (state.unifiedRows || []).concat(rows);
+            
+            console.log('Estado actualizado - phiniaRows:', state.phiniaRows.length, 'unifiedRows:', state.unifiedRows.length);
+            
+            // Activar pestaña PHINIA
+            state.currentClient = 'Phinia';
+            document.querySelectorAll('.clientTab').forEach(b => {
+              const isActive = b.dataset.client === 'Phinia';
+              b.classList.toggle('is-active', isActive);
+              b.classList.remove('bg-gray-100', 'dark:bg-gray-800');
+              if (isActive) {
+                console.log('Pestaña PHINIA activada');
+              }
+            });
+            
+            console.log('Llamando a renderPanels()...');
+            renderPanels();
+            
+            // Crear toast si no existe la función
+            if (typeof showToast === 'function') {
+              showToast(`Cargadas ${rows.length} filas de Phinia al Maestro.`);
+            } else {
+              console.log(`Cargadas ${rows.length} filas de Phinia al Maestro.`);
+            }
+            resolve();
+          } catch (err) {
+            console.error("Error procesando el archivo Phinia:", err);
+            showToast("Error procesando el Excel de Phinia.", "error");
+            reject(err);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
     // Carga masiva: múltiples archivos distintos
     document.querySelector('#fileBulk').addEventListener('change', e=>{
       const files = Array.from(e.target.files||[]); if(!files.length) return;
@@ -1436,7 +1643,11 @@
     document.querySelector('#exportPDF').addEventListener('click', ()=>{ window.print(); });
     document.getElementById('exportMaestroUbic')?.addEventListener('click', ()=>{
       const rows = (state.unifiedRows||[]);
-      if(!rows.length){ alert('No hay Maestro cargado'); return; }
+      console.log('[Export] Verificando Maestro - state.unifiedRows:', rows.length);
+      if(!rows.length){ 
+        alert('No hay Maestro cargado. Debes:\n\n1. Cargar archivos de datos (Excel/PDF)\n2. Hacer clic en "Construir Maestro"\n3. Luego podrás exportar'); 
+        return; 
+      }
       const headers = ['Cliente','Referencia','Volumen','Facturación','Precio','Fecha','Año','Mes','Planta','Ubicacion Planta'];
       const aoa = [headers];
       rows.forEach(r=>{
@@ -1911,11 +2122,22 @@
       try {
       const out = [];
       // Diagnóstico: contadores por fuente
-  const diag = { last: 0, old: 0, mci: 0, dumarey: 0, tremec: 0 };
+  const diag = { last: 0, old: 0, mci: 0, dumarey: 0, tremec: 0, tenneco: 0, phinia: 0 };
       const push = (arr, source)=>{
         (arr||[]).forEach(r=>{
           const cliente = inferClientLabel(r.cliente||'');
           const ref = r.ref || r.refCli || r.refTeix || '';
+          
+          // Debug solo si hay problemas
+          if ((!cliente || !ref) && (source === 'phinia' || source === 'tenneco')) {
+            console.warn(`[Maestro] Registro descartado en ${source}:`, {
+              clienteOriginal: r.cliente,
+              clienteInferido: cliente,
+              ref: ref,
+              motivo: !cliente ? 'sin cliente' : 'sin referencia'
+            });
+          }
+          
           if (!cliente || !ref) return;
           out.push({
             cliente,
@@ -1935,15 +2157,30 @@
           if (source==='mci' || cliente==='MCI') diag.mci++;
           else if (source==='dumarey' || cliente==='Dumarey') diag.dumarey++;
           else if (source==='tremec' || cliente==='Tremec') diag.tremec++;
+          else if (source==='tenneco' || cliente==='Tenneco') diag.tenneco++;
+          else if (source==='phinia' || cliente==='Phinia') diag.phinia++;
           else if (source==='old') diag.old++;
           else diag.last++;
         });
       };
+      // Diagnóstico simplificado
+      console.log('[Maestro] Fuentes disponibles:', {
+        last: state.rows?.length || 0,
+        old: state.rows2?.length || 0,
+        mci: state.mciRows?.length || 0,
+        dumarey: state.rapRows?.length || 0,
+        tremec: state.tremecRows?.length || 0,
+        tenneco: state.tennecoRows?.length || 0,
+        phinia: state.phiniaRows?.length || 0
+      });
+      
       push(state.rows, 'last');
       push(state.rows2, 'old');
       push(state.mciRows, 'mci');
       push(state.rapRows, 'dumarey');
       push(state.tremecRows, 'tremec');
+      push(state.tennecoRows, 'tenneco');
+      push(state.phiniaRows, 'phinia');
       // Completar facturación si falta y hay precio
       out.forEach(r=>{
         if ((r.facturacion==null || isNaN(r.facturacion)) && (r.precioVenta!=null && !isNaN(r.precioVenta))) {
@@ -1979,11 +2216,16 @@
         alert('No hay datos para construir el Maestro. No se reemplaza el guardado anterior.');
       } else {
         await persistMaestro(unified);
-  ensureLocations();
+        ensureLocations();
         state.useUnifiedFeed = true;
         const t = document.getElementById('toggleUnified'); if (t) t.checked = true;
         renderPanels();
         builtOk = true;
+        
+        // Confirmación visual mejorada
+        console.log(`[Maestro] ✅ CONSTRUCCIÓN EXITOSA: ${unified.length} registros guardados`);
+        console.log(`[Maestro] Estado después del guardado - state.unifiedRows:`, state.unifiedRows?.length || 0);
+        alert(`✅ Maestro construido exitosamente!\n\n📊 Total: ${unified.length} registros\n🔑 Claves únicas: ${agg.size}\n\n📈 Diagnóstico por fuente:\nLAST: ${diag.last}\nOLD: ${diag.old}\nMCI: ${diag.mci}\nDumarey: ${diag.dumarey}\nTremec: ${diag.tremec}\nTenneco: ${diag.tenneco}\nPhinia: ${diag.phinia}`);
       }
       } finally {
         // Bloquear sólo si se construyó con éxito; si no, restaurar botón
@@ -2003,6 +2245,17 @@
     // Exportar Detallado (sin agregación, con columna Fuente)
     document.getElementById('btnExportDetailed')?.addEventListener('click', ()=>{
       const collect = [];
+      
+      // Diagnóstico de fuentes disponibles
+      console.log('[Export Detallado] Fuentes disponibles:', {
+        LAST: state.rows?.length || 0,
+        OLD: state.rows2?.length || 0,
+        MCI: state.mciRows?.length || 0,
+        DUMAREY: state.rapRows?.length || 0,
+        TREMEC: state.tremecRows?.length || 0,
+        TENNECO: state.tennecoRows?.length || 0,
+        PHINIA: state.phiniaRows?.length || 0
+      });
       const push = (arr, fuente)=>{
         (arr||[]).forEach(r=>{
           const cliente = inferClientLabel(r.cliente||'');
@@ -2029,12 +2282,15 @@
         });
       };
       push(state.rows, 'LAST');
-  push(state.rows2, 'OLD');
-  push(state.mciRows, 'MCI');
-  push(state.rapRows, 'DUMAREY');
-  push(state.tremecRows, 'TREMEC');
+      push(state.rows2, 'OLD');
+      push(state.mciRows, 'MCI');
+      push(state.rapRows, 'DUMAREY');
+      push(state.tremecRows, 'TREMEC');
+      push(state.tennecoRows, 'TENNECO');
+      push(state.phiniaRows, 'PHINIA');
 
-      if (!collect.length){ alert('No hay filas para exportar. Carga datos primero.'); return; }
+      console.log(`[Export Detallado] Total registros recopilados: ${collect.length}`);
+      if (!collect.length){ alert('No hay filas para exportar detallado.\n\nAsegúrate de:\n1. Cargar archivos Excel/PDF de clientes\n2. Los datos deben tener cliente y referencia válidos'); return; }
 
   const headers = ['Fuente','Cliente','Referencia','Volumen','Facturacion','Precio Venta','Fecha','Mes','Año','Ref Cliente','Ref Teixido','Planta','Ubicacion Planta'];
       const aoa = [headers];
@@ -2312,10 +2568,14 @@
       // Normaliza nombre del cliente según aliases ya usados
       if(!raw) return '';
       const s = norm(raw);
+      
       for(const k of Object.keys(CLIENT_ALIASES)){
         const aliases = (CLIENT_ALIASES[k]||[k]);
-        if (aliases.some(a=> s.includes(a))) return k.charAt(0).toUpperCase()+k.slice(1);
+        if (aliases.some(a=> s.includes(a))) {
+          return k.charAt(0).toUpperCase()+k.slice(1);
+        }
       }
+      
       return raw;
     }
 
@@ -2376,6 +2636,8 @@
             ? state.rapRows.slice()
             : (state.currentClient==='Tremec')
               ? state.tremecRows.slice()
+              : (state.currentClient==='Tenneco')
+                ? state.tennecoRows.slice()
             : state.rows.filter(r=> matchesClient(r.cliente, state.currentClient));
 
       const years = [...new Set(rowsC.map(r=> r.anio).filter(Boolean))].sort((a,b)=>a-b);
@@ -2496,12 +2758,20 @@
       'Stuttgart': 'Germany', 'Wolfsburg': 'Germany', 'Paris': 'France', 'Mlada Boleslav': 'Czechia',
       'Wroclaw': 'Poland', 'Tangier': 'Morocco', 'Chennai': 'India', 'Guadalajara': 'Mexico',
       'Tanger': 'Morocco', 'Tánger': 'Morocco', 'Sibiu': 'Romania', 'Arad': 'Romania',
+      // Plantas típicas de Phinia (ex-Delphi)
+      'Delphi Sichuan': 'China', 'Delphi Shanghai': 'China', 'Delphi Suzhou': 'China',
+      'Delphi Tijuana': 'Mexico', 'Delphi Juarez': 'Mexico', 'Delphi Reynosa': 'Mexico',
+      'Delphi Oak Creek': 'United States', 'Delphi Troy': 'United States', 'Delphi Warren': 'United States',
+      'Phinia Sichuan': 'China', 'Phinia Shanghai': 'China', 'Phinia Suzhou': 'China',
+      'Phinia Tijuana': 'Mexico', 'Phinia Juarez': 'Mexico', 'Phinia Reynosa': 'Mexico',
+      'Phinia Oak Creek': 'United States', 'Phinia Troy': 'United States', 'Phinia Warren': 'United States',
     };
     const COUNTRY_LATLON = {
       // Países
       'Spain':[40.4637,-3.7492], 'Germany':[51.1657,10.4515], 'France':[46.2276,2.2137], 'Czechia':[49.8175,15.4730],
       'Poland':[51.9194,19.1451], 'Romania':[45.9432,24.9668], 'Morocco':[31.7917,-7.0926], 'India':[20.5937,78.9629],
       'Mexico':[23.6345,-102.5528], 'Egypt':[26.8206,30.8025], 'Saudi Arabia':[23.8859,45.0792],
+      'China':[35.8617,104.1954], 'United States':[39.8283,-98.5795],
       // Ciudades (aprox)
       'Barcelona':[41.3851,2.1734], 'Stuttgart':[48.7758,9.1829], 'Paris':[48.8566,2.3522], 'Iasi':[47.1585,27.6014],
       'Wroclaw':[51.1079,17.0385], 'Tangier':[35.7595,-5.8340], 'Tanger':[35.7595,-5.8340], 'Tánger':[35.7595,-5.8340],
@@ -2540,6 +2810,7 @@
       assign(state.mciRows);
       assign(state.rapRows);
       assign(state.tremecRows);
+      assign(state.tennecoRows);
     }
     // (Eliminado mapeo fijo cliente->país; ahora usamos ubicaciones por planta desde el Maestro)
     function getCountryForClient(client){ return null; }
@@ -2568,7 +2839,12 @@
         let all = [];
         if (opts && opts.client){
           const cli = opts.client;
-          if (cli==='MCI') all = state.mciRows||[]; else if (cli==='Dumarey') all = state.rapRows||[]; else if (cli==='Tremec') all = state.tremecRows||[]; else all = (state.rows||[]).filter(r=> matchesClient(r.cliente, cli));
+          if (cli==='MCI') all = state.mciRows||[];
+          else if (cli==='Dumarey') all = state.rapRows||[];
+          else if (cli==='Tremec') all = state.tremecRows||[];
+          else if (cli==='Tenneco') all = state.tennecoRows||[];
+          else if (cli==='Phinia') all = state.phiniaRows||[];
+          else all = (state.rows||[]).filter(r=> matchesClient(r.cliente, cli));
           if (state.useUnifiedFeed && state.unifiedRows && state.unifiedRows.length){
             all = all.concat(state.unifiedRows.filter(r=> matchesClient(r.cliente, cli)));
           }
@@ -2712,6 +2988,8 @@
         if (client==='MCI') base = (state.mciRows||[]);
           else if (client==='Dumarey') base = (state.rapRows||[]);
           else if (client==='Tremec') base = (state.tremecRows||[]);
+          else if (client==='Tenneco') base = (state.tennecoRows||[]);
+          else if (client==='Phinia') base = (state.phiniaRows||[]);
           else base = (state.rows||[]).filter(r=> !client || matchesClient(r.cliente, client));
           let rows = base;
           if (planta) rows = rows.filter(r=> String(r.planta||'').toLowerCase()===String(planta).toLowerCase());
@@ -2849,7 +3127,7 @@
       // Populate client dropdown
       const sel = document.getElementById('globeClientSelect');
       if (sel){
-  const clients = ['Vitesco','Continental','Bosch','MCI','Dumarey','Tremec'];
+  const clients = ['Vitesco','Continental','Bosch','MCI','Dumarey','Tremec','Tenneco','Phinia'];
         sel.innerHTML = '<option value="">Cliente…</option>' + clients.map(c=>`<option value="${c}">${c}</option>`).join('');
         sel.value = state.currentClient || '';
         sel.onchange = function(){
@@ -2918,6 +3196,25 @@
       if (k==='g'){ prevent(); openGlobeModal(); }
   if (k==='p'){ prevent(); document.getElementById('exportPDF')?.click(); }
     });
+
+    // ---------- Toast notifications ----------
+    function showToast(message, type = 'success') {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      if (type === 'error') {
+        t.style.background = 'linear-gradient(90deg, #ef4444 0%, #f87171 100%)';
+      }
+      t.innerHTML = `<span>${message}</span><button class="toast-close" title="Cerrar">&times;</button>`;
+      document.body.appendChild(t);
+      setTimeout(() => t.classList.add('show'), 50);
+      const closeBtn = t.querySelector('.toast-close');
+      const close = () => {
+        t.classList.remove('show');
+        setTimeout(() => t.remove(), 400);
+      };
+      closeBtn.onclick = close;
+      setTimeout(close, 5000);
+    }
 
     // Centralized close handlers
     function closeGlobeModal(){
@@ -3018,6 +3315,10 @@
         base = state.rapRows.slice();
       } else if (client==='Tremec') {
         base = state.tremecRows.slice();
+      } else if (client==='Tenneco') {
+        base = state.tennecoRows.slice();
+      } else if (client==='Phinia') {
+        base = state.phiniaRows.slice();
       } else {
         base = (which===2 ? state.rows2 : state.rows).filter(r=> matchesClient(r.cliente, client));
       }
@@ -3043,6 +3344,8 @@
   if (client==='MCI') base = state.mciRows.slice();
   else if (client==='Dumarey') base = state.rapRows.slice();
   else if (client==='Tremec') base = state.tremecRows.slice();
+  else if (client==='Tenneco') base = state.tennecoRows.slice();
+  else if (client==='Phinia') base = state.phiniaRows.slice();
       else base = state.rows.filter(r=> matchesClient(r.cliente, client));
       if(!root) return base;
       const {years, months, refs, plantas} = getFilters(root);
@@ -3131,6 +3434,9 @@
     rows2 = [];
   } else if (client==='Tremec') {
     rows1 = getFilteredRows('Tremec', root);
+    rows2 = [];
+  } else if (client==='Tenneco') {
+    rows1 = getFilteredRows('Tenneco', root);
     rows2 = [];
   } else {
     rows1 = getFilteredRowsLastOnly(client, root);
@@ -3266,6 +3572,9 @@
     rows2 = [];
   } else if (client==='Tremec') {
     rows1 = getFilteredRows('Tremec', root);
+    rows2 = [];
+  } else if (client==='Tenneco') {
+    rows1 = getFilteredRows('Tenneco', root);
     rows2 = [];
   } else {
     rows1 = getFilteredRowsLastOnly(client, root);
@@ -3729,6 +4038,116 @@
         alert('No se pudo leer el Excel unificado. Asegúrate de incluir columnas Cliente, Referencia, Volumen y Fecha/Periodo.');
         progressHide();
       }
+
+    // ---------- Lectura Excel TENNECO ----------
+  async function loadTennecoExcel(file){
+      try{
+        progressShow('Cargando Excel TENNECO…'); progressSet(10);
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, {type:'array'});
+        // Elegir hoja: preferir la que tenga cabeceras A..U con 'Producto'/'Ref', 'CtdVenc' (cantidad) y 'Fecha entrega'
+        let ws = null; let sheetName = null;
+        for (const name of wb.SheetNames){
+          const cand = wb.Sheets[name];
+          if (!cand || !cand['!ref']) continue;
+          const r = XLSX.utils.decode_range(cand['!ref']);
+          // Leer primera fila como cabeceras
+          const headers = [];
+          for (let c=r.s.c; c<=Math.min(r.s.c+25,r.e.c); c++){
+            const v = cand[XLSX.utils.encode_cell({c, r:r.s.r})]?.v;
+            headers.push(String(v||'').toLowerCase());
+          }
+          const hasRef = headers.some(h=> /(\bref\b|referencia|producto)/.test(h));
+          const hasFecha = headers.some(h=> /(fecha entrega|fecha|date)/.test(h));
+          const hasQty = headers.some(h=> /(\bqty\b|cantidad|quantity|ctdvenc|ctd[ _-]?venc)/.test(h)) || !!cand[XLSX.utils.encode_cell({c:1, r:r.s.r})];
+          if (hasRef && hasFecha && hasQty){ ws = cand; sheetName = name; break; }
+        }
+        if (!ws){ ws = wb.Sheets[wb.SheetNames[0]]; sheetName = wb.SheetNames[0]; }
+        if (!ws || !ws['!ref']) throw new Error('No se encontró una hoja válida');
+        progressSet(25); progressLog && progressLog(`Hoja TENNECO seleccionada: ${sheetName}`);
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        // Mapear columnas por cabecera con fallback posicional A,B,T
+        const norm = s=> String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+        let iRef = 0, iQty = 1, iDate = 19; // fallbacks posicionales
+        // Detectar la fila de cabeceras en las primeras 8 filas con tokens clave
+        let hdrRow = range.s.r;
+        let bestHeader = null;
+        for (let r = range.s.r; r <= Math.min(range.s.r+8, range.e.r); r++){
+          const texts = [];
+          for (let c=range.s.c; c<=Math.min(range.s.c+30, range.e.c); c++){
+            const v = ws[XLSX.utils.encode_cell({c, r})]?.v; texts[c] = norm(v);
+          }
+          const hasRef = texts.some(h=> h && (/^ref\b/.test(h) || /refcliente|referencia|producto/.test(h)));
+          const hasQty = texts.some(h=> h && (/(\bqty\b|cantidad|quantity|ctdvenc|ctd[ _-]?venc|^ctd$)/.test(h)));
+          const hasFecha = texts.some(h=> h && (/(fecha entrega|fecha|date)/.test(h)));
+          if ((hasRef && hasFecha) || (hasRef && hasQty)) { bestHeader = texts; hdrRow = r; break; }
+        }
+        const headerTexts = [];
+        if (bestHeader) {
+          for (let c=range.s.c; c<=Math.min(range.s.c+30, range.e.c); c++) headerTexts[c] = bestHeader[c] || '';
+        } else {
+          for (let c=range.s.c; c<=Math.min(range.s.c+30, range.e.c); c++){
+            const v = ws[XLSX.utils.encode_cell({c, r:hdrRow})]?.v; headerTexts[c] = norm(v);
+          }
+        }
+        function findCol(regexArr, fallback){
+          const idx = headerTexts.findIndex(h=> h && regexArr.some(rx=> rx.test(h)));
+          return idx>=0 ? idx : fallback;
+        }
+        iRef = findCol([/\bref\b|refcliente|referencia|producto/], iRef);
+        iQty = findCol([/(^ctdvenc$)|ctd[ _-]?venc|\bcant\b|cantidad|\bqty\b|quantity/], iQty);
+        iDate = findCol([/(fecha entrega)|fecha|date|f\.entrega|f\.programada|fprogramada|delivery/], iDate);
+        progressLog && progressLog(`TENNECO columnas: ref=${iRef}, qty=${iQty}, fecha=${iDate}, headerRow=${hdrRow}`);
+        const rows = [];
+        // iterar filas de datos a partir de la siguiente a cabecera
+        for (let r = hdrRow + 1; r <= range.e.r; r++){
+          const refCli = ws[XLSX.utils.encode_cell({c:iRef, r})]?.v;
+          const qtyRaw = ws[XLSX.utils.encode_cell({c:iQty, r})]?.v;
+          const dateRaw = ws[XLSX.utils.encode_cell({c:iDate, r})]?.v;
+          if (refCli==null || String(refCli).trim()==='') continue;
+          // qty: quitar miles con punto, aceptar coma como decimal
+          let qty = 0;
+          if (qtyRaw!=null && qtyRaw!==''){
+            const s = String(qtyRaw).replace(/\s/g,'');
+            const clean = s.replace(/\./g,'').replace(/,/g,'.');
+            const val = Number(clean);
+            qty = Number.isFinite(val) ? val : 0;
+          }
+          // fecha: dd/mm/yyyy, mm/dd/yyyy, yyyy-mm-dd o serial Excel
+          let fecha = null, anio = null, mes = null;
+          if (typeof dateRaw === 'number'){
+            fecha = parseExcelDate(dateRaw);
+          } else if (typeof dateRaw === 'string'){
+            // cortar hora si viene con tiempo ("dd/mm/yyyy hh:mm")
+            const s = dateRaw.trim().split(' ')[0];
+            fecha = parseExcelDate(s) || null;
+          }
+          if (fecha && !isNaN(fecha)) { anio = fecha.getUTCFullYear(); mes = fecha.getUTCMonth()+1; }
+          rows.push({ cliente:'Tenneco', refCli:String(refCli).trim(), refTeix:null, ref:null, qty, fecha, anio, mes, planta:null, ubicacion:null });
+        }
+        const parsed = rows.filter(r=> r.fecha instanceof Date && !isNaN(r.fecha));
+        if (!parsed.length){
+          alert('No se pudo parsear ninguna fila TENNECO. Asegúrate de que las cabeceras sean: "Producto" (columna A), "CtdVenc" (columna B) y "Fecha entrega" (columna T), con las cabeceras en la fila 1.');
+          progressLog && progressLog('TENNECO sin filas válidas: revisa cabeceras (Producto/CtdVenc/Fecha entrega) o formato de fechas.');
+        }
+        state.tennecoRows = parsed;
+        ensureLocations();
+        // Cambiar a la pestaña TENNECO y renderizar
+        state.currentClient = 'Tenneco';
+        document.querySelectorAll('.clientTab').forEach(b=>{
+          const isSel = b.dataset.client==='Tenneco';
+          b.classList.toggle('bg-gray-100', false);
+          b.classList.toggle('dark:bg-gray-800', false);
+          b.classList.toggle('is-active', isSel);
+        });
+        renderPanels();
+        progressHide();
+      }catch(err){
+        console.error('Error leyendo Excel TENNECO:', err);
+        progressHide();
+        showToast('No se pudo leer el Excel TENNECO. Si sigue fallando, envíame un ejemplo para ajustar el lector.', 'error');
+      }
+    }
     }
 
     // ---------- Lectura PDF MCI (tabla Pick up date, Quantity, Change, Cum Ordered) ----------
@@ -4839,7 +5258,8 @@
           if (g.classList.contains('expanded')) collapse(); else expand();
         });
       }
-  ['grp-vbc','grp-mci','grp-tremec','grp-dumarey','grp-unificado','grp-bulk','grp-delfor'].forEach(setupAccordion);
+  // Acordeones eliminados - menú simplificado
+  // ['grp-vbc','grp-mci','grp-tremec','grp-tenneco','grp-dumarey','grp-phinia','grp-unificado','grp-bulk','grp-delfor'].forEach(setupAccordion);
 
       const btnD = document.getElementById('loadDelforCE');
       const btnF = document.getElementById('loadForecastCE');
