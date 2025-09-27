@@ -39,6 +39,150 @@
   </script>
   <style>
     :root{ --ease: cubic-bezier(.22,.61,.36,1); }
+    
+    /* Modo Presentación */
+    .presentation-mode {
+      background: linear-gradient(135deg, var(--corp-primary, #1e40af) 0%, var(--corp-secondary, #7c3aed) 100%) !important;
+      color: white !important;
+    }
+    .presentation-mode header { background: rgba(0,0,0,0.1) !important; backdrop-filter: blur(10px); }
+    .presentation-mode .clientTab { background: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.2) !important; }
+    .presentation-mode .clientTab.is-active { background: rgba(255,255,255,0.2) !important; color: white !important; }
+    .presentation-mode .clientPanel { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.1) !important; }
+    .presentation-mode .chart-container { background: rgba(255,255,255,0.08) !important; border-color: rgba(255,255,255,0.15) !important; }
+    .presentation-mode .btn-gradient { background: linear-gradient(45deg, rgba(255,255,255,0.2), rgba(255,255,255,0.3)) !important; }
+    .presentation-hidden { display: none !important; }
+    
+    /* Colores corporativos por cliente */
+    body[data-corp-theme="vitesco"] { --corp-primary: #00a651; --corp-secondary: #004d25; }
+    body[data-corp-theme="continental"] { --corp-primary: #f39200; --corp-secondary: #d67e00; }
+    body[data-corp-theme="bosch"] { --corp-primary: #0066cc; --corp-secondary: #004499; }
+    body[data-corp-theme="mci"] { --corp-primary: #e31837; --corp-secondary: #b01229; }
+    body[data-corp-theme="dumarey"] { --corp-primary: #2563eb; --corp-secondary: #1d4ed8; }
+    body[data-corp-theme="tremec"] { --corp-primary: #dc2626; --corp-secondary: #b91c1c; }
+    body[data-corp-theme="tenneco"] { --corp-primary: #1f2937; --corp-secondary: #374151; }
+    body[data-corp-theme="phinia"] { --corp-primary: #7c3aed; --corp-secondary: #5b21b6; }
+    
+    /* Indicadores simples originales */
+    .status-simple {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      transition: transform 0.2s;
+      cursor: help;
+    }
+    .status-loaded {
+      background: #10b981 !important;
+      color: white !important;
+    }
+    .status-empty {
+      background: #e5e7eb !important;
+      color: #6b7280 !important;
+    }
+    .dark .status-empty {
+      background: #374151 !important;
+      color: #9ca3af !important;
+    }
+    .status-simple:hover {
+      transform: scale(1.1);
+    }
+    .glow-blue {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3), 0 0 60px rgba(59, 130, 246, 0.1);
+      animation: pulse-glow 2s ease-in-out infinite alternate;
+    }
+    
+    @keyframes pulse-glow {
+      from {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3), 0 0 60px rgba(59, 130, 246, 0.1);
+        transform: scale(1);
+      }
+      to {
+        box-shadow: 0 0 30px rgba(59, 130, 246, 0.8), 0 0 60px rgba(59, 130, 246, 0.6), 0 0 90px rgba(59, 130, 246, 0.4);
+        transform: scale(1.05);
+      }
+    }
+    
+    /* Destello dinámico para el logo */
+    .logo-shimmer {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .logo-shimmer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+      );
+      animation: shimmer 3s ease-in-out infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { left: -100%; }
+      50% { left: -100%; }
+      100% { left: 100%; }
+    }
+    
+    /* Efectos visuales avanzados */
+    .glow-blue {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3), 0 0 60px rgba(59, 130, 246, 0.1);
+      animation: pulse-glow 2s ease-in-out infinite alternate;
+    }
+    
+    @keyframes pulse-glow {
+      from {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3), 0 0 60px rgba(59, 130, 246, 0.1);
+        transform: scale(1);
+      }
+      to {
+        box-shadow: 0 0 30px rgba(59, 130, 246, 0.8), 0 0 60px rgba(59, 130, 246, 0.6), 0 0 90px rgba(59, 130, 246, 0.4);
+        transform: scale(1.05);
+      }
+    }
+    
+    /* Destello dinámico para el logo */
+    .logo-shimmer {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .logo-shimmer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.4),
+        transparent
+      );
+      animation: shimmer 3s ease-in-out infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { left: -100%; }
+      50% { left: -100%; }
+      100% { left: 100%; }
+    }
+    
+
+    
+
     .btn-limpiar-filtros {
       background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb 100%);
       color: #005a91;
@@ -281,10 +425,10 @@
     <header class="sticky top-0 z-40 backdrop-blur bg-white/70 dark:bg-gray-950/70 border-b border-gray-200 dark:border-gray-800">
       <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
         <!-- Logo Teixidó apaisado grande -->
-        <img src="teixido.jpg" onerror="this.onerror=null;this.src='teixido.png'" alt="Teixidó" style="height:56px; width:auto; max-width:220px; object-fit:contain; border-radius:0.75rem; background:#fff;" />
+        <img src="teixido.jpg" onerror="this.onerror=null;this.src='teixido.png'" alt="Teixidó" style="height:56px; width:auto; max-width:220px; object-fit:contain; border-radius:0.75rem; background:#fff;" class="logo-shimmer" />
         <div class="flex items-center gap-2 flex-1 justify-between">
           <div id="actionsWrapper" class="relative">
-            <button id="headerActionsBtn" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Acciones ▾</button>
+            <button id="headerActionsBtn" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900" title="Menú de acciones">☰</button>
             <div id="headerActionsMenu" class="hidden dropdown absolute left-0 mt-2 z-50 w-[360px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl p-3">
               <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Datos</div>
               <div class="grid grid-cols-2 gap-2 mb-3">
@@ -295,13 +439,18 @@
               <div class="grid grid-cols-2 gap-2 mb-3">
                 <button id="openGlobe" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">🌍 Mundo</button>
                 <button id="openExplore" class="px-3 py-2 btn-gradient">🧪 Explorar</button>
+                <button id="generateReport" class="px-3 py-2 btn-gradient col-span-2">📊 Generar Reporte</button>
+              </div>
+              <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Presentación</div>
+              <div class="grid grid-cols-1 gap-2 mb-3">
+                <button id="btnPresentationMode" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">🎯 Modo Presentación</button>
               </div>
               <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Exportar</div>
               <div class="grid grid-cols-2 gap-2">
                 <button id="exportPDF" class="px-3 py-2 btn-gradient col-span-2">🧾 PDF</button>
                 <button id="exportMaestroUbic" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 col-span-2">🌍 Export Maestro + Ubic</button>
               </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">Atajos: Alt+L (Cargar) · Alt+G (Mundo) · Alt+P (PDF) · Alt+A (Acciones)</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">Atajos: Alt+L (Cargar) · Alt+G (Mundo) · Alt+P (PDF) · Alt+A (Menú)</div>
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -309,13 +458,20 @@
               <span>Oscuro</span>
               <input id="darkToggle" type="checkbox">
             </label>
-            <label class="ml-3 inline-flex items-center gap-2 text-sm">
-              <span>Usar Maestro</span>
-              <input id="toggleUnified" type="checkbox">
-            </label>
-            <button id="btnBuildMaster" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">Construir Maestro</button>
-            <button id="btnExportDetailed" class="px-3 py-2 btn-gradient">Exportar Detallado</button>
-            <button id="logoutBtn" class="ml-2 px-3 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700">Cerrar sesión</button>
+            <!-- Indicadores de estado simples -->
+            <div id="dataStatus" class="flex items-center gap-1 text-xs mr-4">
+              <span id="statusLast" class="status-simple status-empty" title="LAST Excel">L</span>
+              <span id="statusOld" class="status-simple status-empty" title="OLD Excel">O</span>
+              <span id="statusMci" class="status-simple status-empty" title="MCI PDF">M</span>
+              <span id="statusTremec" class="status-simple status-empty" title="TREMEC Excel">T</span>
+              <span id="statusTenneco" class="status-simple status-empty" title="TENNECO Excel">Te</span>
+              <span id="statusPhinia" class="status-simple status-empty" title="PHINIA Excel">P</span>
+              <span id="statusDumarey" class="status-simple status-empty" title="DUMAREY PDF">D</span>
+            </div>
+            <button id="btnBuildMaster" class="px-3 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors text-sm" title="Construir Maestro Unificado">Construir</button>
+            <button id="btnExportDetailed" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900" title="Exportar detallado">📤</button>
+
+            <button id="logoutBtn" class="px-3 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700" title="Cerrar sesión">⏻</button>
           </div>
         </div>
       </div>
@@ -5608,6 +5764,43 @@
       }
     }
   </script>
+
+  <!-- Modal de Reporte Pantalla Completa -->
+  <div id="reportModal" class="modal-overlay fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] hidden">
+    <div class="modal-panel bg-white dark:bg-gray-900 w-full h-full overflow-hidden flex flex-col">
+      <div class="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="text-2xl">📊</div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">Análisis de Tendencias</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Reporte automático LAST vs OLD</p>
+          </div>
+        </div>
+        <button id="closeReportModal" class="text-gray-500 hover:text-red-600 text-2xl font-bold">&times;</button>
+      </div>
+      
+      <!-- Pestañas de Clientes -->
+      <div class="border-b border-gray-200 dark:border-gray-800">
+        <div class="flex">
+          <button id="tabVitesco" class="px-6 py-3 text-sm font-semibold border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 report-tab active">Vitesco</button>
+          <button id="tabContinental" class="px-6 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 report-tab">Continental</button>
+          <button id="tabBosch" class="px-6 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 report-tab">Bosch</button>
+          <button id="tabResumen" class="px-6 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 report-tab">Resumen General</button>
+        </div>
+      </div>
+      
+      <div class="flex-1 overflow-y-auto p-6">
+        <div id="reportContent" class="prose prose-sm max-w-none dark:prose-invert">
+          <!-- Contenido del reporte se generará aquí -->
+        </div>
+      </div>
+      <div class="p-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3">
+        <button id="copyReport" class="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors">📋 Copiar Reporte</button>
+        <button id="exportReportPDF" class="px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors">📄 Exportar PDF</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
 
@@ -5790,5 +5983,1030 @@
   if (_ham){ _ham.classList.remove('open'); setTimeout(()=> _ham.classList.add('hidden'), 180); }
       window.tourStart();
     });
+
+    // ===== MODO PRESENTACIÓN =====
+    let presentationMode = false;
+    document.getElementById('btnPresentationMode')?.addEventListener('click', ()=> {
+      presentationMode = !presentationMode;
+      const body = document.body;
+      const btn = document.getElementById('btnPresentationMode');
+      
+      if (presentationMode) {
+        // Activar modo presentación
+        body.classList.add('presentation-mode');
+        updateCorporateTheme(state.currentClient);
+        
+        // Ocultar elementos de navegación
+        const elementsToHide = [
+          '#loadMenuBtn', '#exportMaestroUbic', '#btnBuildMaster', 
+          '#logoutBtn', '#dataStatus', 'label[for="darkToggle"]', '#headerActionsBtn'
+        ];
+        elementsToHide.forEach(sel => {
+          const el = document.querySelector(sel);
+          if (el) el.classList.add('presentation-hidden');
+        });
+        
+        btn.textContent = '🎯 Salir Presentación';
+        btn.style.background = 'rgba(255,255,255,0.2)';
+        
+        // Pantalla completa si es posible
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(e => console.log('Fullscreen no disponible'));
+        }
+      } else {
+        // Desactivar modo presentación
+        body.classList.remove('presentation-mode');
+        body.removeAttribute('data-corp-theme');
+        
+        // Mostrar elementos ocultos
+        document.querySelectorAll('.presentation-hidden').forEach(el => {
+          el.classList.remove('presentation-hidden');
+        });
+        
+        btn.textContent = '🎯 Presentar';
+        btn.style.background = '';
+        
+        // Salir de pantalla completa
+        if (document.exitFullscreen && document.fullscreenElement) {
+          document.exitFullscreen().catch(e => console.log('Exit fullscreen falló'));
+        }
+      }
+    });
+
+    function updateCorporateTheme(client) {
+      if (!client) return;
+      const themeMap = {
+        'Vitesco': 'vitesco',
+        'Continental': 'continental', 
+        'Bosch': 'bosch',
+        'MCI': 'mci',
+        'Dumarey': 'dumarey',
+        'Tremec': 'tremec',
+        'Tenneco': 'tenneco',
+        'Phinia': 'phinia'
+      };
+      const theme = themeMap[client];
+      if (theme) {
+        document.body.setAttribute('data-corp-theme', theme);
+      }
+    }
+
+    // ===== PERSISTENCIA AUTOMÁTICA =====
+    function updateDataStatus() {
+      const statusMap = {
+        'statusLast': { hasData: state.rows?.length > 0, count: state.rows?.length || 0 },
+        'statusOld': { hasData: state.rows2?.length > 0, count: state.rows2?.length || 0 },
+        'statusMci': { hasData: state.mciRows?.length > 0, count: state.mciRows?.length || 0 },
+        'statusTremec': { hasData: state.tremecRows?.length > 0, count: state.tremecRows?.length || 0 },
+        'statusTenneco': { hasData: state.tennecoRows?.length > 0, count: state.tennecoRows?.length || 0 },
+        'statusPhinia': { hasData: state.phiniaRows?.length > 0, count: state.phiniaRows?.length || 0 },
+        'statusDumarey': { hasData: state.rapRows?.length > 0, count: state.rapRows?.length || 0 }
+      };
+      
+      Object.entries(statusMap).forEach(([id, info]) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.toggle('status-loaded', info.hasData);
+          el.classList.toggle('status-empty', !info.hasData);
+          
+          // Actualizar tooltip con contador
+          const originalTitle = el.getAttribute('title') || '';
+          const baseTitle = originalTitle.split(' - ')[0]; // Quitar contador anterior
+          el.setAttribute('title', info.hasData ? `${baseTitle} - ${info.count} registros` : baseTitle);
+        }
+      });
+    }
+
+    // Auto-persistencia de datos cargados
+    async function autoPersistData() {
+      try {
+        const dataToSave = {
+          timestamp: Date.now(),
+          rows: state.rows || [],
+          rows2: state.rows2 || [],
+          mciRows: state.mciRows || [],
+          tremecRows: state.tremecRows || [],
+          tennecoRows: state.tennecoRows || [],
+          phiniaRows: state.phiniaRows || [],
+          rapRows: state.rapRows || [],
+          unifiedRows: state.unifiedRows || []
+        };
+        
+        // Guardar en IndexedDB con clave especial
+        await idbSet('autoSavedData', dataToSave);
+        console.log('[Auto-persistencia] Datos guardados automáticamente');
+        updateDataStatus();
+      } catch (e) {
+        console.warn('[Auto-persistencia] Error guardando:', e);
+      }
+    }
+
+    // Restaurar datos al iniciar
+    async function autoRestoreData() {
+      try {
+        const saved = await idbGet('autoSavedData');
+        if (saved && saved.timestamp) {
+          const ageHours = (Date.now() - saved.timestamp) / (1000 * 60 * 60);
+          if (ageHours < 24) { // Solo restaurar si tiene menos de 24 horas
+            state.rows = saved.rows || [];
+            state.rows2 = saved.rows2 || [];
+            state.mciRows = saved.mciRows || [];
+            state.tremecRows = saved.tremecRows || [];
+            state.tennecoRows = saved.tennecoRows || [];
+            state.phiniaRows = saved.phiniaRows || [];
+            state.rapRows = saved.rapRows || [];
+            state.unifiedRows = saved.unifiedRows || [];
+            
+            updateDataStatus();
+            console.log('[Auto-restauración] Datos restaurados automáticamente');
+            
+            // Mostrar notificación
+            const totalRecords = Object.values(saved).reduce((sum, arr) => 
+              Array.isArray(arr) ? sum + arr.length : sum, 0);
+            if (totalRecords > 0) {
+              setTimeout(() => {
+                alert(`📂 Datos restaurados automáticamente\n\n✅ ${totalRecords} registros recuperados\n⏰ Guardado hace ${Math.round(ageHours)}h\n\n💾 NOTA: Los datos se guardan localmente en este navegador.\n🔄 Si cambias de PC/navegador, deberás cargar los archivos nuevamente.`);
+              }, 1000);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Auto-restauración] Error restaurando:', e);
+      }
+    }
+
+    // Interceptar todas las funciones de carga para auto-persistir
+    const originalFunctions = {};
+    
+    // Interceptar cambios en los event listeners de archivos
+    function interceptFileInputs() {
+      const fileInputs = {
+        'fileInput': () => state.rows,
+        'fileInput2': () => state.rows2,
+        'fileMci': () => state.mciRows,
+        'fileRap': () => state.rapRows,
+        'fileTremec': () => state.tremecRows,
+        'fileTenneco': () => state.tennecoRows,
+        'filePhinia': () => state.phiniaRows
+      };
+      
+      Object.entries(fileInputs).forEach(([inputId, getStateArray]) => {
+        const input = document.getElementById(inputId);
+        if (input) {
+          // Crear observer para detectar cambios en el array del estado
+          let lastLength = 0;
+          const checkChanges = () => {
+            const currentArray = getStateArray();
+            const currentLength = currentArray?.length || 0;
+            if (currentLength !== lastLength && currentLength > 0) {
+              console.log(`[Auto-persistencia] Detectado cambio en ${inputId}: ${currentLength} registros`);
+              setTimeout(autoPersistData, 1000);
+              lastLength = currentLength;
+            }
+          };
+          
+          // Verificar cambios cada segundo cuando hay actividad
+          input.addEventListener('change', () => {
+            setTimeout(() => {
+              const interval = setInterval(() => {
+                checkChanges();
+                // Parar después de 10 segundos
+                setTimeout(() => clearInterval(interval), 10000);
+              }, 1000);
+            }, 2000); // Esperar 2 segundos antes de empezar a verificar
+          });
+        }
+      });
+    }
+    
+    interceptFileInputs();
+
+    // Función para limpiar datos guardados (útil para debugging)
+    window.clearAutoSavedData = async () => {
+      try {
+        await idbSet('autoSavedData', null);
+        // Limpiar estado actual
+        state.rows = [];
+        state.rows2 = [];
+        state.mciRows = [];
+        state.tremecRows = [];
+        state.tennecoRows = [];
+        state.phiniaRows = [];
+        state.rapRows = [];
+        state.unifiedRows = [];
+        updateDataStatus();
+        alert('🗑️ Datos guardados eliminados\n\n✅ Cache limpiado correctamente\n🔄 Recarga la página para empezar limpio');
+        console.log('[Auto-persistencia] Datos eliminados manualmente');
+      } catch (e) {
+        alert('❌ Error limpiando datos: ' + e.message);
+      }
+    };
+    
+    // Inicializar restauración automática
+    setTimeout(autoRestoreData, 500);
+    
+    // Actualizar estado del Maestro
+    function updateMasterStatus() {
+      const btnBuildMaster = document.getElementById('btnBuildMaster');
+      if (!btnBuildMaster) return;
+      
+      const masterCount = state.unifiedRows?.length || 0;
+      const hasData = masterCount > 0;
+      
+      if (hasData) {
+        btnBuildMaster.textContent = 'Actualizar';
+        btnBuildMaster.className = 'px-3 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors text-sm';
+      } else {
+        btnBuildMaster.textContent = 'Construir';
+        btnBuildMaster.className = 'px-3 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors text-sm';
+      }
+    }
+
+    // === FUNCIONALIDAD DE REPORTES ===
+    let currentReportData = null;
+    let currentReportTab = 'Vitesco';
+    
+    function generateAnalysisReport() {
+      currentReportData = analyzeDataTrends();
+      showReportTab(currentReportTab);
+      
+      document.getElementById('reportModal').classList.remove('hidden');
+      document.getElementById('reportModal').classList.add('is-open');
+    }
+    
+    function showReportTab(clientName) {
+      currentReportTab = clientName;
+      
+      // Actualizar pestañas activas
+      document.querySelectorAll('.report-tab').forEach(tab => {
+        tab.classList.remove('active', 'border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'bg-blue-50', 'dark:bg-blue-900/20');
+        tab.classList.add('border-transparent', 'text-gray-600', 'dark:text-gray-400');
+      });
+      
+      const activeTab = document.getElementById(`tab${clientName}`);
+      if (activeTab) {
+        activeTab.classList.add('active', 'border-blue-500', 'text-blue-600', 'dark:text-blue-400', 'bg-blue-50', 'dark:bg-blue-900/20');
+        activeTab.classList.remove('border-transparent', 'text-gray-600', 'dark:text-gray-400');
+      }
+      
+      // Generar contenido según la pestaña
+      let reportHTML;
+      if (clientName === 'Resumen') {
+        reportHTML = generateSummaryReportHTML(currentReportData);
+      } else {
+        const clientData = currentReportData.clientAnalysis.find(c => c.client === clientName);
+        reportHTML = generateClientReportHTML(clientData, clientName);
+      }
+      
+      document.getElementById('reportContent').innerHTML = reportHTML;
+    }
+    
+    function analyzeDataTrends() {
+      const clients = ['Vitesco', 'Continental', 'Bosch']; // Clientes con LAST/OLD
+      const analysis = {
+        summary: {
+          totalClients: 0,
+          clientsWithData: 0,
+          totalTrends: 0,
+          increasingTrends: 0,
+          decreasingTrends: 0
+        },
+        clientAnalysis: []
+      };
+      
+      clients.forEach(client => {
+        const lastRows = getFilteredRowsLastOnly(client);
+        const oldRows = getFilteredRowsOldOnly(client);
+        
+        if (lastRows.length === 0 && oldRows.length === 0) return;
+        
+        analysis.summary.totalClients++;
+        if (lastRows.length > 0 || oldRows.length > 0) {
+          analysis.summary.clientsWithData++;
+        }
+        
+        const clientTrends = analyzeClientTrends(client, lastRows, oldRows);
+        analysis.clientAnalysis.push(clientTrends);
+        
+        analysis.summary.totalTrends += clientTrends.trends.length;
+        analysis.summary.increasingTrends += clientTrends.trends.filter(t => t.direction === 'increase').length;
+        analysis.summary.decreasingTrends += clientTrends.trends.filter(t => t.direction === 'decrease').length;
+      });
+      
+      return analysis;
+    }
+    
+    function analyzeClientTrends(client, lastRows, oldRows) {
+      const trends = [];
+      const monthlyDataLast = groupDataByMonth(lastRows);
+      const monthlyDataOld = groupDataByMonth(oldRows);
+      
+      // Combinar todos los meses
+      const allMonths = new Set([...monthlyDataLast.keys(), ...monthlyDataOld.keys()]);
+      
+      const monthlyComparison = [];
+      allMonths.forEach(month => {
+        const lastValue = monthlyDataLast.get(month) || 0;
+        const oldValue = monthlyDataOld.get(month) || 0;
+        
+        if (lastValue > 0 || oldValue > 0) {
+          const change = lastValue - oldValue;
+          const percentChange = oldValue > 0 ? ((change / oldValue) * 100) : (lastValue > 0 ? 100 : 0);
+          
+          monthlyComparison.push({
+            month,
+            lastValue,
+            oldValue,
+            change,
+            percentChange,
+            direction: change > 0 ? 'increase' : change < 0 ? 'decrease' : 'stable'
+          });
+        }
+      });
+      
+      // Identificar tendencias significativas
+      monthlyComparison.forEach(data => {
+        if (Math.abs(data.percentChange) > 10) { // Cambios > 10%
+          trends.push({
+            month: data.month,
+            direction: data.direction,
+            change: data.change,
+            percentChange: data.percentChange,
+            lastValue: data.lastValue,
+            oldValue: data.oldValue
+          });
+        }
+      });
+      
+      // Calcular totales
+      const totalLast = lastRows.reduce((sum, row) => sum + (Number(row.qty) || 0), 0);
+      const totalOld = oldRows.reduce((sum, row) => sum + (Number(row.qty) || 0), 0);
+      
+      return {
+        client,
+        totalLast,
+        totalOld,
+        totalChange: totalLast - totalOld,
+        totalPercentChange: totalOld > 0 ? ((totalLast - totalOld) / totalOld * 100) : (totalLast > 0 ? 100 : 0),
+        trends,
+        monthlyData: monthlyComparison.sort((a, b) => a.month.localeCompare(b.month))
+      };
+    }
+    
+    function groupDataByMonth(rows) {
+      const monthlyData = new Map();
+      
+      rows.forEach(row => {
+        if (!row.fecha) return;
+        const month = `${row.fecha.getFullYear()}-${String(row.fecha.getMonth() + 1).padStart(2, '0')}`;
+        const qty = Number(row.qty) || 0;
+        monthlyData.set(month, (monthlyData.get(month) || 0) + qty);
+      });
+      
+      return monthlyData;
+    }
+    
+    function formatMonth(monthString) {
+      const [year, month] = monthString.split('-');
+      const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      return `${monthNames[parseInt(month) - 1]} ${year}`;
+    }
+    
+    function generateSummaryReportHTML(analysis) {
+      const currentDate = new Date().toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric'
+      });
+      
+      let html = `
+        <div class="mb-8">
+          <h1 class="text-3xl font-bold mb-2 text-blue-600 dark:text-blue-400">Resumen General de Tendencias</h1>
+          <p class="text-gray-600 dark:text-gray-400">Generado el ${currentDate}</p>
+        </div>
+        
+        <div class="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl">
+          <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Métricas Generales</h2>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+              <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">${analysis.summary.clientsWithData}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Clientes Analizados</div>
+            </div>
+            <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+              <div class="text-3xl font-bold text-green-600 dark:text-green-400">${analysis.summary.increasingTrends}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Tendencias al Alza</div>
+            </div>
+            <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+              <div class="text-3xl font-bold text-red-600 dark:text-red-400">${analysis.summary.decreasingTrends}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Tendencias a la Baja</div>
+            </div>
+            <div class="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+              <div class="text-3xl font-bold text-purple-600 dark:text-purple-400">${analysis.summary.totalTrends}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Cambios Significativos</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="grid md:grid-cols-3 gap-6 mb-8">
+      `;
+      
+      // Tarjetas resumen por cliente
+      analysis.clientAnalysis.forEach(clientData => {
+        const trendIcon = clientData.totalPercentChange > 0 ? '📈' : clientData.totalPercentChange < 0 ? '📉' : '➡️';
+        const trendColor = clientData.totalPercentChange > 0 ? 'text-green-600 dark:text-green-400' : 
+                          clientData.totalPercentChange < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400';
+        
+        html += `
+          <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-bold mb-3 flex items-center gap-2">
+              ${trendIcon} ${clientData.client}
+            </h3>
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Cambio Total:</span>
+                <span class="font-bold ${trendColor}">${clientData.totalPercentChange > 0 ? '+' : ''}${clientData.totalPercentChange.toFixed(1)}%</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">LAST:</span>
+                <span class="font-semibold">${clientData.totalLast.toLocaleString()}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">OLD:</span>
+                <span class="font-semibold">${clientData.totalOld.toLocaleString()}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Cambios:</span>
+                <span class="font-semibold">${clientData.trends.length} meses</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += `</div>`;
+      
+      // Conclusiones generales
+      if (analysis.summary.increasingTrends > analysis.summary.decreasingTrends) {
+        html += `
+          <div class="p-6 bg-green-100 dark:bg-green-900/30 rounded-xl">
+            <h3 class="text-xl font-bold text-green-800 dark:text-green-300 mb-3">📈 Tendencia General: POSITIVA</h3>
+            <p class="text-green-700 dark:text-green-400 text-lg">
+              El análisis muestra <strong>${analysis.summary.increasingTrends} tendencias al alza</strong> frente a 
+              <strong>${analysis.summary.decreasingTrends} a la baja</strong>. Esto indica un <strong>crecimiento general</strong> 
+              en la demanda de los productos analizados.
+            </p>
+          </div>
+        `;
+      } else if (analysis.summary.decreasingTrends > analysis.summary.increasingTrends) {
+        html += `
+          <div class="p-6 bg-red-100 dark:bg-red-900/30 rounded-xl">
+            <h3 class="text-xl font-bold text-red-800 dark:text-red-300 mb-3">📉 Tendencia General: NEGATIVA</h3>
+            <p class="text-red-700 dark:text-red-400 text-lg">
+              Se observan <strong>${analysis.summary.decreasingTrends} tendencias a la baja</strong> frente a 
+              <strong>${analysis.summary.increasingTrends} al alza</strong>. Se recomienda <strong>revisar estrategias</strong> 
+              de mercado y producto.
+            </p>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="p-6 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl">
+            <h3 class="text-xl font-bold text-yellow-800 dark:text-yellow-300 mb-3">➡️ Tendencia General: ESTABLE</h3>
+            <p class="text-yellow-700 dark:text-yellow-400 text-lg">
+              Los datos muestran un <strong>equilibrio</strong> con ${analysis.summary.increasingTrends} aumentos y 
+              ${analysis.summary.decreasingTrends} descensos. El mercado se mantiene <strong>estable</strong>.
+            </p>
+          </div>
+        `;
+      }
+      
+      return html;
+    }
+    
+    function generateClientReportHTML(clientData, clientName) {
+      if (!clientData) {
+        return `
+          <div class="text-center py-12">
+            <div class="text-6xl mb-4">📄</div>
+            <h2 class="text-2xl font-bold text-gray-600 dark:text-gray-400 mb-2">Sin datos para ${clientName}</h2>
+            <p class="text-gray-500 dark:text-gray-500">No se encontraron datos LAST u OLD para este cliente.</p>
+          </div>
+        `;
+      }
+      
+      const currentDate = new Date().toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric'
+      });
+      
+      const trendIcon = clientData.totalPercentChange > 0 ? '📈' : clientData.totalPercentChange < 0 ? '📉' : '➡️';
+      const trendColor = clientData.totalPercentChange > 0 ? 'text-green-600 dark:text-green-400' : 
+                        clientData.totalPercentChange < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400';
+      
+      let html = `
+        <div class="mb-8">
+          <h1 class="text-3xl font-bold mb-2 text-blue-600 dark:text-blue-400 flex items-center gap-3">
+            ${trendIcon} Análisis de ${clientName}
+            <span class="text-xl ${trendColor}">(${clientData.totalPercentChange > 0 ? '+' : ''}${clientData.totalPercentChange.toFixed(1)}%)</span>
+          </h1>
+          <p class="text-gray-600 dark:text-gray-400">Reporte detallado generado el ${currentDate}</p>
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
+          <div class="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-xl">
+            <h3 class="text-lg font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-2">
+              📅 Datos LAST (Actuales)
+            </h3>
+            <div class="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">${clientData.totalLast.toLocaleString()}</div>
+            <p class="text-blue-700 dark:text-blue-300">unidades totales</p>
+          </div>
+          <div class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 p-6 rounded-xl">
+            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-300 mb-4 flex items-center gap-2">
+              📅 Datos OLD (Previos)
+            </h3>
+            <div class="text-4xl font-bold text-gray-600 dark:text-gray-400 mb-2">${clientData.totalOld.toLocaleString()}</div>
+            <p class="text-gray-700 dark:text-gray-300">unidades totales</p>
+          </div>
+        </div>
+      `;
+      
+      if (clientData.trends.length > 0) {
+        html += `
+          <div class="mb-8">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-200 flex items-center gap-2">
+              📈 Cambios Significativos Detectados
+              <span class="text-lg font-normal text-gray-500">(${clientData.trends.length} meses)</span>
+            </h2>
+            <div class="grid gap-4">
+        `;
+        
+        clientData.trends.forEach(trend => {
+          const monthName = formatMonth(trend.month);
+          const icon = trend.direction === 'increase' ? '↗️' : '↘️';
+          const colorClass = trend.direction === 'increase' ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20';
+          const textColor = trend.direction === 'increase' ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300';
+          const changeText = trend.direction === 'increase' ? 'AUMENTÓ' : 'DISMINUYÓ';
+          
+          html += `
+            <div class="p-4 rounded-xl border-2 ${colorClass}">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl">${icon}</span>
+                  <div>
+                    <h3 class="font-bold text-lg ${textColor}">${monthName}</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">${changeText} ${Math.abs(trend.percentChange).toFixed(1)}%</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-lg font-bold ${textColor}">
+                    ${trend.oldValue.toLocaleString()} → ${trend.lastValue.toLocaleString()}
+                  </div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">
+                    Diferencia: ${Math.abs(trend.change).toLocaleString()} unidades
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        
+        html += `</div></div>`;
+      } else {
+        html += `
+          <div class="p-8 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl text-center">
+            <div class="text-6xl mb-4">⚠️</div>
+            <h3 class="text-xl font-bold text-yellow-800 dark:text-yellow-300 mb-2">
+              Sin Cambios Significativos
+            </h3>
+            <p class="text-yellow-700 dark:text-yellow-400">
+              No se detectaron variaciones superiores al 10% en ningún mes para ${clientName}.
+              Esto indica una <strong>demanda estable</strong> durante el período analizado.
+            </p>
+          </div>
+        `;
+      }
+      
+      // Evolución mensual detallada
+      if (clientData.monthlyData && clientData.monthlyData.length > 0) {
+        html += `
+          <div class="mt-8">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-200">📅 Evolución Mensual Detallada</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full border-collapse border border-gray-300 dark:border-gray-600">
+                <thead>
+                  <tr class="bg-gray-100 dark:bg-gray-800">
+                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Mes</th>
+                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">LAST</th>
+                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">OLD</th>
+                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">Cambio</th>
+                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">% Cambio</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        clientData.monthlyData.forEach(data => {
+          const monthName = formatMonth(data.month);
+          const changeColor = data.percentChange > 0 ? 'text-green-600 dark:text-green-400' : 
+                             data.percentChange < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400';
+          
+          html += `
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-semibold">${monthName}</td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">${data.lastValue.toLocaleString()}</td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">${data.oldValue.toLocaleString()}</td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right ${changeColor}">${data.change > 0 ? '+' : ''}${data.change.toLocaleString()}</td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right font-bold ${changeColor}">${data.percentChange > 0 ? '+' : ''}${data.percentChange.toFixed(1)}%</td>
+            </tr>
+          `;
+        });
+        
+        html += `
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+      
+      return html;
+    }
+    
+    function generateReportHTML(analysis) {
+      const currentDate = new Date().toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric'
+      });
+      
+      let html = `
+        <div class="mb-8">
+          <h1 class="text-2xl font-bold mb-2 text-blue-600 dark:text-blue-400">Reporte de Análisis de Tendencias</h1>
+          <p class="text-gray-600 dark:text-gray-400">Generado el ${currentDate}</p>
+        </div>
+        
+        <div class="mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+          <h2 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">Resumen Ejecutivo</h2>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div class="bg-white dark:bg-gray-700 p-3 rounded-lg">
+              <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">${analysis.summary.clientsWithData}</div>
+              <div class="text-xs text-gray-600 dark:text-gray-400">Clientes con datos</div>
+            </div>
+            <div class="bg-white dark:bg-gray-700 p-3 rounded-lg">
+              <div class="text-2xl font-bold text-green-600 dark:text-green-400">${analysis.summary.increasingTrends}</div>
+              <div class="text-xs text-gray-600 dark:text-gray-400">Tendencias al alza</div>
+            </div>
+            <div class="bg-white dark:bg-gray-700 p-3 rounded-lg">
+              <div class="text-2xl font-bold text-red-600 dark:text-red-400">${analysis.summary.decreasingTrends}</div>
+              <div class="text-xs text-gray-600 dark:text-gray-400">Tendencias a la baja</div>
+            </div>
+            <div class="bg-white dark:bg-gray-700 p-3 rounded-lg">
+              <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">${analysis.summary.totalTrends}</div>
+              <div class="text-xs text-gray-600 dark:text-gray-400">Cambios significativos</div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Análisis por cliente
+      analysis.clientAnalysis.forEach(clientData => {
+        const trendIcon = clientData.totalPercentChange > 0 ? '📈' : clientData.totalPercentChange < 0 ? '📉' : '➡️';
+        const trendColor = clientData.totalPercentChange > 0 ? 'text-green-600 dark:text-green-400' : 
+                          clientData.totalPercentChange < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400';
+        
+        html += `
+          <div class="mb-8 p-6 border border-gray-200 dark:border-gray-700 rounded-xl">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+              ${trendIcon} ${clientData.client}
+              <span class="text-sm font-normal ${trendColor}">
+                (${clientData.totalPercentChange > 0 ? '+' : ''}${clientData.totalPercentChange.toFixed(1)}%)
+              </span>
+            </h2>
+            
+            <div class="grid md:grid-cols-2 gap-4 mb-4">
+              <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                <h3 class="font-semibold text-blue-800 dark:text-blue-300 mb-2">Datos LAST (Actuales)</h3>
+                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">${clientData.totalLast.toLocaleString()}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">unidades totales</p>
+              </div>
+              <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <h3 class="font-semibold text-gray-800 dark:text-gray-300 mb-2">Datos OLD (Previos)</h3>
+                <p class="text-2xl font-bold text-gray-600 dark:text-gray-400">${clientData.totalOld.toLocaleString()}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">unidades totales</p>
+              </div>
+            </div>
+        `;
+        
+        if (clientData.trends.length > 0) {
+          html += `
+            <h3 class="font-semibold mb-3 text-gray-800 dark:text-gray-200">Cambios Significativos por Mes:</h3>
+            <div class="space-y-2 mb-4">
+          `;
+          
+          clientData.trends.forEach(trend => {
+            const monthName = formatMonth(trend.month);
+            const icon = trend.direction === 'increase' ? '↗️' : '↘️';
+            const colorClass = trend.direction === 'increase' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+            const changeText = trend.direction === 'increase' ? 'aumentó' : 'disminuyó';
+            
+            html += `
+              <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">${icon}</span>
+                  <span class="font-medium">${monthName}</span>
+                </div>
+                <div class="text-right">
+                  <div class="${colorClass} font-semibold">
+                    ${changeText} ${Math.abs(trend.percentChange).toFixed(1)}%
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    ${trend.oldValue.toLocaleString()} → ${trend.lastValue.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          
+          html += `</div>`;
+        } else {
+          html += `
+            <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+              <p class="text-yellow-800 dark:text-yellow-300">
+                ⚠️ No se detectaron cambios significativos (>10%) en ningún mes para este cliente.
+              </p>
+            </div>
+          `;
+        }
+        
+        html += `</div>`;
+      });
+      
+      // Conclusiones
+      html += `
+        <div class="mt-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl">
+          <h2 class="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">Conclusiones y Recomendaciones</h2>
+      `;
+      
+      if (analysis.summary.increasingTrends > analysis.summary.decreasingTrends) {
+        html += `
+          <div class="mb-4 p-4 bg-green-100 dark:bg-green-900/30 rounded-lg">
+            <h3 class="font-semibold text-green-800 dark:text-green-300 mb-2">📈 Tendencia General Positiva</h3>
+            <p class="text-green-700 dark:text-green-400">
+              Se observa una tendencia general al alza con ${analysis.summary.increasingTrends} aumentos significativos 
+              frente a ${analysis.summary.decreasingTrends} descensos. Esto indica un crecimiento en la demanda.
+            </p>
+          </div>
+        `;
+      } else if (analysis.summary.decreasingTrends > analysis.summary.increasingTrends) {
+        html += `
+          <div class="mb-4 p-4 bg-red-100 dark:bg-red-900/30 rounded-lg">
+            <h3 class="font-semibold text-red-800 dark:text-red-300 mb-2">📉 Tendencia General Negativa</h3>
+            <p class="text-red-700 dark:text-red-400">
+              Se observa una tendencia general a la baja con ${analysis.summary.decreasingTrends} descensos significativos 
+              frente a ${analysis.summary.increasingTrends} aumentos. Recomendamos revisar las estrategias de mercado.
+            </p>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="mb-4 p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+            <h3 class="font-semibold text-yellow-800 dark:text-yellow-300 mb-2">➡️ Tendencia Estable</h3>
+            <p class="text-yellow-700 dark:text-yellow-400">
+              Los datos muestran una situación equilibrada con ${analysis.summary.increasingTrends} aumentos y 
+              ${analysis.summary.decreasingTrends} descensos. El mercado parece estable.
+            </p>
+          </div>
+        `;
+      }
+      
+      html += `
+          <div class="text-sm text-gray-600 dark:text-gray-400">
+            <p><strong>Nota:</strong> Los cambios significativos se definen como variaciones superiores al 10% entre períodos.</p>
+            <p><strong>Fuentes:</strong> Datos LAST (actuales) vs OLD (previos) para clientes Vitesco, Continental y Bosch.</p>
+          </div>
+        </div>
+      `;
+      
+      return html;
+    }
+    
+    // Event listeners para el modal de reportes
+    document.addEventListener('DOMContentLoaded', function() {
+      const generateReportBtn = document.getElementById('generateReport');
+      const reportModal = document.getElementById('reportModal');
+      const closeReportBtn = document.getElementById('closeReportModal');
+      const copyReportBtn = document.getElementById('copyReport');
+      
+      if (generateReportBtn) {
+        generateReportBtn.addEventListener('click', function() {
+          generateAnalysisReport();
+        });
+      }
+      
+      if (closeReportBtn) {
+        closeReportBtn.addEventListener('click', function() {
+          reportModal.classList.remove('is-open');
+          setTimeout(() => reportModal.classList.add('hidden'), 300);
+        });
+      }
+      
+      if (copyReportBtn) {
+        copyReportBtn.addEventListener('click', function() {
+          const reportContent = document.getElementById('reportContent');
+          const textContent = reportContent.innerText;
+          
+          navigator.clipboard.writeText(textContent).then(function() {
+            copyReportBtn.innerHTML = '✅ Copiado';
+            setTimeout(() => {
+              copyReportBtn.innerHTML = '📋 Copiar Reporte';
+            }, 2000);
+          }).catch(function() {
+            alert('Error al copiar al portapapeles');
+          });
+        });
+      }
+      
+      const exportPDFBtn = document.getElementById('exportReportPDF');
+      if (exportPDFBtn) {
+        exportPDFBtn.addEventListener('click', function() {
+          exportReportToPDF();
+        });
+      }
+      
+      // Event listeners para las pestañas
+      document.getElementById('tabVitesco')?.addEventListener('click', () => showReportTab('Vitesco'));
+      document.getElementById('tabContinental')?.addEventListener('click', () => showReportTab('Continental'));
+      document.getElementById('tabBosch')?.addEventListener('click', () => showReportTab('Bosch'));
+      document.getElementById('tabResumen')?.addEventListener('click', () => showReportTab('Resumen'));
+      
+      // Cerrar modal con Escape
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && reportModal.classList.contains('is-open')) {
+          reportModal.classList.remove('is-open');
+          setTimeout(() => reportModal.classList.add('hidden'), 300);
+        }
+      });
+      
+      // Cerrar modal al hacer clic fuera
+      reportModal.addEventListener('click', function(e) {
+        if (e.target === reportModal) {
+          reportModal.classList.remove('is-open');
+          setTimeout(() => reportModal.classList.add('hidden'), 300);
+        }
+      });
+    });
+    
+    // Función para exportar reporte a PDF
+    function exportReportToPDF() {
+      const exportBtn = document.getElementById('exportReportPDF');
+      const originalHTML = exportBtn.innerHTML;
+      
+      exportBtn.innerHTML = '⏳ Generando PDF...';
+      exportBtn.disabled = true;
+      
+      try {
+        // Obtener contenido del reporte
+        const reportContent = document.getElementById('reportContent');
+        const title = `Reporte_${currentReportTab}_${new Date().toISOString().slice(0, 10)}`;
+        
+        // Crear ventana nueva para imprimir
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>${title}</title>
+            <meta charset="UTF-8">
+            <style>
+              body { 
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                line-height: 1.6; 
+                color: #333;
+                margin: 20px;
+                background: white;
+              }
+              h1, h2, h3 { color: #2563eb; margin-top: 1.5em; }
+              h1 { font-size: 24px; border-bottom: 2px solid #2563eb; padding-bottom: 10px; }
+              h2 { font-size: 20px; }
+              h3 { font-size: 16px; }
+              table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin: 15px 0;
+                font-size: 12px;
+              }
+              th, td { 
+                border: 1px solid #ddd; 
+                padding: 8px; 
+                text-align: left;
+              }
+              th { 
+                background-color: #f8f9fa; 
+                font-weight: bold;
+              }
+              .metric-card {
+                display: inline-block;
+                background: #f8f9fa;
+                padding: 15px;
+                margin: 10px;
+                border-radius: 8px;
+                text-align: center;
+                min-width: 120px;
+              }
+              .metric-value {
+                font-size: 24px;
+                font-weight: bold;
+                color: #2563eb;
+              }
+              .trend-positive { color: #059669; }
+              .trend-negative { color: #dc2626; }
+              .trend-neutral { color: #6b7280; }
+              .summary-box {
+                background: #f0f9ff;
+                border: 1px solid #bae6fd;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 15px 0;
+              }
+              @media print {
+                body { margin: 0; }
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1>Análisis de Tendencias - ${currentReportTab}</h1>
+              <p>Generado el ${new Date().toLocaleDateString('es-ES', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+              })}</p>
+            </div>
+            ${reportContent.innerHTML}
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666;">
+              <p>Reporte generado automáticamente por el sistema de análisis de forecast Teixidó</p>
+            </div>
+          </body>
+          </html>
+        `);
+        
+        printWindow.document.close();
+        
+        // Esperar a que se cargue y luego imprimir
+        printWindow.onload = function() {
+          setTimeout(() => {
+            printWindow.print();
+            
+            // Restaurar botón después de un momento
+            setTimeout(() => {
+              exportBtn.innerHTML = originalHTML;
+              exportBtn.disabled = false;
+            }, 1000);
+          }, 500);
+        };
+        
+      } catch (error) {
+        console.error('Error al exportar PDF:', error);
+        alert('Error al generar el PDF. Por favor, inténtalo de nuevo.');
+        exportBtn.innerHTML = originalHTML;
+        exportBtn.disabled = false;
+      }
+    }
+    
+    // Auto-activar Maestro cuando se construye
+    const originalBuildMaster = document.getElementById('btnBuildMaster');
+    if (originalBuildMaster) {
+      originalBuildMaster.addEventListener('click', () => {
+        setTimeout(() => {
+          updateMasterStatus();
+          // Auto-activar el uso del Maestro cuando se construye exitosamente
+          if (state.unifiedRows?.length > 0) {
+            state.useUnifiedFeed = true;
+            renderPanels(); // Re-renderizar con los nuevos datos
+          }
+        }, 1000);
+      });
+    }
+
+    // Actualizar indicadores inicialmente
+    setTimeout(() => {
+      updateDataStatus();
+      updateMasterStatus();
+    }, 1000);
+    
+    // Actualizar estado del Maestro cada vez que se modifican los datos
+    const originalAutoPersist = autoPersistData;
+    autoPersistData = async () => {
+      await originalAutoPersist();
+      setTimeout(updateMasterStatus, 500);
+    };
+    
+    // Mensaje de información sobre almacenamiento
+    console.log('💾 [ALMACENAMIENTO] Los datos se guardan localmente en IndexedDB de este navegador.');
+    console.log('🔧 [FUNCIONES DISPONIBLES] Ejecuta clearAutoSavedData() en consola para limpiar el cache.');
   })();
 </script>
