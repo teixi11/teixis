@@ -788,6 +788,8 @@
         <div id="exploreActiveChips" class="flex flex-wrap items-center gap-2 min-h-[2rem]"></div>
       </div>
       <div class="flex-1 min-h-0 overflow-auto grid grid-cols-12 gap-4 p-4 pt-2 bg-white dark:bg-slate-900">
+        <!-- Selects rápidos para filtros -->
+        <!-- ...eliminados selects rápidos... -->
         <div class="col-span-3 flex flex-col gap-2">
           <div class="text-xs font-semibold text-gray-500">Campos</div>
           <div id="exploreFields" class="flex flex-col gap-2"></div>
@@ -1979,6 +1981,58 @@
       addPillToDrop({key:'anio',label:'Año',type:'dimension'}, 'X');
       addPillToDrop({key:'qty',label:'Volumen',type:'measure',agg:'sum'}, 'Y');
       renderExploreChart();
+      // Inicializar selects rápidos
+      setTimeout(()=>{
+        fillQuickFilterSelects();
+      }, 100);
+    // Rellenar selects rápidos de filtro
+    function fillQuickFilterSelects() {
+      const rows = sourceRowsForExplore();
+      const clientSel = document.getElementById('exploreQuickClient');
+      const plantSel = document.getElementById('exploreQuickPlant');
+      const refSel = document.getElementById('exploreQuickRef');
+      if (!clientSel || !plantSel || !refSel) return;
+      // Cliente
+      const clients = [...new Set(rows.map(r=>String(r.cliente||''))).values()].filter(v=>v);
+      clientSel.innerHTML = '<option value="">Todos</option>' + clients.map(c=>`<option value="${c}">${c}</option>`).join('');
+      // Planta
+      const plants = [...new Set(rows.map(r=>String(r.planta||''))).values()].filter(v=>v);
+      plantSel.innerHTML = '<option value="">Todos</option>' + plants.map(p=>`<option value="${p}">${p}</option>`).join('');
+      // Referencia
+      const refs = [...new Set(rows.map(r=>String(r.ref||''))).values()].filter(v=>v);
+      refSel.innerHTML = '<option value="">Todos</option>' + refs.map(r=>`<option value="${r}">${r}</option>`).join('');
+      // Listeners
+      clientSel.onchange = ()=> quickFilterChange('client', clientSel.value);
+      plantSel.onchange = ()=> quickFilterChange('plant', plantSel.value);
+      refSel.onchange = ()=> quickFilterChange('reference', refSel.value);
+    }
+
+    // Cambia filtro rápido y actualiza gráfico
+    function quickFilterChange(type, value) {
+      // ...eliminada función de selects rápidos...
+      const filter = exploreState.filters[type];
+      // Forzar el campo correcto para cada tipo
+      if (type === 'client') filter.field = 'Cliente';
+      else if (type === 'plant') filter.field = 'Planta';
+      else if (type === 'reference') filter.field = 'Referencia';
+      // Asignar valores
+      if (!value) {
+        // Todos los valores
+        const rows = sourceRowsForExplore();
+        const key = mapFieldToDataKey(filter.field);
+        filter.values = [...new Set(rows.map(r=>String(r[key]||''))).values()].filter(v=>v);
+      } else {
+        filter.values = [value];
+      }
+      updateActiveFiltersDisplay();
+      renderExploreChart();
+      // Actualizar resumen
+      const summary = document.getElementById(`exploreFilter${type.charAt(0).toUpperCase() + type.slice(1)}Summary`);
+      if (summary) {
+        summary.textContent = !value ? 'Todos los valores' : '1 seleccionado';
+        summary.classList.remove('hidden');
+      }
+    }
     }
     function closeExplore(){
       modalClose('exploreModal');
@@ -2276,11 +2330,11 @@
     
     document.getElementById('exploreFilterRefBtn')?.addEventListener('click', ()=>{
       console.log('📦 Click en botón filtro referencia:', exploreState.filters.reference);
-      if (exploreState.filters.reference.field) {
-        openFilterSelector('reference', exploreState.filters.reference.field);
-      } else {
-        console.warn('⚠️ No hay campo de referencia configurado');
+      // Si el campo no está inicializado, lo forzamos a 'Referencia'
+      if (!exploreState.filters.reference.field) {
+        exploreState.filters.reference.field = 'Referencia';
       }
+      openFilterSelector('reference', exploreState.filters.reference.field);
     });
     function getExploreSelection(){
       const read = (id)=>{
@@ -2408,7 +2462,7 @@
     
     function openFilterSelector(filterType, fieldName) {
       console.log('🔍 Abriendo selector de filtro:', filterType, fieldName);
-      const rows = exploreState.filter === 'unified' ? state.unifiedRows : state.rows;
+  const rows = sourceRowsForExplore();
       if (!rows || !fieldName) {
         console.warn('⚠️ No hay datos o fieldName para filtro:', { rows: rows?.length, fieldName });
         return;
@@ -2493,16 +2547,17 @@
       const summary = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Summary`);
       const values = exploreState.filters[filterType].values;
       
-      if (summary) {
-        if (values.length === 0) {
-          summary.textContent = 'Ninguno seleccionado';
-          summary.classList.remove('hidden');
-        } else {
-          summary.textContent = `${values.length} elemento${values.length !== 1 ? 's' : ''} seleccionado${values.length !== 1 ? 's' : ''}`;
-          summary.classList.remove('hidden');
-        }
+      // Nunca dejar el filtro vacío: si no hay valores, volver a marcar todos
+      if (values.length === 0) {
+        const rows = sourceRowsForExplore();
+        const filter = exploreState.filters[filterType];
+        const key = mapFieldToDataKey(filter.field);
+        filter.values = [...new Set(rows.map(r=>String(r[key]||''))).values()].filter(v=>v);
       }
-      
+      if (summary) {
+        summary.textContent = `${exploreState.filters[filterType].values.length} elemento${exploreState.filters[filterType].values.length !== 1 ? 's' : ''} seleccionado${exploreState.filters[filterType].values.length !== 1 ? 's' : ''}`;
+        summary.classList.remove('hidden');
+      }
       closeFilterPopover(filterType);
       updateActiveFiltersDisplay();
       renderExploreChart();
