@@ -309,6 +309,37 @@
   .dark .explore-drop{border-color:#374151; background:rgba(255,255,255,.02)}
   .explore-drop.dragover{outline:2px solid #60a5fa}
   .explore-drop{transition:transform .12s ease, box-shadow .12s ease}
+  .explore-drop.drag-over { background: rgba(59, 130, 246, 0.1); border-color: #3b82f6; }
+  .explore-drop.has-filter { background: rgba(34, 197, 94, 0.1); border-color: #22c55e; border-style: solid; }
+  .filter-zone { transition: all 0.2s ease; }
+  .filter-zone:hover { transform: translateY(-1px); }
+  .active-filter-chip {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+  }
+  .active-filter-chip .remove-filter {
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: background 0.2s;
+  }
+  .active-filter-chip .remove-filter:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
   .explore-drop:hover{transform:translateY(-1px); box-shadow:0 8px 22px rgba(0,0,0,.06)}
   .pill{display:inline-flex; align-items:center; gap:.35rem; padding:.25rem .5rem; border-radius:999px; background:#e5f0ff; color:#0b3b78; font-size:.8rem; cursor:grab; margin:.15rem}
   .pill[data-type="measure"]{background:#eafaf3; color:#064e3b}
@@ -687,6 +718,9 @@
             <button class="is-active" data-val="qty">Volumen</button>
             <button data-val="fact">Facturación</button>
           </div>
+          <button class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors" onclick="if(window.showDataTable) window.showDataTable(); else alert('Función no disponible');">
+            📊 Tabla
+          </button>
         </div>
       </div>
 
@@ -771,20 +805,62 @@
             <div class="text-xs font-semibold text-gray-500 mb-1">Segmento/Color</div>
             <div id="exploreDropSeries" class="explore-drop h-16"></div>
           </div>
-          <div class="col-span-12 grid grid-cols-12 gap-3 mt-2 items-start">
-            <div class="col-span-8">
-              <div class="text-xs font-semibold text-gray-500 mb-1">Filtro (arrastra una dimensión)</div>
-              <div id="exploreDropFilter" class="explore-drop h-10"></div>
+          <!-- Sistema de Múltiples Filtros -->
+          <div class="col-span-12 mt-4">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="text-sm font-semibold text-gray-700 dark:text-gray-300">🔍 Filtros Múltiples</div>
+              <button id="clearAllFilters" class="px-3 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">Limpiar Todos</button>
+              <div class="text-xs text-gray-500 dark:text-gray-400">Arrastra campos aquí para combinar filtros</div>
             </div>
-            <div class="col-span-4">
-              <div class="text-xs font-semibold text-gray-500 mb-1">Valores</div>
-              <div class="flex items-center gap-2">
-                <button id="exploreFilterBtn" class="px-3 py-1 rounded-xl border border-gray-200 dark:border-gray-700">Seleccionar…</button>
-                <span id="exploreFilterSummary" class="text-xs text-gray-500">Todos</span>
+            
+            <!-- Zona de Filtros Activos -->
+            <div id="exploreActiveFilters" class="flex flex-wrap gap-3 mb-4 min-h-[60px] p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+              <div class="flex items-center justify-center w-full h-full text-gray-400 dark:text-gray-500 text-sm" id="noFiltersMessage">
+                ⬇️ Arrastra campos aquí para crear filtros combinados
+              </div>
+            </div>
+            
+            <!-- Zonas de Drop para Filtros Específicos -->
+            <div class="grid grid-cols-3 gap-4">
+              <div class="filter-zone">
+                <div class="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1">
+                  🏢 Filtro por Cliente
+                </div>
+                <div id="exploreDropFilterClient" class="explore-drop h-12 border-blue-300 dark:border-blue-600" data-filter-type="client"></div>
+                <div class="mt-1">
+                  <button id="exploreFilterClientBtn" class="px-2 py-1 text-xs rounded border border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hidden">Seleccionar valores...</button>
+                  <div id="exploreFilterClientSummary" class="text-xs text-gray-500 mt-1 hidden"></div>
+                </div>
+              </div>
+              
+              <div class="filter-zone">
+                <div class="text-xs font-semibold text-green-600 dark:text-green-400 mb-2 flex items-center gap-1">
+                  🏭 Filtro por Planta
+                </div>
+                <div id="exploreDropFilterPlant" class="explore-drop h-12 border-green-300 dark:border-green-600" data-filter-type="plant"></div>
+                <div class="mt-1">
+                  <button id="exploreFilterPlantBtn" class="px-2 py-1 text-xs rounded border border-green-300 dark:border-green-600 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 hidden">Seleccionar valores...</button>
+                  <div id="exploreFilterPlantSummary" class="text-xs text-gray-500 mt-1 hidden"></div>
+                </div>
+              </div>
+              
+              <div class="filter-zone">
+                <div class="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1">
+                  📦 Filtro por Referencia
+                </div>
+                <div id="exploreDropFilterRef" class="explore-drop h-12 border-purple-300 dark:border-purple-600" data-filter-type="reference"></div>
+                <div class="mt-1">
+                  <button id="exploreFilterRefBtn" class="px-2 py-1 text-xs rounded border border-purple-300 dark:border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 hidden">Seleccionar valores...</button>
+                  <div id="exploreFilterRefSummary" class="text-xs text-gray-500 mt-1 hidden"></div>
+                </div>
               </div>
             </div>
           </div>
-          <div id="exploreFilterPopover" class="popover hidden"></div>
+          
+          <!-- Popovers para selección de valores -->
+          <div id="exploreFilterClientPopover" class="popover hidden"></div>
+          <div id="exploreFilterPlantPopover" class="popover hidden"></div>
+          <div id="exploreFilterRefPopover" class="popover hidden"></div>
           <div class="col-span-12">
             <div class="text-xs font-semibold text-gray-500 mb-1">Gráfico</div>
             <div class="w-full h-[68vh] border border-gray-200 dark:border-gray-800 rounded-xl p-2" id="exploreChartWrap">
@@ -1866,7 +1942,16 @@
 
     // ===== Explorar (Drag & Drop) =====
     let _exploreChart = null;
-  let exploreFilterState = { key: null, values: null };
+    const exploreState = {
+      axisX: null,
+      axisY: null,
+      series: null,
+      filters: {
+        client: { field: null, values: [] },
+        plant: { field: null, values: [] },
+        reference: { field: null, values: [] }
+      }
+    };
     const EXPLORE_FIELDS = [
       { key:'cliente', label:'Cliente', type:'dimension' },
       { key:'ref', label:'Referencia', type:'dimension' },
@@ -1931,17 +2016,48 @@
           renderExploreChart();
         });
       });
-      // Drop para Filtros
-      const fEl = document.getElementById('exploreDropFilter');
-      fEl.addEventListener('dragover', (e)=>{ e.preventDefault(); fEl.classList.add('dragover'); });
-      fEl.addEventListener('dragleave', ()=> fEl.classList.remove('dragover'));
-      fEl.addEventListener('drop', (e)=>{
-        e.preventDefault(); fEl.classList.remove('dragover');
-        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-        if (data.type !== 'dimension'){ return; }
-        addPillToDrop(data, 'F');
-        buildFilterValues();
-        renderExploreChart();
+      // Drop handlers para múltiples filtros
+      const dropFilterClient = document.getElementById('exploreDropFilterClient');
+      const dropFilterPlant = document.getElementById('exploreDropFilterPlant');
+      const dropFilterRef = document.getElementById('exploreDropFilterRef');
+      
+      [dropFilterClient, dropFilterPlant, dropFilterRef].forEach((dropZone, index) => {
+        if (!dropZone) return;
+        
+        const filterType = ['client', 'plant', 'reference'][index];
+        const filterTypeCapital = filterType.charAt(0).toUpperCase() + filterType.slice(1);
+        
+        dropZone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          dropZone.classList.add('drag-over');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+          dropZone.classList.remove('drag-over');
+        });
+        
+        dropZone.addEventListener('drop', (e)=>{
+          e.preventDefault();
+          dropZone.classList.remove('drag-over');
+          
+          const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+          if (data.type !== 'dimension') return;
+          
+          // Configurar filtro
+          exploreState.filters[filterType].field = data.label;
+          exploreState.filters[filterType].values = [];
+          
+          // Actualizar UI
+          dropZone.innerHTML = `<span class="font-semibold text-gray-700 dark:text-gray-300">${data.label}</span>`;
+          dropZone.classList.add('has-filter');
+          
+          // Mostrar controles
+          document.getElementById(`exploreFilter${filterTypeCapital}Btn`).classList.remove('hidden');
+          document.getElementById(`exploreFilter${filterTypeCapital}Summary`).classList.remove('hidden');
+          document.getElementById(`exploreFilter${filterTypeCapital}Summary`).textContent = 'Todos los valores';
+          
+          updateActiveFiltersDisplay();
+        });
       });
       document.getElementById('exploreChartType')?.addEventListener('change', renderExploreChart);
     }
@@ -1949,10 +2065,38 @@
       document.getElementById('exploreDropX').innerHTML='';
       document.getElementById('exploreDropY').innerHTML='';
       document.getElementById('exploreDropSeries').innerHTML='';
-      document.getElementById('exploreDropFilter').innerHTML='';
-      const pop = document.getElementById('exploreFilterPopover'); if (pop){ pop.classList.add('hidden'); pop.innerHTML=''; }
-      const sum = document.getElementById('exploreFilterSummary'); if (sum) sum.textContent = 'Todos';
-      exploreFilterState = { key: null, values: null };
+      
+      // Limpiar múltiples filtros
+      exploreState.filters = {
+        client: { field: null, values: [] },
+        plant: { field: null, values: [] },
+        reference: { field: null, values: [] }
+      };
+      
+      // Limpiar zonas de drop de filtros
+      ['Client', 'Plant', 'Ref'].forEach(type => {
+        const dropZone = document.getElementById(`exploreDropFilter${type}`);
+        if (dropZone) {
+          dropZone.innerHTML = '';
+          dropZone.classList.remove('has-filter');
+        }
+        
+        const btn = document.getElementById(`exploreFilter${type}Btn`);
+        const summary = document.getElementById(`exploreFilter${type}Summary`);
+        if (btn) btn.classList.add('hidden');
+        if (summary) summary.classList.add('hidden');
+      });
+      
+      // Limpiar popovers
+      ['Client', 'Plant', 'Ref'].forEach(type => {
+        const pop = document.getElementById(`exploreFilter${type}Popover`);
+        if (pop) {
+          pop.classList.add('hidden');
+          pop.innerHTML = '';
+        }
+      });
+      
+      updateActiveFiltersDisplay();
       const chips = document.getElementById('exploreActiveChips'); if (chips) chips.innerHTML = '';
     }
     function addPillToDrop(data, zone){
@@ -2112,9 +2256,31 @@
         wrap.appendChild(all);
       }
     }
-    // Abrir popover al pulsar el botón
-    document.getElementById('exploreFilterBtn')?.addEventListener('click', ()=>{
-      buildFilterValues();
+    // Event listeners para filtros múltiples
+    document.getElementById('clearAllFilters')?.addEventListener('click', clearAllFilters);
+    
+    document.getElementById('exploreFilterClientBtn')?.addEventListener('click', ()=>{
+      if (exploreState.filters.client.field) {
+        openFilterSelector('client', exploreState.filters.client.field);
+      }
+    });
+    
+    document.getElementById('exploreFilterPlantBtn')?.addEventListener('click', ()=>{
+      console.log('🏭 Click en botón filtro planta:', exploreState.filters.plant);
+      if (exploreState.filters.plant.field) {
+        openFilterSelector('plant', exploreState.filters.plant.field);
+      } else {
+        console.warn('⚠️ No hay campo de planta configurado');
+      }
+    });
+    
+    document.getElementById('exploreFilterRefBtn')?.addEventListener('click', ()=>{
+      console.log('📦 Click en botón filtro referencia:', exploreState.filters.reference);
+      if (exploreState.filters.reference.field) {
+        openFilterSelector('reference', exploreState.filters.reference.field);
+      } else {
+        console.warn('⚠️ No hay campo de referencia configurado');
+      }
     });
     function getExploreSelection(){
       const read = (id)=>{
@@ -2140,19 +2306,426 @@
         ref: r.ref || r.refCli || r.refTeix || ''
       }));
     }
+    
+    // Función para mapear campos de filtro a claves de datos
+    function mapFieldToDataKey(fieldName) {
+      const fieldMap = {
+        'Cliente': 'cliente',
+        'Planta': 'planta', 
+        'Referencia': 'ref',
+        'Año': 'year',
+        'Mes': 'month',
+        'Fuente': 'fuente'
+      };
+      const result = fieldMap[fieldName] || fieldName.toLowerCase();
+      console.log('🗺️ Mapeando campo:', fieldName, '->', result);
+      return result;
+    }
+
+    // Funciones para gestión de múltiples filtros
+    function updateActiveFiltersDisplay() {
+      const container = document.getElementById('exploreActiveFilters');
+      const noFiltersMsg = document.getElementById('noFiltersMessage');
+      
+      // Limpiar contenido actual
+      container.innerHTML = '';
+      
+      let hasAnyFilter = false;
+      
+      // Agregar chips de filtros activos
+      Object.keys(exploreState.filters).forEach(filterType => {
+        const filter = exploreState.filters[filterType];
+        if (filter.field && filter.values.length > 0) {
+          hasAnyFilter = true;
+          
+          const chip = document.createElement('div');
+          chip.className = 'active-filter-chip';
+          
+          const icon = filterType === 'client' ? '🏢' : filterType === 'plant' ? '🏭' : '📦';
+          const label = filterType === 'client' ? 'Cliente' : filterType === 'plant' ? 'Planta' : 'Referencia';
+          
+          chip.innerHTML = `
+            <span>${icon} ${label}: ${filter.field}</span>
+            <span class="text-xs">(${filter.values.length})</span>
+            <span class="remove-filter" onclick="removeFilter('${filterType}')">&times;</span>
+          `;
+          
+          container.appendChild(chip);
+        }
+      });
+      
+      // Mostrar mensaje si no hay filtros
+      if (!hasAnyFilter) {
+        const noFiltersDiv = document.createElement('div');
+        noFiltersDiv.className = 'flex items-center justify-center w-full h-full text-gray-400 dark:text-gray-500 text-sm';
+        noFiltersDiv.innerHTML = '⬇️ Arrastra campos aquí para crear filtros combinados';
+        container.appendChild(noFiltersDiv);
+      }
+    }
+    
+    function removeFilter(filterType) {
+      exploreState.filters[filterType] = { field: null, values: [] };
+      
+      // Limpiar zona de drop correspondiente
+      const dropZone = document.getElementById(`exploreDropFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`);
+      if (dropZone) {
+        dropZone.innerHTML = '';
+        dropZone.classList.remove('has-filter');
+      }
+      
+      // Ocultar botón y resumen
+      const btn = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Btn`);
+      const summary = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Summary`);
+      if (btn) btn.classList.add('hidden');
+      if (summary) summary.classList.add('hidden');
+      
+      updateActiveFiltersDisplay();
+      renderExploreChart();
+    }
+    
+    function clearAllFilters() {
+      // Limpiar todos los filtros
+      Object.keys(exploreState.filters).forEach(filterType => {
+        exploreState.filters[filterType] = { field: null, values: [] };
+        
+        // Limpiar zona de drop
+        const dropZone = document.getElementById(`exploreDropFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`);
+        if (dropZone) {
+          dropZone.innerHTML = '';
+          dropZone.classList.remove('has-filter');
+        }
+        
+        // Ocultar controles
+        const btn = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Btn`);
+        const summary = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Summary`);
+        if (btn) btn.classList.add('hidden');
+        if (summary) summary.classList.add('hidden');
+      });
+      
+      updateActiveFiltersDisplay();
+      renderExploreChart();
+    }
+    
+    function openFilterSelector(filterType, fieldName) {
+      console.log('🔍 Abriendo selector de filtro:', filterType, fieldName);
+      const rows = exploreState.filter === 'unified' ? state.unifiedRows : state.rows;
+      if (!rows || !fieldName) {
+        console.warn('⚠️ No hay datos o fieldName para filtro:', { rows: rows?.length, fieldName });
+        return;
+      }
+      
+      const fieldKey = mapFieldToDataKey(fieldName);
+      console.log('🗝️ Usando clave de campo:', fieldKey);
+      const uniqueValues = [...new Set(rows.map(r => String(r[fieldKey] || '')).filter(v => v !== ''))];
+      uniqueValues.sort();
+      console.log('📋 Valores únicos encontrados:', uniqueValues.length, uniqueValues.slice(0, 5));
+      
+      const popover = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Popover`);
+      if (!popover) return;
+      
+      const currentValues = exploreState.filters[filterType].values;
+      
+      popover.innerHTML = `
+        <div class="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-w-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold text-gray-800 dark:text-gray-200">${fieldName}</h3>
+            <button onclick="closeFilterPopover('${filterType}')" class="text-gray-500 hover:text-red-600">&times;</button>
+          </div>
+          <div class="mb-3 flex gap-2">
+            <button onclick="selectAllFilterValues('${filterType}')" class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50">Todos</button>
+            <button onclick="selectNoneFilterValues('${filterType}')" class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600">Ninguno</button>
+          </div>
+          <div class="max-h-48 overflow-y-auto space-y-1">
+            ${uniqueValues.map(value => `
+              <label class="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
+                <input type="checkbox" ${currentValues.includes(value) ? 'checked' : ''} 
+                       onchange="toggleFilterValue('${filterType}', '${value.replace(/'/g, "\\'")}')"
+                       class="rounded border-gray-300 dark:border-gray-600">
+                <span class="text-sm text-gray-700 dark:text-gray-300">${value}</span>
+              </label>
+            `).join('')}
+          </div>
+          <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+            <button onclick="applyFilterValues('${filterType}')" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm">Aplicar</button>
+          </div>
+        </div>
+      `;
+      
+      popover.classList.remove('hidden');
+    }
+    
+    function closeFilterPopover(filterType) {
+      const popover = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Popover`);
+      if (popover) popover.classList.add('hidden');
+    }
+    
+    function toggleFilterValue(filterType, value) {
+      const currentValues = exploreState.filters[filterType].values;
+      const index = currentValues.indexOf(value);
+      
+      if (index > -1) {
+        currentValues.splice(index, 1);
+      } else {
+        currentValues.push(value);
+      }
+    }
+    
+    function selectAllFilterValues(filterType) {
+      const popover = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Popover`);
+      const checkboxes = popover.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => {
+        cb.checked = true;
+        const value = cb.nextElementSibling.textContent;
+        if (!exploreState.filters[filterType].values.includes(value)) {
+          exploreState.filters[filterType].values.push(value);
+        }
+      });
+    }
+    
+    function selectNoneFilterValues(filterType) {
+      const popover = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Popover`);
+      const checkboxes = popover.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => cb.checked = false);
+      exploreState.filters[filterType].values = [];
+    }
+    
+    function applyFilterValues(filterType) {
+      const summary = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Summary`);
+      const values = exploreState.filters[filterType].values;
+      
+      if (summary) {
+        if (values.length === 0) {
+          summary.textContent = 'Ninguno seleccionado';
+          summary.classList.remove('hidden');
+        } else {
+          summary.textContent = `${values.length} elemento${values.length !== 1 ? 's' : ''} seleccionado${values.length !== 1 ? 's' : ''}`;
+          summary.classList.remove('hidden');
+        }
+      }
+      
+      closeFilterPopover(filterType);
+      updateActiveFiltersDisplay();
+      renderExploreChart();
+    }
+    
+    // Funciones para gestión de múltiples filtros
+    function updateActiveFiltersDisplay() {
+      const container = document.getElementById('exploreActiveFilters');
+      if (!container) return;
+      
+      // Limpiar contenido actual
+      container.innerHTML = '';
+      
+      let hasAnyFilter = false;
+      
+      // Agregar chips de filtros activos
+      Object.keys(exploreState.filters).forEach(filterType => {
+        const filter = exploreState.filters[filterType];
+        if (filter.field && filter.values.length > 0) {
+          hasAnyFilter = true;
+          
+          const chip = document.createElement('div');
+          chip.className = 'active-filter-chip';
+          
+          const icon = filterType === 'client' ? '🏢' : filterType === 'plant' ? '🏭' : '📦';
+          const label = filterType === 'client' ? 'Cliente' : filterType === 'plant' ? 'Planta' : 'Referencia';
+          
+          chip.innerHTML = `
+            <span>${icon} ${label}: ${filter.field}</span>
+            <span class="text-xs">(${filter.values.length})</span>
+            <span class="remove-filter" onclick="removeFilter('${filterType}')">&times;</span>
+          `;
+          
+          container.appendChild(chip);
+        }
+      });
+      
+      // Mostrar mensaje si no hay filtros
+      if (!hasAnyFilter) {
+        const noFiltersDiv = document.createElement('div');
+        noFiltersDiv.className = 'flex items-center justify-center w-full h-full text-gray-400 dark:text-gray-500 text-sm';
+        noFiltersDiv.innerHTML = '⬇️ Arrastra campos aquí para crear filtros combinados';
+        container.appendChild(noFiltersDiv);
+      }
+    }
+    
+    function removeFilter(filterType) {
+      exploreState.filters[filterType] = { field: null, values: [] };
+      
+      // Limpiar zona de drop correspondiente
+      const dropZone = document.getElementById(`exploreDropFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`);
+      if (dropZone) {
+        dropZone.innerHTML = '';
+        dropZone.classList.remove('has-filter');
+      }
+      
+      // Ocultar botón y resumen
+      const btn = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Btn`);
+      const summary = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Summary`);
+      if (btn) btn.classList.add('hidden');
+      if (summary) summary.classList.add('hidden');
+      
+      updateActiveFiltersDisplay();
+      renderExploreChart();
+    }
+    
+    function clearAllFilters() {
+      // Limpiar todos los filtros
+      Object.keys(exploreState.filters).forEach(filterType => {
+        exploreState.filters[filterType] = { field: null, values: [] };
+        
+        // Limpiar zona de drop
+        const dropZone = document.getElementById(`exploreDropFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`);
+        if (dropZone) {
+          dropZone.innerHTML = '';
+          dropZone.classList.remove('has-filter');
+        }
+        
+        // Ocultar controles
+        const btn = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Btn`);
+        const summary = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Summary`);
+        if (btn) btn.classList.add('hidden');
+        if (summary) summary.classList.add('hidden');
+      });
+      
+      updateActiveFiltersDisplay();
+      renderExploreChart();
+    }
+    
+    function openFilterSelector(filterType, fieldName) {
+      console.log('🔍 [DUPLICADO] Abriendo selector de filtro:', filterType, fieldName);
+      const rows = sourceRowsForExplore();
+      if (!rows || !fieldName) {
+        console.warn('⚠️ [DUPLICADO] No hay datos o fieldName para filtro:', { rows: rows?.length, fieldName });
+        return;
+      }
+      
+      const fieldKey = mapFieldToDataKey(fieldName);
+      console.log('🗝️ [DUPLICADO] Usando clave de campo:', fieldKey);
+      const uniqueValues = [...new Set(rows.map(r => String(r[fieldKey] || '')).filter(v => v !== ''))];
+      uniqueValues.sort();
+      console.log('📋 [DUPLICADO] Valores únicos encontrados:', uniqueValues.length, uniqueValues.slice(0, 5));
+      
+      const popover = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Popover`);
+      if (!popover) return;
+      
+      const currentValues = exploreState.filters[filterType].values;
+      
+      popover.innerHTML = `
+        <div class="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-w-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold text-gray-800 dark:text-gray-200">${fieldName}</h3>
+            <button onclick="closeFilterPopover('${filterType}')" class="text-gray-500 hover:text-red-600">&times;</button>
+          </div>
+          <div class="mb-3 flex gap-2">
+            <button onclick="selectAllFilterValues('${filterType}')" class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50">Todos</button>
+            <button onclick="selectNoneFilterValues('${filterType}')" class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600">Ninguno</button>
+          </div>
+          <div class="max-h-48 overflow-y-auto space-y-1">
+            ${uniqueValues.map(value => `
+              <label class="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
+                <input type="checkbox" ${currentValues.includes(value) ? 'checked' : ''} 
+                       onchange="toggleFilterValue('${filterType}', '${value.replace(/'/g, "\\\\'")}')"
+                       class="rounded border-gray-300 dark:border-gray-600">
+                <span class="text-sm text-gray-700 dark:text-gray-300">${value}</span>
+              </label>
+            `).join('')}
+          </div>
+          <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+            <button onclick="applyFilterValues('${filterType}')" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm">Aplicar</button>
+          </div>
+        </div>
+      `;
+      
+      popover.classList.remove('hidden');
+    }
+    
+    function closeFilterPopover(filterType) {
+      const popover = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Popover`);
+      if (popover) popover.classList.add('hidden');
+    }
+    
+    function toggleFilterValue(filterType, value) {
+      const currentValues = exploreState.filters[filterType].values;
+      const index = currentValues.indexOf(value);
+      
+      if (index > -1) {
+        currentValues.splice(index, 1);
+      } else {
+        currentValues.push(value);
+      }
+    }
+    
+    function selectAllFilterValues(filterType) {
+      const popover = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Popover`);
+      const checkboxes = popover.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => {
+        cb.checked = true;
+        const value = cb.nextElementSibling.textContent;
+        if (!exploreState.filters[filterType].values.includes(value)) {
+          exploreState.filters[filterType].values.push(value);
+        }
+      });
+    }
+    
+    function selectNoneFilterValues(filterType) {
+      const popover = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Popover`);
+      const checkboxes = popover.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(cb => cb.checked = false);
+      exploreState.filters[filterType].values = [];
+    }
+    
+    function applyFilterValues(filterType) {
+      const summary = document.getElementById(`exploreFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}Summary`);
+      const values = exploreState.filters[filterType].values;
+      
+      if (summary) {
+        if (values.length === 0) {
+          summary.textContent = 'Ninguno seleccionado';
+          summary.classList.remove('hidden');
+        } else {
+          summary.textContent = `${values.length} elemento${values.length !== 1 ? 's' : ''} seleccionado${values.length !== 1 ? 's' : ''}`;
+          summary.classList.remove('hidden');
+        }
+      }
+      
+      closeFilterPopover(filterType);
+      updateActiveFiltersDisplay();
+      renderExploreChart();
+    }
+
     function renderExploreChart(){
       const sel = getExploreSelection();
       const chartTypeSel = document.getElementById('exploreChartType')?.value || 'bar';
       if (!sel.X || !sel.Y){ return; }
       let rows = sourceRowsForExplore();
-      // Apply filters
-      const fsel = getFilterSelection();
-      if (fsel && fsel.key && Array.isArray(fsel.values)){
-        if (fsel.values.length===0){
-          rows = [];
-        } else {
-          rows = rows.filter(r=> fsel.values.includes(String(r[fsel.key]??'')));
-        }
+      
+      // Aplicar múltiples filtros
+      // Filtro por Cliente
+      if (exploreState.filters.client.field && exploreState.filters.client.values.length > 0) {
+        const clientKey = mapFieldToDataKey(exploreState.filters.client.field);
+        rows = rows.filter(r => {
+          const value = String(r[clientKey] || '');
+          return exploreState.filters.client.values.includes(value);
+        });
+      }
+      
+      // Filtro por Planta
+      if (exploreState.filters.plant.field && exploreState.filters.plant.values.length > 0) {
+        const plantKey = mapFieldToDataKey(exploreState.filters.plant.field);
+        rows = rows.filter(r => {
+          const value = String(r[plantKey] || '');
+          return exploreState.filters.plant.values.includes(value);
+        });
+      }
+      
+      // Filtro por Referencia
+      if (exploreState.filters.reference.field && exploreState.filters.reference.values.length > 0) {
+        const refKey = mapFieldToDataKey(exploreState.filters.reference.field);
+        rows = rows.filter(r => {
+          const value = String(r[refKey] || '');
+          return exploreState.filters.reference.values.includes(value);
+        });
       }
       // Build categories for X
       const getLabel = (r)=>{
@@ -2211,11 +2784,20 @@
       const indexAxis = chartTypeSel==='horizontalBar'? 'y' : 'x';
       // Build active filters subtitle
       let subtitle = '';
-      if (fsel && fsel.key){
-        const keyMap = { anio:'Año', mes:'Mes', cliente:'Cliente', ref:'Referencia', planta:'Planta', fuente:'Fuente' };
-        const name = keyMap[fsel.key] || fsel.key;
-        const vals = Array.isArray(fsel.values) ? (fsel.values.length ? fsel.values.join(', ') : 'Ninguno') : 'Todos';
-        subtitle = `${name}: ${vals}`;
+      const activeFilters = [];
+      
+      if (exploreState.filters.client.field && exploreState.filters.client.values.length > 0) {
+        activeFilters.push(`Cliente: ${exploreState.filters.client.values.join(', ')}`);
+      }
+      if (exploreState.filters.plant.field && exploreState.filters.plant.values.length > 0) {
+        activeFilters.push(`Planta: ${exploreState.filters.plant.values.join(', ')}`);
+      }
+      if (exploreState.filters.reference.field && exploreState.filters.reference.values.length > 0) {
+        activeFilters.push(`Referencia: ${exploreState.filters.reference.values.join(', ')}`);
+      }
+      
+      if (activeFilters.length > 0) {
+        subtitle = activeFilters.join(' | ');
       }
       const axisTitleX = sel.X?.key ? (sel.X.key==='anio'?'Año': sel.X.key==='mes'?'Mes': sel.X.key==='ref'?'Referencia': sel.X.key.charAt(0).toUpperCase()+sel.X.key.slice(1)) : '';
       const axisTitleY = sel.Y?.key ? (sel.Y.key==='qty'?'Volumen': sel.Y.key==='facturacion'?'Facturación':'Valor') : '';
@@ -2817,21 +3399,28 @@
       const selPlanta = tpl.querySelector('.filter-planta');
       selPlanta.innerHTML = [...plantaSet].sort().map(p=>`<option value="${p}">${p}</option>`).join('');
 
+        // Actualizar tabla al cambiar selección directamente en el select
+        selYear.addEventListener('change', ()=>{ onFilterChange(root); });
+        selMonth.addEventListener('change', ()=>{ onFilterChange(root); });
+        selRef.addEventListener('change', ()=>{ onFilterChange(root); });
+        selPlanta.addEventListener('change', ()=>{ onFilterChange(root); });
+      // Siempre usar el root del panel activo en el callback de los popovers
+      const getActivePanelRoot = ()=> document.querySelector('.clientPanel[data-client="'+state.currentClient+'"]');
       tpl.querySelector('.filter-btn-year').onclick = (e)=>{
         e.preventDefault();
-        openPopoverForSelectWithSearch(selYear, 'Años', ()=>{ onFilterChange(root); }, e.target);
+        openPopoverForSelectWithSearch(selYear, 'Años', ()=>{ onFilterChange(getActivePanelRoot()); }, e.target);
       };
       tpl.querySelector('.filter-btn-month').onclick = (e)=>{
         e.preventDefault();
-        openPopoverForSelectWithSearch(selMonth, 'Meses', ()=>{ onFilterChange(root); }, e.target);
+        openPopoverForSelectWithSearch(selMonth, 'Meses', ()=>{ onFilterChange(getActivePanelRoot()); }, e.target);
       };
       tpl.querySelector('.filter-btn-ref').onclick = (e)=>{
         e.preventDefault();
-        openPopoverForSelectWithSearch(selRef, 'Referencias', ()=>{ onFilterChange(root); }, e.target);
+        openPopoverForSelectWithSearch(selRef, 'Referencias', ()=>{ onFilterChange(getActivePanelRoot()); }, e.target);
       };
       tpl.querySelector('.filter-btn-planta').onclick = (e)=>{
         e.preventDefault();
-        openPopoverForSelectWithSearch(selPlanta, 'Plantas', ()=>{ onFilterChange(root); }, e.target);
+        openPopoverForSelectWithSearch(selPlanta, 'Plantas', ()=>{ onFilterChange(getActivePanelRoot()); }, e.target);
       };
 
       const grp = tpl.querySelector('[data-groupby]');
@@ -2883,6 +3472,8 @@
       updateKPIs(rootEl);
       drawChart(state.currentClient, rootEl);
       drawSummaryTable(state.currentClient, rootEl);
+  // Asegurar que los filtros del modal estén actualizados tras renderizar paneles
+  try{ populateTableFilters(); } catch(e){ console.warn('populateTableFilters (post renderPanels) error', e); }
       // subtle fade-in after render
       const wrap = document.getElementById('panels');
       if (wrap){
@@ -3593,6 +4184,9 @@
     rows2 = [];
   } else if (client==='Tenneco') {
     rows1 = getFilteredRows('Tenneco', root);
+    rows2 = [];
+  } else if (client==='Vitesco' || client==='Bosch' || client==='Continental') {
+    rows1 = getFilteredRowsLastOnly(client, root);
     rows2 = [];
   } else {
     rows1 = getFilteredRowsLastOnly(client, root);
@@ -5466,7 +6060,21 @@
         btnEl.classList.remove('hidden');
         btnEl.addEventListener('click', (e)=>{
           e.preventDefault();
-          openPopoverForSelectWithSearch(selectEl, label, ()=>{ onFilterChange(root); }, btnEl);
+          openPopoverForSelectWithSearch(selectEl, label, ()=>{ 
+            // Si el select pertenece al menú tabla, disparar applyTableFilters y forzar evento change
+            if(selectEl.id && selectEl.id.startsWith('filter')) {
+              // Normalizar valores seleccionados
+              Array.from(selectEl.options).forEach(opt => {
+                opt.value = (opt.value || '').trim().toLowerCase();
+              });
+              // Forzar evento change para asegurar actualización
+              const event = new Event('change', { bubbles: true });
+              selectEl.dispatchEvent(event);
+              window.applyTableFilters();
+            } else {
+              onFilterChange(root);
+            }
+          }, btnEl);
         });
       });
     }
@@ -5526,6 +6134,9 @@
             const idx = Number(ch.dataset.index);
             selectEl.options[idx].selected = ch.checked;
           });
+          // Disparar evento change en el select para actualizar la tabla
+          const event = new Event('change', { bubbles: true });
+          selectEl.dispatchEvent(event);
           closeAnyPopover();
           onApply && onApply();
         }
@@ -5797,6 +6408,70 @@
       <div class="p-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3">
         <button id="copyReport" class="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors">📋 Copiar Reporte</button>
         <button id="exportReportPDF" class="px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors">📄 Exportar PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Table Modal -->
+  <div id="dataTableModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" style="display:none;">
+  <div class="bg-white dark:bg-gray-900 rounded-none shadow-none w-screen h-screen overflow-hidden flex flex-col">
+      <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          📊 Tabla de Datos Detallada
+        </h2>
+        <button onclick="closeDataTable()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="p-6 flex flex-col gap-4 overflow-auto" style="height:calc(100vh - 80px);">
+        <div class="mb-2 flex flex-wrap items-center gap-4">
+          <div class="w-full text-center py-2 mb-2" style="background:linear-gradient(90deg,#0071bc 0%,#60a5fa 100%);border-radius:12px;">
+            <span id="tableClientFilter" class="text-3xl font-bold text-white drop-shadow">Todos los clientes</span>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="exportTableToCSV()" class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors">
+              📄 Exportar CSV
+            </button>
+            <button onclick="exportTableToExcel()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
+              📊 Exportar Excel
+            </button>
+          </div>
+        </div>
+        <div class="mb-4 flex flex-wrap gap-4 items-center">
+          <select id="filterRef" class="px-2 py-1 rounded border border-gray-300 text-sm" onchange="applyTableFilters()">
+            <option value="">Referencia (todas)</option>
+          </select>
+          <select id="filterCliente" class="px-2 py-1 rounded border border-gray-300 text-sm" onchange="applyTableFilters()">
+            <option value="">Cliente (todos)</option>
+          </select>
+          <select id="filterPlanta" class="px-2 py-1 rounded border border-gray-300 text-sm" onchange="applyTableFilters()">
+            <option value="">Planta (todas)</option>
+          </select>
+          <!-- Año y Mes -->
+          <select id="filterAnio" class="px-2 py-1 rounded border border-gray-300 text-sm" onchange="applyTableFilters()">
+            <option value="">Año (todos)</option>
+          </select>
+          <select id="filterMes" class="px-2 py-1 rounded border border-gray-300 text-sm" onchange="applyTableFilters()">
+            <option value="">Mes (todos)</option>
+          </select>
+          <button id="btnActualizarTabla" class="px-3 py-1 bg-blue-600 text-white rounded text-sm ml-2" style="min-width:120px;" onclick="applyTableFilters()">Actualizar tabla</button>
+          <button id="btnLimpiarFiltrosTabla" class="px-3 py-1 bg-gray-400 text-white rounded text-sm ml-2" style="min-width:120px;" onclick="limpiarFiltrosTabla()">Limpiar filtros</button>
+<script>
+function limpiarFiltrosTabla() {
+  document.getElementById('filterRef').value = '';
+  document.getElementById('filterCliente').value = '';
+  document.getElementById('filterPlanta').value = '';
+  document.getElementById('filterAnio').value = '';
+  document.getElementById('filterMes').value = '';
+  applyTableFilters();
+}
+</script>
+        </div>
+        <div id="dataTableContent" style="min-height:300px;">
+          <!-- Tabla se genera dinámicamente -->
+        </div>
       </div>
     </div>
   </div>
@@ -6846,9 +7521,16 @@
       
       // Cerrar modal con Escape
       document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && reportModal.classList.contains('is-open')) {
-          reportModal.classList.remove('is-open');
-          setTimeout(() => reportModal.classList.add('hidden'), 300);
+        if (e.key === 'Escape') {
+          if (reportModal.classList.contains('is-open')) {
+            reportModal.classList.remove('is-open');
+            setTimeout(() => reportModal.classList.add('hidden'), 300);
+          }
+          // También cerrar modal de tabla si está abierto
+          const dataTableModal = document.getElementById('dataTableModal');
+          if (dataTableModal && dataTableModal.style.display === 'flex') {
+            closeDataTable();
+          }
         }
       });
       
@@ -6859,6 +7541,16 @@
           setTimeout(() => reportModal.classList.add('hidden'), 300);
         }
       });
+      
+      // Event listener para cerrar modal de tabla al hacer clic fuera
+      const dataTableModal = document.getElementById('dataTableModal');
+      if (dataTableModal) {
+        dataTableModal.addEventListener('click', function(e) {
+          if (e.target === dataTableModal) {
+            window.closeDataTable();
+          }
+        });
+      }
     });
     
     // Función para exportar reporte a PDF
@@ -6977,6 +7669,24 @@
       }
     }
     
+    // Exponer funciones globalmente para uso en HTML inline
+    window.removeFilter = removeFilter;
+    window.clearAllFilters = clearAllFilters;
+    window.closeFilterPopover = closeFilterPopover;
+    window.toggleFilterValue = toggleFilterValue;
+    window.selectAllFilterValues = selectAllFilterValues;
+    window.selectNoneFilterValues = selectNoneFilterValues;
+    window.applyFilterValues = applyFilterValues;
+    window.updateActiveFiltersDisplay = updateActiveFiltersDisplay;
+    
+    // Exponer funciones de tabla
+    window.showDataTable = showDataTable;
+    window.closeDataTable = closeDataTable;
+    window.generateDataTable = generateDataTable;
+    window.exportTableToCSV = exportTableToCSV;
+    window.exportTableToExcel = exportTableToExcel;
+    window.getActiveClient = getActiveClient;
+    
     // Auto-activar Maestro cuando se construye
     const originalBuildMaster = document.getElementById('btnBuildMaster');
     if (originalBuildMaster) {
@@ -7004,6 +7714,668 @@
       await originalAutoPersist();
       setTimeout(updateMasterStatus, 500);
     };
+    
+    // ====== DATA TABLE FUNCTIONALITY ======
+    console.log('🛠️ Definiendo funciones de tabla...');
+    
+    window.showDataTable = function() {
+      console.log('📊 Abriendo tabla de datos...');
+      try {
+        // Get current client selection
+        const activeClient = getActiveClient();
+        const clientName = activeClient || 'Todos los clientes';
+        console.log('🏢 Cliente activo:', clientName);
+        
+        // Update client filter display
+        const filterEl = document.getElementById('tableClientFilter');
+        if (filterEl) {
+          filterEl.textContent = clientName;
+        }
+        
+  // Poblar filtros del modal antes de generar la tabla
+  try { populateTableFilters(); } catch(e){ console.warn('populateTableFilters error', e); }
+  // Generate table content
+  generateDataTable(activeClient);
+        
+        // Show modal
+        const modal = document.getElementById('dataTableModal');
+        if (modal) {
+          modal.style.display = 'flex';
+          console.log('✅ Modal de tabla mostrado');
+        } else {
+          console.error('❌ Modal dataTableModal no encontrado');
+        }
+      } catch (error) {
+        console.error('❌ Error en showDataTable:', error);
+        alert('Error al abrir tabla: ' + error.message);
+      }
+    };
+    
+    window.closeDataTable = function() {
+      document.getElementById('dataTableModal').style.display = 'none';
+    };
+    
+    function generateDataTable(clientFilter = null, extraFilters = {}) {
+      // Get data from current state
+      // Use unified feed if explicitly enabled and present; otherwise aggregate all available sources
+      let data = [];
+      if (state.useUnifiedFeed && state.unifiedRows?.length) {
+        data = state.unifiedRows;
+      } else {
+        data = [].concat(
+          state.unifiedRows || [], state.rows || [], state.rows2 || [], state.mciRows || [], state.rapRows || [],
+          state.tremecRows || [], state.tennecoRows || [], state.phiniaRows || []
+        );
+      }
+      
+      // Apply client filter if specified
+      if (clientFilter) {
+        data = data.filter(row => row.cliente === clientFilter);
+      }
+
+        // Apply extra filters (ref, planta, cliente)
+        if (extraFilters) {
+          if (extraFilters.ref) {
+              data = data.filter(row => {
+                const candidates = [row.ref, row.refCli, row.refTeix, row.refTei, row.reference];
+                return candidates.some(c => String(c || '').toLowerCase() === String(extraFilters.ref).toLowerCase());
+              });
+            }
+            if (extraFilters.planta) {
+              data = data.filter(row => String(row.planta || row.plant || row.location || '').toLowerCase() === String(extraFilters.planta).toLowerCase());
+            }
+            if (extraFilters.cliente) {
+              data = data.filter(row => String(row.cliente || row.client || '').toLowerCase() === String(extraFilters.cliente).toLowerCase());
+            }
+            // Year / Month filters: support anio (YYYY) and mes (MM) strings
+            if (extraFilters.anio || extraFilters.mes) {
+              data = data.filter(row => {
+                const ym = getRowYearMonth(row);
+                const ry = ym && ym.year != null ? String(ym.year) : '';
+                const rm = ym && ym.month != null ? String(Number(ym.month)).padStart(2,'0') : '';
+                if (extraFilters.anio && extraFilters.mes) return ry === String(extraFilters.anio) && rm === String(extraFilters.mes);
+                if (extraFilters.anio) return ry === String(extraFilters.anio);
+                if (extraFilters.mes) return rm === String(extraFilters.mes);
+                return true;
+              });
+            }
+        }
+      
+      if (!data || data.length === 0) {
+        document.getElementById('dataTableContent').innerHTML = '<div class="text-center text-gray-500 py-8">No hay datos disponibles</div>';
+        return;
+      }
+      
+      // Group data by reference
+      const refGroups = {};
+      
+      data.forEach(row => {
+        const ref = row.ref || 'Sin Referencia';
+        if (!refGroups[ref]) {
+          refGroups[ref] = {
+            referencia: ref,
+            cliente: row.cliente,
+            planta: row.planta,
+            yearMonthData: {},
+            totalVolume: 0,
+            totalRevenue: 0
+          };
+        }
+        
+  // Determine year/month consistently via helper
+  const ymObj = getRowYearMonth(row);
+  const y = ymObj.year;
+  const m = ymObj.month;
+  const yearMonth = (y != null && m != null) ? `${y}-${String(m).padStart(2,'0')}` : '0000-00';
+        if (!refGroups[ref].yearMonthData[yearMonth]) {
+          refGroups[ref].yearMonthData[yearMonth] = {
+            volume: 0,
+            revenue: 0
+          };
+        }
+        
+        const volume = parseFloat(row.qty) || 0;
+        const revenue = parseFloat(row.facturacion) || 0;
+        
+        refGroups[ref].yearMonthData[yearMonth].volume += volume;
+        refGroups[ref].yearMonthData[yearMonth].revenue += revenue;
+        refGroups[ref].totalVolume += volume;
+        refGroups[ref].totalRevenue += revenue;
+      });
+      
+      // Get all unique year-month combinations and sort them
+      const allYearMonths = new Set();
+      Object.values(refGroups).forEach(group => {
+        Object.keys(group.yearMonthData).forEach(ym => allYearMonths.add(ym));
+      });
+      const sortedYearMonths = Array.from(allYearMonths).sort();
+      
+      // Generate table HTML
+      let tableHTML = `
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <thead class="bg-gray-50 dark:bg-gray-900">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider sticky left-0 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">Referencia</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Planta</th>`;
+      
+      // Add year-month columns
+      sortedYearMonths.forEach(ym => {
+        const [year, month] = ym.split('-');
+        const monthName = new Date(year, month - 1).toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
+        tableHTML += `
+                <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-l border-gray-200 dark:border-gray-700">
+                  <div>${monthName}</div>
+                  <div class="text-xs opacity-70">Vol | Rev</div>
+                </th>`;
+      });
+      
+      tableHTML += `
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-l-2 border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900">
+                  <div>Total Volumen</div>
+                </th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-green-50 dark:bg-green-900 border-l border-gray-200 dark:border-gray-700">
+                  <div>Total Facturación</div>
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">`;
+      
+      // Add data rows
+      Object.values(refGroups).sort((a, b) => a.referencia.localeCompare(b.referencia)).forEach((group, index) => {
+        const rowClass = index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900';
+        tableHTML += `
+              <tr class="${rowClass} hover:bg-blue-50 dark:hover:bg-gray-700">
+                <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white sticky left-0 ${rowClass} border-r border-gray-200 dark:border-gray-700">${group.referencia}</td>
+                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">${group.cliente}</td>
+                <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">${group.planta || 'N/A'}</td>`;
+        
+        // Add year-month data
+        sortedYearMonths.forEach(ym => {
+          const data = group.yearMonthData[ym];
+          if (data && (data.volume > 0 || data.revenue > 0)) {
+            tableHTML += `
+                <td class="px-3 py-3 text-center text-xs border-l border-gray-200 dark:border-gray-700">
+                  <div class="text-blue-600 dark:text-blue-400 font-medium">${fmt.format(data.volume)}</div>
+                  <div class="text-green-600 dark:text-green-400">${eurFmt.format(data.revenue)}</div>
+                </td>`;
+          } else {
+            tableHTML += `<td class="px-3 py-3 text-center text-xs text-gray-400 border-l border-gray-200 dark:border-gray-700">-</td>`;
+          }
+        });
+        
+        tableHTML += `
+                <td class="px-4 py-3 text-center text-sm font-semibold text-blue-600 dark:text-blue-400 border-l-2 border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900">${fmt.format(group.totalVolume)}</td>
+                <td class="px-4 py-3 text-center text-sm font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900 border-l border-gray-200 dark:border-gray-700">${eurFmt.format(group.totalRevenue)}</td>
+              </tr>`;
+      });
+      
+      // Add totals row
+      const grandTotalVolume = Object.values(refGroups).reduce((sum, group) => sum + group.totalVolume, 0);
+      const grandTotalRevenue = Object.values(refGroups).reduce((sum, group) => sum + group.totalRevenue, 0);
+      
+      tableHTML += `
+              <tr class="bg-gray-100 dark:bg-gray-800 border-t-2 border-gray-300 dark:border-gray-600 font-semibold">
+                <td class="px-4 py-3 text-sm font-bold text-gray-900 dark:text-white sticky left-0 bg-gray-100 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700" colspan="3">TOTALES GENERALES</td>`;
+      
+      // Add total columns for each year-month
+      sortedYearMonths.forEach(ym => {
+        const monthTotal = Object.values(refGroups).reduce((sum, group) => {
+          const data = group.yearMonthData[ym];
+          return {
+            volume: sum.volume + (data?.volume || 0),
+            revenue: sum.revenue + (data?.revenue || 0)
+          };
+        }, { volume: 0, revenue: 0 });
+        
+        tableHTML += `
+                <td class="px-3 py-3 text-center text-xs font-semibold border-l border-gray-200 dark:border-gray-700">
+                  <div class="text-blue-700 dark:text-blue-300">${fmt.format(monthTotal.volume)}</div>
+                  <div class="text-green-700 dark:text-green-300">${eurFmt.format(monthTotal.revenue)}</div>
+                </td>`;
+      });
+      
+      tableHTML += `
+                <td class="px-4 py-3 text-center text-sm font-bold text-blue-700 dark:text-blue-300 border-l-2 border-blue-300 dark:border-blue-600 bg-blue-100 dark:bg-blue-800">${fmt.format(grandTotalVolume)}</td>
+                <td class="px-4 py-3 text-center text-sm font-bold text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-800 border-l border-gray-200 dark:border-gray-700">${eurFmt.format(grandTotalRevenue)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>`;
+      
+      document.getElementById('dataTableContent').innerHTML = tableHTML;
+    }
+
+    // Función para aplicar los filtros del menú de tabla
+    window.applyTableFilters = function() {
+      // Leer selecciones
+      const refSel = document.getElementById('filterRef');
+      const clienteSel = document.getElementById('filterCliente');
+      const plantaSel = document.getElementById('filterPlanta');
+      const selRef = refSel ? (refSel.value || '') : '';
+      const selCliente = clienteSel ? (clienteSel.value || '') : '';
+      const selPlanta = plantaSel ? (plantaSel.value || '') : '';
+      const anioSel = document.getElementById('filterAnio');
+      const mesSel = document.getElementById('filterMes');
+      const selAnio = anioSel ? (anioSel.value || '') : '';
+      const selMes = mesSel ? (mesSel.value || '') : '';
+
+      // Recoger fuentes y aplicar filtros en cascada
+      let sources = (typeof collectTableSources === 'function') ? collectTableSources() : [].concat(
+        state.unifiedRows || [], state.rows || [], state.rows2 || [], state.mciRows || [], state.rapRows || [],
+        state.tremecRows || [], state.tennecoRows || [], state.phiniaRows || []
+      );
+      if (!Array.isArray(sources)) {
+        sources = Array.isArray(sources) ? sources : [].concat(sources || []);
+      }
+      const norm = v => (v == null ? '' : String(v).trim());
+      const ensureArray = (x) => {
+        if (Array.isArray(x)) return x;
+        if (x == null) return [];
+        if (typeof x === 'string') return [x];
+        if (typeof x === 'object') {
+          try {
+            if (typeof x[Symbol.iterator] === 'function') return Array.from(x);
+          } catch (e) {}
+          return Object.values(x || {});
+        }
+        return [x];
+      };
+      let filtered = ensureArray(sources).slice();
+      const rowYearMonthMatches = (r, year, month) => {
+        if ((!year && !month) || (!r)) return true;
+        const ym = getRowYearMonth(r);
+        const ry = ym && ym.year != null ? String(ym.year) : '';
+        const rm = ym && ym.month != null ? String(Number(ym.month)).padStart(2,'0') : '';
+        if (year && month) return ry === String(year) && rm === String(month);
+        if (year) return ry === String(year);
+        if (month) return rm === String(month);
+        return true;
+      };
+      if (selCliente) {
+        filtered = ensureArray(filtered);
+        filtered = filtered.filter(r => norm((r && (r.cliente || r.client)) || '').toLowerCase() === selCliente.toLowerCase());
+      }
+      if (selPlanta) {
+        filtered = ensureArray(filtered);
+        filtered = filtered.filter(r => norm((r && (r.planta || r.plant || r.location)) || '').toLowerCase() === selPlanta.toLowerCase());
+      }
+      if (selRef) {
+        filtered = ensureArray(filtered);
+        filtered = filtered.filter(r => {
+          const candidates = [r && r.ref, r && r.refCli, r && r.refTeix, r && r.refTei, r && r.reference];
+          return candidates.some(c => norm(c).toLowerCase() === selRef.toLowerCase());
+        });
+      }
+      if (selAnio || selMes) {
+        filtered = ensureArray(filtered);
+        filtered = filtered.filter(r => rowYearMonthMatches(r, selAnio || null, selMes || null));
+      }
+
+      // Mostrar toast con el número de resultados filtrados
+      if (typeof showToast === 'function') {
+        showToast(`Filtrado: ${filtered.length} resultados`, filtered.length ? 'success' : 'error');
+      } else {
+        const msg = document.createElement('div');
+        msg.textContent = `Filtrado: ${filtered.length} resultados`;
+        msg.style.position = 'fixed';
+        msg.style.bottom = '24px';
+        msg.style.right = '24px';
+        msg.style.background = filtered.length ? '#22c55e' : '#e53935';
+        msg.style.color = '#fff';
+        msg.style.padding = '10px 18px';
+        msg.style.borderRadius = '8px';
+        msg.style.zIndex = 99999;
+        document.body.appendChild(msg);
+        setTimeout(()=> msg.remove(), 3500);
+      }
+      // Forzar refresco de la tabla con los datos filtrados
+  const activeClientTable = getActiveClient();
+  const extraTableFilters = { ref: selRef || undefined, planta: selPlanta || undefined, cliente: selCliente || undefined, anio: selAnio || undefined, mes: selMes || undefined };
+  generateDataTable(activeClientTable, extraTableFilters);
+
+      // Actualizar opciones de los selects basadas en filtered (cascada)
+      const unique = (arr, keyFn) => {
+        const list = Array.isArray(arr) ? arr : [];
+        return Array.from(new Set(list.map(item => {
+          try { return (keyFn(item) || '').toString(); } catch(e) { return ''; }
+        }).filter(Boolean))).sort((a,b)=> a.localeCompare(b, undefined, {sensitivity:'base'}));
+      };
+      if (refSel) {
+        const refs = unique(filtered, r => norm(r.ref) || norm(r.refCli) || norm(r.refTeix));
+        const prev = refSel.value;
+        refSel.innerHTML = '<option value="">Referencia (todas)</option>' + refs.map(r=>`<option value="${r}">${r}</option>`).join('');
+        if (prev && refs.includes(prev)) refSel.value = prev; else refSel.value = '';
+      }
+      if (clienteSel) {
+        const clis = unique(filtered, r => norm(r.cliente) || norm(r.client));
+        const prev = clienteSel.value;
+        clienteSel.innerHTML = '<option value="">Cliente (todos)</option>' + clis.map(c=>`<option value="${c}">${c}</option>`).join('');
+        if (prev && clis.includes(prev)) clienteSel.value = prev; else clienteSel.value = '';
+      }
+      if (plantaSel) {
+        const plas = unique(filtered, r => norm(r.planta) || norm(r.plant) || norm(r.location));
+        const prev = plantaSel.value;
+        plantaSel.innerHTML = '<option value="">Planta (todas)</option>' + plas.map(p=>`<option value="${p}">${p}</option>`).join('');
+        if (prev && plas.includes(prev)) plantaSel.value = prev; else plantaSel.value = '';
+      }
+
+      // Update year/month selects based on filtered set (cascada)
+      if (anioSel || mesSel) {
+        const years = Array.from(new Set(filtered.map(r => {
+          const y = getRowYearMonth(r).year; return y != null ? String(y) : null; })).filter(Boolean)).sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
+        const months = Array.from(new Set(filtered.map(r => {
+          const m = getRowYearMonth(r).month; return m != null ? String(Number(m)).padStart(2,'0') : null; })).filter(Boolean)).sort();
+
+        if (anioSel) {
+          const prevY = anioSel.value;
+          anioSel.innerHTML = '<option value="">Año (todos)</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+          if (prevY && years.includes(prevY)) anioSel.value = prevY; else anioSel.value = '';
+        }
+        if (mesSel) {
+          const monthNames = (m) => new Date(2000, Number(m)-1).toLocaleDateString('es-ES', { month: 'short' });
+          const prevM = mesSel.value;
+          mesSel.innerHTML = '<option value="">Mes (todos)</option>' + months.map(m => `<option value="${m}">${monthNames(m)}</option>`).join('');
+          if (prevM && months.includes(prevM)) mesSel.value = prevM; else mesSel.value = '';
+        }
+      }
+
+      // Mantener el cliente activo de la pestaña (si hay)
+      const activeClient = getActiveClient();
+      // Generar tabla con los filtros actuales
+      const extra = { ref: selRef || undefined, planta: selPlanta || undefined, cliente: selCliente || undefined, anio: selAnio || undefined, mes: selMes || undefined };
+      generateDataTable(activeClient, extra);
+    };
+    
+    window.exportTableToCSV = function() {
+      const activeClient = getActiveClient();
+      // Get data from current state
+      let data = [];
+      if (state.useUnifiedFeed && state.unifiedRows?.length) {
+        data = state.unifiedRows;
+      } else {
+        data = state.rows || [];
+      }
+      
+      if (activeClient) {
+        data = data.filter(row => row.cliente === activeClient);
+      }
+      
+      if (!data || data.length === 0) {
+        alert('No hay datos para exportar');
+        return;
+      }
+      
+      // Prepare CSV content
+      const headers = ['Referencia', 'Cliente', 'Planta', 'Año', 'Mes', 'Volumen', 'Facturación'];
+      let csvContent = headers.join(',') + '\n';
+      
+      data.forEach(row => {
+        const csvRow = [
+          row.ref || '',
+          row.cliente || '',
+          row.planta || '',
+          row.year || '',
+          row.month || '',
+          row.qty || 0,
+          row.facturacion || 0
+        ].map(field => `"${field}"`).join(',');
+        csvContent += csvRow + '\n';
+      });
+      
+      // Download CSV
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `datos_tabla_${activeClient || 'todos'}_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+    
+    window.exportTableToExcel = function() {
+      // For Excel export, we'll use the same CSV approach but with .xlsx extension
+      // In a real implementation, you might want to use a library like SheetJS
+      exportTableToCSV();
+    };
+    
+    function getActiveClient() {
+      // Get the currently selected client from the UI
+      const clientTabs = document.querySelectorAll('[data-client]');
+      for (let tab of clientTabs) {
+        if (tab.classList.contains('is-active')) {
+          return tab.dataset.client;
+        }
+      }
+      return null;
+    }
+
+    // ====== DATA TABLE FUNCTIONALITY ======
+    
+    function populateTableFilters() {
+      // Recolectar desde todas las fuentes posibles para evitar selects vacíos
+      const sources = [].concat(
+        state.unifiedRows || [], state.rows || [], state.rows2 || [], state.mciRows || [], state.rapRows || [],
+        state.tremecRows || [], state.tennecoRows || [], state.phiniaRows || []
+      );
+      console.debug('[populateTableFilters] sources length:', sources.length);
+      if (sources.length) console.debug('[populateTableFilters] sample rows:', sources.slice(0,5));
+      // Normalizador simple
+
+      const norm = v => (v == null ? '' : String(v).trim());
+
+  const refSel = document.getElementById('filterRef');
+  const clienteSel = document.getElementById('filterCliente');
+  const plantaSel = document.getElementById('filterPlanta');
+  const anioSel = document.getElementById('filterAnio');
+  const mesSel = document.getElementById('filterMes');
+
+      // Helper: build canonical map (lowercase -> display) to dedupe ignoring case/accents
+      const buildCanonical = (arr, candidatesFn) => {
+        const map = new Map(); // lower -> display
+        (arr || []).forEach(r => {
+          const cands = candidatesFn(r) || [];
+          cands.forEach(raw => {
+            const v = norm(raw);
+            if (!v) return;
+            const key = v.toLowerCase();
+            if (!map.has(key)) map.set(key, v);
+          });
+        });
+        return Array.from(map.values()).sort((a,b)=> a.localeCompare(b, undefined, {sensitivity:'base'}));
+      };
+
+      // Refs
+      const refs = buildCanonical(sources, r => [r && r.ref, r && r.refCli, r && r.refTeix, r && r.refTei, r && r.reference]);
+      if (refSel) {
+        refSel.innerHTML = '<option value="">Referencia (todas)</option>' + refs.map(r => `<option value="${r}">${r}</option>`).join('');
+        console.debug('[populateTableFilters] referencias encontradas:', refs.length);
+        if (!refs.length) console.debug('[populateTableFilters] no se encontraron referencias para poblar filterRef');
+      }
+
+      // Clientes
+      const clientes = buildCanonical(sources, r => [r && (r.cliente || r.client)]);
+      if (clienteSel) {
+        clienteSel.innerHTML = '<option value="">Cliente (todos)</option>' + clientes.map(c => `<option value="${c}">${c}</option>`).join('');
+        console.debug('[populateTableFilters] clientes encontrados:', clientes.length);
+        if (!clientes.length) console.debug('[populateTableFilters] no se encontraron clientes para poblar filterCliente');
+      }
+
+      // Plantas
+      const plantas = buildCanonical(sources, r => [r && (r.planta || r.plant || r.location)]);
+      if (plantaSel) {
+        plantaSel.innerHTML = '<option value="">Planta (todas)</option>' + plantas.map(p => `<option value="${p}">${p}</option>`).join('');
+        console.debug('[populateTableFilters] plantas encontradas:', plantas.length);
+        if (!plantas.length) console.debug('[populateTableFilters] no se encontraron plantas para poblar filterPlanta');
+      }
+
+      // Años y meses
+      // Use getRowYearMonth helper to extract year/month from rows across sources
+      const yearSet = new Set();
+      const monthSet = new Set();
+      (sources || []).forEach(r => {
+        const ym = getRowYearMonth(r);
+        if (ym && ym.year != null) yearSet.add(String(ym.year));
+        if (ym && ym.month != null) monthSet.add(String(Number(ym.month)).padStart(2,'0'));
+      });
+      const years = Array.from(yearSet).sort((a,b)=> a.localeCompare(b, undefined, {numeric:true}));
+      const months = Array.from(monthSet).sort();
+      if (anioSel) {
+        anioSel.innerHTML = '<option value="">Año (todos)</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+        console.debug('[populateTableFilters] años encontrados:', years.length);
+      }
+      if (mesSel) {
+        // display month names in Spanish short
+        const monthNames = (m) => new Date(2000, Number(m)-1).toLocaleDateString('es-ES', { month: 'short' });
+        mesSel.innerHTML = '<option value="">Mes (todos)</option>' + months.map(m => `<option value="${m}">${monthNames(m)}</option>`).join('');
+        console.debug('[populateTableFilters] meses encontrados:', months.length);
+      }
+    }
+
+    function collectTableSources(){
+      return [].concat(
+        state.unifiedRows || [], state.rows || [], state.rows2 || [], state.mciRows || [], state.rapRows || [],
+        state.tremecRows || [], state.tennecoRows || [], state.phiniaRows || []
+      );
+    }
+
+    function getRowYearMonth(row){
+      if (!row) return { year: null, month: null };
+      let y = null, m = null;
+
+      // Prefer explicit year/month fields
+      if (row.anio != null) y = row.anio;
+      else if (row.year != null) y = row.year;
+
+      if (row.mes != null) m = row.mes;
+      else if (row.month != null) m = row.month;
+
+      // If fecha exists, try to parse it even if it's a string
+      if ((y == null || m == null) && row.fecha != null) {
+        const f = row.fecha;
+        if (f instanceof Date) {
+          if (y == null) y = f.getFullYear();
+          if (m == null) m = f.getMonth() + 1;
+        } else if (typeof f === 'string') {
+          // Try ISO-like YYYY-MM or YYYY-MM-DD or DD/MM/YYYY
+          const isoMatch = f.match(/(\d{4})[-\/](\d{1,2})/);
+          if (isoMatch) {
+            if (y == null) y = Number(isoMatch[1]);
+            if (m == null) m = Number(isoMatch[2]);
+          } else {
+            // Fallback to Date parser
+            const d = new Date(f);
+            if (!isNaN(d)) {
+              if (y == null) y = d.getFullYear();
+              if (m == null) m = d.getMonth() + 1;
+            }
+          }
+        }
+      }
+
+      // Normalize numeric strings
+      if (typeof y === 'string') y = Number(y);
+      if (typeof m === 'string') m = Number(m);
+
+      return { year: (y != null && !isNaN(y)) ? y : null, month: (m != null && !isNaN(m)) ? m : null };
+    }
+
+    function showDataTable() {
+      // Get current client selection
+      const activeClient = getActiveClient();
+      const clientName = activeClient || 'Todos los clientes';
+
+      // Poblar selectores de filtro SIEMPRE con todos los valores únicos
+      populateTableFilters();
+
+      // Update client filter display
+      document.getElementById('tableClientFilter').textContent = clientName;
+
+      // Generate table content
+      generateDataTable(activeClient);
+
+      // Show modal
+      document.getElementById('dataTableModal').style.display = 'flex';
+    }
+    
+    function closeDataTable() {
+      document.getElementById('dataTableModal').style.display = 'none';
+    }
+    
+    
+    
+    function exportTableToCSV() {
+      const activeClient = getActiveClient();
+      // Get data from current state
+      let data = [];
+      if (state.useUnifiedFeed && state.unifiedRows?.length) {
+        data = state.unifiedRows;
+      } else {
+        data = state.rows || [];
+      }
+      
+      if (activeClient) {
+        data = data.filter(row => row.cliente === activeClient);
+      }
+      
+      if (!data || data.length === 0) {
+        alert('No hay datos para exportar');
+        return;
+      }
+      
+      // Prepare CSV content
+      const headers = ['Referencia', 'Cliente', 'Planta', 'Año', 'Mes', 'Volumen', 'Facturación'];
+      let csvContent = headers.join(',') + '\n';
+      
+      data.forEach(row => {
+        const csvRow = [
+          row.ref || '',
+          row.cliente || '',
+          row.planta || '',
+          row.year || '',
+          row.month || '',
+          row.qty || 0,
+          row.facturacion || 0
+        ].map(field => `"${field}"`).join(',');
+        csvContent += csvRow + '\n';
+      });
+      
+      // Download CSV
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `datos_tabla_${activeClient || 'todos'}_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    function exportTableToExcel() {
+      // For Excel export, we'll use the same CSV approach but with .xlsx extension
+      // In a real implementation, you might want to use a library like SheetJS
+      exportTableToCSV();
+    }
+    
+    function getActiveClient() {
+      // Get the currently selected client from the UI
+      const clientTabs = document.querySelectorAll('[data-client]');
+      for (let tab of clientTabs) {
+        if (tab.classList.contains('is-active')) {
+          return tab.dataset.client;
+        }
+      }
+      return null;
+    }
+
+    // Verificar funciones disponibles
+    console.log('🔍 Verificando funciones de tabla...');
+    console.log('showDataTable:', typeof window.showDataTable);
+    console.log('closeDataTable:', typeof window.closeDataTable);
     
     // Mensaje de información sobre almacenamiento
     console.log('💾 [ALMACENAMIENTO] Los datos se guardan localmente en IndexedDB de este navegador.');
