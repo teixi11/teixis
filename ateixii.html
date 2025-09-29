@@ -38,6 +38,11 @@
     }
   </script>
   <style>
+    body.modal-globe-open, html.modal-globe-open {
+      overflow: hidden !important;
+      position: fixed !important;
+      width: 100vw !important;
+    }
     :root{ --ease: cubic-bezier(.22,.61,.36,1); }
     
     /* Modo Presentación */
@@ -290,8 +295,16 @@
     /* Animación menú cargar (overlay + drawer) */
     #loadMenu { opacity: 0; pointer-events: none; transition: opacity .25s ease; }
     #loadMenu.open { opacity: 1; pointer-events: auto; }
-    #loadMenu .drawer { transform: translateX(100%); transition: transform .35s cubic-bezier(.22,.61,.36,1); }
-    #loadMenu.open .drawer { transform: translateX(0); }
+    #loadMenu .drawer {
+      transform: translateX(100%);
+      transition: transform .35s cubic-bezier(.22,.61,.36,1), opacity .65s cubic-bezier(.22,.61,.36,1.1), transform .65s cubic-bezier(.22,.61,.36,1.1);
+      opacity: 0;
+    }
+    #loadMenu.open .drawer {
+      transform: translateX(0);
+      opacity: 1;
+      animation: slideUpIn 0.65s cubic-bezier(.22,.61,.36,1.1);
+    }
 
     /* Secciones plegables del menú */
     .group { border: 1px solid rgba(0,0,0,.08); border-radius: .75rem; overflow: hidden; background: #ffffff; }
@@ -357,13 +370,58 @@
     .dropdown{ opacity: 0; transform: translateY(6px); pointer-events: none; transition: opacity .18s var(--ease), transform .18s var(--ease); }
     .dropdown.open{ opacity: 1; transform: translateY(0); pointer-events: auto; }
 
-    /* Panels fade */
-    #panels.fade-out{ opacity: 0; transform: translateY(6px); transition: opacity .18s var(--ease), transform .18s var(--ease); }
-    #panels.fade-in{ opacity: 1; transform: translateY(0); transition: opacity .22s var(--ease), transform .22s var(--ease); }
+    /* Panels fade - más suave */
+    #panels.fade-out {
+      opacity: 0;
+      transform: translateY(18px) scale(.98);
+      filter: blur(6px);
+      transition: opacity .45s cubic-bezier(.22,.61,.36,1.1), transform .45s cubic-bezier(.22,.61,.36,1.1), filter .45s cubic-bezier(.22,.61,.36,1.1);
+    }
+    #panels.fade-in {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+      transition: opacity .55s cubic-bezier(.22,.61,.36,1.1), transform .55s cubic-bezier(.22,.61,.36,1.1), filter .55s cubic-bezier(.22,.61,.36,1.1);
+    }
 
-  /* Dashboard epic entry */
-  @keyframes dashIn { from { opacity:0; transform: translateY(10px) scale(.985); filter: blur(4px) } to { opacity:1; transform:none; filter: blur(0) } }
-  #mainContent.dashboard-enter{ animation: dashIn .6s var(--ease) both }
+      /* Bottom-to-top slide animation for client tab transitions */
+      #panels.slide-up-in {
+        animation: slideUpIn 0.65s cubic-bezier(.22,.61,.36,1.1);
+      }
+      @keyframes slideUpIn {
+        0% {
+          opacity: 0;
+          transform: translateY(48px) scale(.97);
+          filter: blur(8px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          filter: blur(0);
+        }
+      }
+
+  /* Dashboard epic entry - más suave y soft */
+  @keyframes dashIn {
+    from {
+      opacity: 0;
+      transform: translateY(24px) scale(.97);
+      filter: blur(8px);
+    }
+    60% {
+      opacity: 0.7;
+      transform: translateY(4px) scale(.99);
+      filter: blur(2px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: blur(0);
+    }
+  }
+  #mainContent.dashboard-enter {
+    animation: dashIn 1.1s cubic-bezier(.22,.61,.36,1.1) both;
+  }
 
   /* Client tabs active blue */
   .clientTab{ transition: background-color .16s var(--ease), color .16s var(--ease), transform .16s var(--ease), box-shadow .18s var(--ease) }
@@ -388,11 +446,26 @@
     #loginModal form{ opacity: 0; transform: translateY(12px) scale(.985); transition: opacity .24s var(--ease), transform .28s var(--ease); }
     #loginModal.is-open form{ opacity: 1; transform: translateY(0) scale(1); }
 
-  /* Generic modal overlays + panels */
-  .modal-overlay{ opacity: 0; transition: opacity .24s var(--ease); }
-  .modal-overlay.is-open{ opacity: 1; }
-  .modal-panel{ opacity: 0; transform: translateY(12px) scale(.985); transition: opacity .28s var(--ease), transform .28s var(--ease); }
-  .modal-overlay.is-open .modal-panel{ opacity: 1; transform: translateY(0) scale(1); }
+  /* Generic modal overlays + panels - más suave */
+  .modal-overlay {
+    opacity: 0;
+    transition: opacity .45s cubic-bezier(.22,.61,.36,1.1);
+  }
+  .modal-overlay.is-open {
+    opacity: 1;
+  }
+    .modal-panel {
+      opacity: 0;
+      transform: translateY(32px) scale(.97);
+      filter: blur(8px);
+      transition: opacity .55s cubic-bezier(.22,.61,.36,1.1), transform .55s cubic-bezier(.22,.61,.36,1.1), filter .55s cubic-bezier(.22,.61,.36,1.1);
+    }
+    .modal-overlay.is-open .modal-panel {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+      animation: slideUpIn 0.65s cubic-bezier(.22,.61,.36,1.1);
+    }
 
   /* Smooth progress panel */
   #progressPanel{ opacity: 0; transform: translateY(8px); transition: opacity .2s var(--ease), transform .24s var(--ease); }
@@ -600,7 +673,8 @@
 
     <!-- Globe Modal -->
   <div id="globeModal" class="hidden modal-overlay" style="position:fixed; inset:0; z-index:6000; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center;">
-      <div class="modal-panel" style="position:relative; width:min(90vw,880px); height:min(90vh,820px); background:#0b1220; border:1px solid #1f2937; border-radius:1rem; box-shadow:0 12px 48px rgba(0,0,0,.45); overflow:hidden;">
+      <div class="modal-panel" style="position:fixed; inset:0; width:100vw; height:100vh; background:#0b1220; border:none; border-radius:0; box-shadow:none; overflow:hidden; display:flex; flex-direction:column;">
+        <style>body.modal-globe-open { overflow: hidden !important; }</style>
         <div style="position:absolute; inset:0; display:flex; flex-direction:column;">
           <div style="display:flex; gap:.5rem; align-items:center; padding:.6rem .8rem; background:#0f172a; border-bottom:1px solid #1f2937;">
             <div style="font-weight:800; color:#93c5fd;">Mundo</div>
@@ -617,7 +691,7 @@
             <input id="globeSearch" type="text" placeholder="Buscar planta o país…" style="flex:1; background:#0b1220; color:#e5e7eb; border:1px solid #1f2937; border-radius:.5rem; padding:.4rem .6rem;" />
             <button id="closeGlobe" title="Cerrar" style="background:#111827; color:#e5e7eb; border:1px solid #374151; padding:.3rem .6rem; border-radius:.5rem;">Cerrar</button>
           </div>
-          <div id="globeWrap" style="position:relative; flex:1; display:flex; align-items:center; justify-content:center; color:#9ca3af;">
+          <div id="globeWrap" style="position:relative; flex:1; display:flex; align-items:center; justify-content:center; color:#9ca3af; overflow:hidden;">
             <div id="globeHint" style="text-align:center; max-width:70%;">
               Usa el buscador o los ejemplos para ubicar una planta o país.
             </div>
@@ -787,86 +861,56 @@
       <div class="px-4 pt-2 bg-white dark:bg-slate-900">
         <div id="exploreActiveChips" class="flex flex-wrap items-center gap-2 min-h-[2rem]"></div>
       </div>
-      <div class="flex-1 min-h-0 overflow-auto grid grid-cols-12 gap-4 p-4 pt-2 bg-white dark:bg-slate-900">
-        <!-- Selects rápidos para filtros -->
-        <!-- ...eliminados selects rápidos... -->
-        <div class="col-span-3 flex flex-col gap-2">
+      <div class="flex-1 min-h-0 overflow-auto grid grid-cols-6 gap-4 p-4 pt-2 bg-white dark:bg-slate-900">
+        <!-- Columna de campos mucho más estrecha -->
+        <div class="col-span-1 flex flex-col gap-2 items-start">
           <div class="text-xs font-semibold text-gray-500">Campos</div>
           <div id="exploreFields" class="flex flex-col gap-2"></div>
         </div>
-        <div class="col-span-9 grid grid-cols-12 gap-4">
-          <div class="col-span-4">
-            <div class="text-xs font-semibold text-gray-500 mb-1">Eje X</div>
-            <div id="exploreDropX" class="explore-drop h-16"></div>
-          </div>
-          <div class="col-span-4">
-            <div class="text-xs font-semibold text-gray-500 mb-1">Eje Y</div>
-            <div id="exploreDropY" class="explore-drop h-16"></div>
-          </div>
-          <div class="col-span-4">
-            <div class="text-xs font-semibold text-gray-500 mb-1">Segmento/Color</div>
-            <div id="exploreDropSeries" class="explore-drop h-16"></div>
-          </div>
-          <!-- Sistema de Múltiples Filtros -->
-          <div class="col-span-12 mt-4">
-            <div class="flex items-center gap-3 mb-3">
-              <div class="text-sm font-semibold text-gray-700 dark:text-gray-300">🔍 Filtros Múltiples</div>
-              <button id="clearAllFilters" class="px-3 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">Limpiar Todos</button>
-              <div class="text-xs text-gray-500 dark:text-gray-400">Arrastra campos aquí para combinar filtros</div>
+        <!-- Filtros y gráfico ocupan el resto -->
+        <div class="col-span-5 flex flex-col gap-2">
+          <div class="flex flex-wrap gap-4 items-center mb-2">
+            <div class="flex flex-col gap-1">
+              <div class="text-xs font-semibold text-gray-500">Eje X</div>
+              <div id="exploreDropX" class="explore-drop h-12"></div>
             </div>
-            
-            <!-- Zona de Filtros Activos -->
-            <div id="exploreActiveFilters" class="flex flex-wrap gap-3 mb-4 min-h-[60px] p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800/50">
-              <div class="flex items-center justify-center w-full h-full text-gray-400 dark:text-gray-500 text-sm" id="noFiltersMessage">
-                ⬇️ Arrastra campos aquí para crear filtros combinados
-              </div>
+            <div class="flex flex-col gap-1">
+              <div class="text-xs font-semibold text-gray-500">Eje Y</div>
+              <div id="exploreDropY" class="explore-drop h-12"></div>
             </div>
-            
-            <!-- Zonas de Drop para Filtros Específicos -->
-            <div class="grid grid-cols-3 gap-4">
-              <div class="filter-zone">
-                <div class="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1">
-                  🏢 Filtro por Cliente
-                </div>
-                <div id="exploreDropFilterClient" class="explore-drop h-12 border-blue-300 dark:border-blue-600" data-filter-type="client"></div>
-                <div class="mt-1">
-                  <button id="exploreFilterClientBtn" class="px-2 py-1 text-xs rounded border border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hidden">Seleccionar valores...</button>
-                  <div id="exploreFilterClientSummary" class="text-xs text-gray-500 mt-1 hidden"></div>
-                </div>
-              </div>
-              
-              <div class="filter-zone">
-                <div class="text-xs font-semibold text-green-600 dark:text-green-400 mb-2 flex items-center gap-1">
-                  🏭 Filtro por Planta
-                </div>
-                <div id="exploreDropFilterPlant" class="explore-drop h-12 border-green-300 dark:border-green-600" data-filter-type="plant"></div>
-                <div class="mt-1">
-                  <button id="exploreFilterPlantBtn" class="px-2 py-1 text-xs rounded border border-green-300 dark:border-green-600 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 hidden">Seleccionar valores...</button>
-                  <div id="exploreFilterPlantSummary" class="text-xs text-gray-500 mt-1 hidden"></div>
-                </div>
-              </div>
-              
-              <div class="filter-zone">
-                <div class="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-1">
-                  📦 Filtro por Referencia
-                </div>
-                <div id="exploreDropFilterRef" class="explore-drop h-12 border-purple-300 dark:border-purple-600" data-filter-type="reference"></div>
-                <div class="mt-1">
-                  <button id="exploreFilterRefBtn" class="px-2 py-1 text-xs rounded border border-purple-300 dark:border-purple-600 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 hidden">Seleccionar valores...</button>
-                  <div id="exploreFilterRefSummary" class="text-xs text-gray-500 mt-1 hidden"></div>
-                </div>
-              </div>
+            <div class="flex flex-col gap-1">
+              <div class="text-xs font-semibold text-gray-500">Segmento/Color</div>
+              <div id="exploreDropSeries" class="explore-drop h-12"></div>
+            </div>
+            <div class="flex flex-col gap-1">
+              <div class="text-xs font-semibold text-blue-600 dark:text-blue-400">🏢 Cliente</div>
+              <div id="exploreDropFilterClient" class="explore-drop h-10 border-blue-300 dark:border-blue-600" data-filter-type="client"></div>
+              <button id="exploreFilterClientBtn" class="px-2 py-1 text-xs rounded border border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hidden mt-1">Seleccionar valores...</button>
+              <div id="exploreFilterClientSummary" class="text-xs text-gray-500 mt-1 hidden"></div>
+            </div>
+            <div class="flex flex-col gap-1">
+              <div class="text-xs font-semibold text-green-600 dark:text-green-400">🏭 Pieza</div>
+              <div id="exploreDropFilterPlant" class="explore-drop h-10 border-green-300 dark:border-green-600" data-filter-type="plant"></div>
+              <button id="exploreFilterPlantBtn" class="px-2 py-1 text-xs rounded border border-green-300 dark:border-green-600 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 hidden mt-1">Seleccionar valores...</button>
+              <div id="exploreFilterPlantSummary" class="text-xs text-gray-500 mt-1 hidden"></div>
+            </div>
+            <button id="clearAllFilters" class="px-3 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors ml-2">Limpiar Todos</button>
+          </div>
+          <!-- Chips de filtros activos -->
+          <div id="exploreActiveFilters" class="flex flex-wrap gap-3 mb-2 min-h-[40px] p-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+            <div class="flex items-center justify-center w-full h-full text-gray-400 dark:text-gray-500 text-sm" id="noFiltersMessage">
+              ⬇️ Arrastra campos aquí para crear filtros combinados
             </div>
           </div>
-          
           <!-- Popovers para selección de valores -->
           <div id="exploreFilterClientPopover" class="popover hidden"></div>
           <div id="exploreFilterPlantPopover" class="popover hidden"></div>
           <div id="exploreFilterRefPopover" class="popover hidden"></div>
-          <div class="col-span-12">
+          <!-- Gráfico ocupa el máximo espacio -->
+          <div class="flex-1 flex flex-col">
             <div class="text-xs font-semibold text-gray-500 mb-1">Gráfico</div>
-            <div class="w-full h-[68vh] border border-gray-200 dark:border-gray-800 rounded-xl p-2" id="exploreChartWrap">
-              <canvas id="exploreChart" style="width:100%; height:100%"></canvas>
+            <div class="w-full" style="height:400px; border: 1px solid #e5e7eb; border-radius: 1rem; padding: 0.5rem;" id="exploreChartWrap">
+              <canvas id="exploreChart" style="width:100%; height:100%; max-height:400px;"></canvas>
             </div>
           </div>
         </div>
@@ -914,6 +958,21 @@
 
   <script>
     // ---------- Login básico ----------
+    // Bloquear scroll cuando el globo está abierto
+    function openGlobeModal(){
+      document.body.classList.add('modal-globe-open');
+      document.documentElement.classList.add('modal-globe-open');
+      const modal = document.getElementById('globeModal');
+      if(modal){ modal.style.display = 'flex'; setTimeout(()=>modal.classList.add('is-open'), 10); }
+    }
+    function closeGlobeModal(){
+      document.body.classList.remove('modal-globe-open');
+      document.documentElement.classList.remove('modal-globe-open');
+      const modal = document.getElementById('globeModal');
+      if(modal){ modal.classList.remove('is-open'); setTimeout(()=>modal.style.display = 'none', 220); }
+    }
+    document.getElementById('openGlobe').onclick = openGlobeModal;
+    document.getElementById('closeGlobe').onclick = closeGlobeModal;
     const USERS = [
       {user: 'admin', pass: '1234'},
       {user: 'teixido', pass: 'forecast'}
@@ -1535,9 +1594,17 @@
         }
         const panels = document.getElementById('panels');
         if (panels){
-          panels.classList.remove('fade-in');
-          panels.classList.add('fade-out');
-          setTimeout(()=>{ renderPanels(); panels.classList.remove('fade-out'); panels.classList.add('fade-in'); }, 120);
+            panels.classList.remove('fade-in', 'slide-up-in');
+            panels.classList.add('fade-out');
+            setTimeout(()=>{
+              renderPanels();
+              panels.classList.remove('fade-out');
+              panels.classList.add('slide-up-in');
+              setTimeout(()=>{
+                panels.classList.remove('slide-up-in');
+                panels.classList.add('fade-in');
+              }, 650);
+            }, 120);
         } else {
           renderPanels();
         }
@@ -1987,20 +2054,29 @@
       }, 100);
     // Rellenar selects rápidos de filtro
     function fillQuickFilterSelects() {
-      const rows = sourceRowsForExplore();
+      // Mostrar todos los clientes presentes en cualquier archivo
+      const allRows = []
+        .concat(state.rows||[])
+        .concat(state.rows2||[])
+        .concat(state.mciRows||[])
+        .concat(state.rapRows||[])
+        .concat(state.tremecRows||[])
+        .concat(state.tennecoRows||[])
+        .concat(state.phiniaRows||[])
+        .concat(state.unifiedRows||[]);
       const clientSel = document.getElementById('exploreQuickClient');
       const plantSel = document.getElementById('exploreQuickPlant');
       const refSel = document.getElementById('exploreQuickRef');
       if (!clientSel || !plantSel || !refSel) return;
-      // Cliente
-      const clients = [...new Set(rows.map(r=>String(r.cliente||''))).values()].filter(v=>v);
-      clientSel.innerHTML = '<option value="">Todos</option>' + clients.map(c=>`<option value="${c}">${c}</option>`).join('');
-      // Planta
-      const plants = [...new Set(rows.map(r=>String(r.planta||''))).values()].filter(v=>v);
-      plantSel.innerHTML = '<option value="">Todos</option>' + plants.map(p=>`<option value="${p}">${p}</option>`).join('');
-      // Referencia
-      const refs = [...new Set(rows.map(r=>String(r.ref||''))).values()].filter(v=>v);
-      refSel.innerHTML = '<option value="">Todos</option>' + refs.map(r=>`<option value="${r}">${r}</option>`).join('');
+      // Cliente: todos los únicos presentes en cualquier archivo
+      const allClients = [...new Set(allRows.map(r=>String(r.cliente||'')).filter(v=>v))];
+      clientSel.innerHTML = '<option value="">Todos</option>' + allClients.map(c=>`<option value="${c}">${c}</option>`).join('');
+      // Planta: solo las del archivo LAST
+      const lastPlants = [...new Set((state.rows||[]).map(r=>String(r.planta||'')).filter(v=>v))];
+      plantSel.innerHTML = '<option value="">Todos</option>' + lastPlants.map(p=>`<option value="${p}">${p}</option>`).join('');
+      // Referencia: solo las del archivo LAST
+      const lastRefs = [...new Set((state.rows||[]).map(r=>String(r.ref||'')).filter(v=>v))];
+      refSel.innerHTML = '<option value="">Todos</option>' + lastRefs.map(r=>`<option value="${r}">${r}</option>`).join('');
       // Listeners
       clientSel.onchange = ()=> quickFilterChange('client', clientSel.value);
       plantSel.onchange = ()=> quickFilterChange('plant', plantSel.value);
@@ -2345,17 +2421,22 @@
       return { X: read('exploreDropX'), Y: read('exploreDropY'), S: read('exploreDropSeries') };
     }
     function sourceRowsForExplore(){
-      if (state.useUnifiedFeed && state.unifiedRows?.length) {
-        return state.unifiedRows.map(r=> ({
-          ...r,
-          cliente: inferClientLabel(r.cliente),
-          ref: r.ref || r.refCli || r.refTeix || ''
-        }));
+      // Evitar duplicados: usar solo unifiedRows si Maestro está activo, o solo arrays individuales si no
+      let allRows = [];
+      if (state.useUnifiedFeed && Array.isArray(state.unifiedRows) && state.unifiedRows.length) {
+        allRows = state.unifiedRows.map(r => ({ ...r, fuente: 'UNIFICADO' }));
+      } else {
+        allRows = []
+          .concat((state.rows||[]).map(r => ({ ...r, fuente: 'LAST' })))
+          .concat((state.rows2||[]).map(r => ({ ...r, fuente: 'OLD' })))
+          .concat((state.mciRows||[]).map(r => ({ ...r, fuente: 'MCI' })))
+          .concat((state.rapRows||[]).map(r => ({ ...r, fuente: 'DUMAREY' })))
+          .concat((state.tremecRows||[]).map(r => ({ ...r, fuente: 'TREMEC' })))
+          .concat((state.tennecoRows||[]).map(r => ({ ...r, fuente: 'TENNECO' })))
+          .concat((state.phiniaRows||[]).map(r => ({ ...r, fuente: 'PHINIA' })));
       }
-      // Solo LAST en Explore cuando no hay Maestro, normalizando cliente (UAES -> Bosch)
-      return (state.rows||[]).map(r=> ({
+      return allRows.map(r=> ({
         ...r,
-        fuente:'LAST',
         cliente: inferClientLabel(r.cliente),
         ref: r.ref || r.refCli || r.refTeix || ''
       }));
@@ -2468,9 +2549,17 @@
         return;
       }
       
-      const fieldKey = mapFieldToDataKey(fieldName);
-      console.log('🗝️ Usando clave de campo:', fieldKey);
-      const uniqueValues = [...new Set(rows.map(r => String(r[fieldKey] || '')).filter(v => v !== ''))];
+      let uniqueValues = [];
+      if (filterType === 'reference') {
+        uniqueValues = [...new Set([
+          ...rows.map(r => String(r.ref || '').trim()),
+          ...rows.map(r => String(r.refCli || '').trim()),
+          ...rows.map(r => String(r.refTeix || '').trim())
+        ].filter(v => v !== ''))];
+      } else {
+        const fieldKey = mapFieldToDataKey(fieldName);
+        uniqueValues = [...new Set(rows.map(r => String(r[fieldKey] || '')).filter(v => v !== ''))];
+      }
       uniqueValues.sort();
       console.log('📋 Valores únicos encontrados:', uniqueValues.length, uniqueValues.slice(0, 5));
       
@@ -2776,12 +2865,41 @@
       
       // Filtro por Referencia
       if (exploreState.filters.reference.field && exploreState.filters.reference.values.length > 0) {
-        const refKey = mapFieldToDataKey(exploreState.filters.reference.field);
         rows = rows.filter(r => {
-          const value = String(r[refKey] || '');
-          return exploreState.filters.reference.values.includes(value);
+          const v1 = (r.ref != null) ? String(r.ref) : '';
+          const v2 = (r.refCli != null) ? String(r.refCli) : '';
+          const v3 = (r.refTeix != null) ? String(r.refTeix) : '';
+          return exploreState.filters.reference.values.some(val => val && (val === v1 || val === v2 || val === v3));
         });
       }
+// Transiciones suaves para mostrar/ocultar elementos tras hacer clic en botones
+document.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    setTimeout(() => {
+      document.querySelectorAll('.fade-in-on-show').forEach(el => {
+        el.classList.add('fade-in');
+        el.classList.remove('fade-out');
+      });
+      document.querySelectorAll('.fade-out-on-hide').forEach(el => {
+        el.classList.add('fade-out');
+        el.classList.remove('fade-in');
+      });
+    }, 10);
+  });
+});
+// CSS para fade-in/fade-out
+const styleFade = document.createElement('style');
+styleFade.innerHTML = `
+.fade-in {
+  opacity: 1 !important;
+  transition: opacity 0.45s cubic-bezier(.22,.61,.36,1);
+}
+.fade-out {
+  opacity: 0 !important;
+  transition: opacity 0.45s cubic-bezier(.22,.61,.36,1);
+}
+`;
+document.head.appendChild(styleFade);
       // Build categories for X
       const getLabel = (r)=>{
         const k = sel.X.key;
@@ -2790,7 +2908,15 @@
         if (k==='mes' && v==null && r.fecha instanceof Date) v = r.fecha.getMonth()+1;
         return v==null? '' : String(v);
       };
-      const xCats = Array.from(new Set(rows.map(getLabel)));
+      let xCats = Array.from(new Set(rows.map(getLabel)));
+      // Si el eje X es año, ordenar de menor a mayor
+      if (sel.X.key === 'anio') {
+        xCats = xCats
+          .map(v => parseInt(v, 10))
+          .filter(v => !isNaN(v))
+          .sort((a, b) => a - b)
+          .map(v => String(v));
+      }
       // Group by Series (S) if provided
   const seriesKey = sel.S?.key || null;
       const seriesCats = seriesKey ? Array.from(new Set(rows.map(r=> String(r[seriesKey]||'')))) : ['__single'];
@@ -7338,12 +7464,10 @@ function limpiarFiltrosTabla() {
                 </thead>
                 <tbody>
         `;
-        
         clientData.monthlyData.forEach(data => {
           const monthName = formatMonth(data.month);
           const changeColor = data.percentChange > 0 ? 'text-green-600 dark:text-green-400' : 
                              data.percentChange < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400';
-          
           html += `
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
               <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 font-semibold">${monthName}</td>
@@ -7354,7 +7478,64 @@ function limpiarFiltrosTabla() {
             </tr>
           `;
         });
-        
+        html += `
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      // Tabla por referencia: cliente, referencia teixido, volumen last, volumen old, cambio absoluto y %
+      if (clientData && clientData.client) {
+        // Obtener datos LAST y OLD por referencia
+        const lastRows = window.getFilteredRowsLastOnly ? window.getFilteredRowsLastOnly(clientData.client) : [];
+        const oldRows = window.getFilteredRowsOldOnly ? window.getFilteredRowsOldOnly(clientData.client) : [];
+        // Agrupar por referencia teixido
+        const refMap = new Map();
+        lastRows.forEach(r => {
+          const refTeix = r.refTeix || r.ref || r.refCli || '';
+          if (!refMap.has(refTeix)) refMap.set(refTeix, { cliente: r.cliente, refTeix, last: 0, old: 0 });
+          refMap.get(refTeix).last += Number(r.qty) || 0;
+        });
+        oldRows.forEach(r => {
+          const refTeix = r.refTeix || r.ref || r.refCli || '';
+          if (!refMap.has(refTeix)) refMap.set(refTeix, { cliente: r.cliente, refTeix, last: 0, old: 0 });
+          refMap.get(refTeix).old += Number(r.qty) || 0;
+        });
+        // Generar tabla
+        html += `
+          <div class="mt-8">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-200">📋 Comparativa por Referencia</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full border-collapse border border-gray-300 dark:border-gray-600">
+                <thead>
+                  <tr class="bg-gray-100 dark:bg-gray-800">
+                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Cliente</th>
+                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-left">Referencia Teixidó</th>
+                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">Volumen LAST</th>
+                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">Volumen OLD</th>
+                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">Cambio</th>
+                    <th class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">% Cambio</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+        Array.from(refMap.values()).forEach(row => {
+          const cambio = row.last - row.old;
+          const pct = row.old > 0 ? ((cambio / row.old) * 100) : (row.last > 0 ? 100 : 0);
+          const changeColor = cambio > 0 ? 'text-green-600 dark:text-green-400' : cambio < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400';
+          html += `
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">${row.cliente}</td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2">${row.refTeix}</td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">${row.last.toLocaleString()}</td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right">${row.old.toLocaleString()}</td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right ${changeColor}">${cambio > 0 ? '+' : ''}${cambio.toLocaleString()}</td>
+              <td class="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right font-bold ${changeColor}">${pct > 0 ? '+' : ''}${pct.toFixed(1)}%</td>
+            </tr>
+          `;
+        });
         html += `
                 </tbody>
               </table>
