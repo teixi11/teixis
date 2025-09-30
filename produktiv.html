@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Revisión de Piezas</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #fff;
+            margin-bottom: 20px;
+            text-align: center;
+            animation: fadeInUp 1s ease-out 0.2s both;
+        }
+        .menu {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            animation: slideDown 0.6s ease-out;
+        }
+        .menu button {
+            background: #fff;
+            color: #1976d2;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .menu button:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        #revision-piezas {
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+        #revision-piezas.show {
+            display: block;
+        }
+        #revision-piezas h2 {
+            color: #0d47a1;
+        }
+        button {
+            background: linear-gradient(135deg, #42a5f5 0%, #1976d2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        button:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        .pieza {
+            border: 1px solid #bbdefb;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.6s ease-out both;
+        }
+        .pieza:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transform: translateY(-5px);
+        }
+        .excel-upload {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            animation: fadeInLeft 0.5s ease-out 0.3s both;
+        }
+        .excel-upload label {
+            font-weight: bold;
+            color: #1976d2;
+            margin-right: 10px;
+        }
+        input[type="text"], input[type="file"] {
+            padding: 8px 12px;
+            border: 1px solid #90caf9;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        input[type="text"]:focus, input[type="file"]:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.8s ease-out 0.5s both;
+        }
+        th, td {
+            border: 1px solid #e3f2fd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fbff;
+        }
+        .variacion {
+            font-weight: bold;
+        }
+        .variacion.positiva {
+            color: #4caf50;
+        }
+        .variacion:not(.positiva) {
+            color: #f44336;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes fadeInLeft {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="menu">
+            <h1>Menú Principal</h1>
+            <button onclick="mostrarRevision()">Revisión de Piezas</button>
+        </div>
+
+        <div id="revision-piezas">
+            <h2>Revisión de Piezas</h2>
+            <button onclick="agregarPieza()">+ Agregar Pieza</button>
+            <div id="piezas-container"></div>
+        </div>
+    </div>
+
+    <script>
+        let piezas = [];
+
+        function mostrarRevision() {
+            const revisionDiv = document.getElementById('revision-piezas');
+            revisionDiv.classList.add('show');
+        }
+
+        function agregarPieza() {
+            const container = document.getElementById('piezas-container');
+            const piezaDiv = document.createElement('div');
+            piezaDiv.className = 'pieza';
+            const piezaIndex = piezas.length;
+            piezas.push({ nombre: '', excels: { presupuesto: null, revision: null, produktiv: null } });
+
+            piezaDiv.innerHTML = `
+                <label>Nombre de la Pieza: <input type="text" onchange="actualizarNombre(${piezaIndex}, this.value)"></label>
+                <div class="excel-upload">
+                    <label>Excel Presupuesto: <input type="file" accept=".xlsx,.xls" onchange="cargarExcel(${piezaIndex}, 'presupuesto', this)"></label>
+                </div>
+                <div class="excel-upload">
+                    <label>Excel Revisión: <input type="file" accept=".xlsx,.xls" onchange="cargarExcel(${piezaIndex}, 'revision', this)"></label>
+                </div>
+                <div class="excel-upload">
+                    <label>Excel Produktiv: <input type="file" accept=".xlsx,.xls" onchange="cargarExcel(${piezaIndex}, 'produktiv', this)"></label>
+                </div>
+                <button onclick="procesarPiezas(${piezaIndex})">Procesar y Comparar</button>
+                <div id="resultados-${piezaIndex}"></div>
+            `;
+            container.appendChild(piezaDiv);
+        }
+
+        function actualizarNombre(index, nombre) {
+            piezas[index].nombre = nombre;
+        }
+
+        function cargarExcel(index, tipo, input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    piezas[index].excels[tipo] = workbook;
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        function procesarPiezas(index) {
+            const pieza = piezas[index];
+            if (!pieza.nombre || !pieza.excels.presupuesto || !pieza.excels.revision || !pieza.excels.produktiv) {
+                alert('Por favor, ingresa el nombre de la pieza y carga los tres Excels.');
+                return;
+            }
+
+            const fasesPresupuesto = extraerFasesYTiempos(pieza.excels.presupuesto);
+            const fasesRevision = extraerFasesYTiempos(pieza.excels.revision);
+            const fasesProduktiv = extraerFasesYTiempos(pieza.excels.produktiv);
+
+            const comparaciones = compararFases(fasesPresupuesto, fasesRevision, fasesProduktiv);
+
+            mostrarResultados(index, comparaciones);
+        }
+
+        function extraerFasesYTiempos(workbook) {
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const data = XLSX.utils.sheet_to_json(sheet, {header: 1});
+
+            const fases = {};
+            // Asumiendo que la columna 0 es fase, columna 1 es tiempo
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                if (row[0] && row[1]) {
+                    fases[row[0]] = parseFloat(row[1]);
+                }
+            }
+            return fases;
+        }
+
+        function compararFases(presupuesto, revision, produktiv) {
+            const todasFases = new Set([...Object.keys(presupuesto), ...Object.keys(revision), ...Object.keys(produktiv)]);
+            const comparaciones = [];
+
+            for (const fase of todasFases) {
+                const p = presupuesto[fase] || 0;
+                const r = revision[fase] || 0;
+                const pr = produktiv[fase] || 0;
+
+                const varPR = r - p;
+                const varPPr = pr - p;
+                const varRPr = pr - r;
+
+                comparaciones.push({
+                    fase,
+                    presupuesto: p,
+                    revision: r,
+                    produktiv: pr,
+                    variacionRevPres: varPR,
+                    variacionProdPres: varPPr,
+                    variacionProdRev: varRPr
+                });
+            }
+
+            return comparaciones;
+        }
+
+        function mostrarResultados(index, comparaciones) {
+            const container = document.getElementById(`resultados-${index}`);
+            let html = `<h3>Resultados para ${piezas[index].nombre}</h3>`;
+            html += '<table>';
+            html += '<tr><th>Fase</th><th>Presupuesto (min)</th><th>Revisión (min)</th><th>Produktiv (min)</th><th>Var Rev-Pres</th><th>Var Prod-Pres</th><th>Var Prod-Rev</th></tr>';
+
+            for (const comp of comparaciones) {
+                html += `<tr>
+                    <td>${comp.fase}</td>
+                    <td>${comp.presupuesto}</td>
+                    <td>${comp.revision}</td>
+                    <td>${comp.produktiv}</td>
+                    <td class="variacion ${comp.variacionRevPres >= 0 ? 'positiva' : ''}">${comp.variacionRevPres.toFixed(2)}</td>
+                    <td class="variacion ${comp.variacionProdPres >= 0 ? 'positiva' : ''}">${comp.variacionProdPres.toFixed(2)}</td>
+                    <td class="variacion ${comp.variacionProdRev >= 0 ? 'positiva' : ''}">${comp.variacionProdRev.toFixed(2)}</td>
+                </tr>`;
+            }
+
+            html += '</table>';
+            container.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
