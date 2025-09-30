@@ -30,6 +30,9 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <!-- PDF.js for MCI PDF ingestion -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <script>
@@ -566,24 +569,25 @@
             <div id="headerActionsMenu" class="hidden dropdown absolute left-0 mt-2 z-50 w-[360px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl p-3">
               <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Datos</div>
               <div class="grid grid-cols-2 gap-2 mb-3">
-                <button id="openLoadMenu" class="px-3 py-2 btn-gradient col-span-2">📥 Menú cargar</button>
+                <button id="openLoadMenu" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-300 rounded-md col-span-2">📥 Menú cargar</button>
+                <button id="clearAndLoadMaestro" class="px-3 py-2 rounded-xl border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900 text-red-600 dark:text-red-400 col-span-2">🗑️ Borrar Maestro</button>
               </div>
               <div class="text-[10px] text-gray-500 dark:text-gray-400 mb-3 leading-snug">Columna M del Maestro: <strong>Ubicacion Planta</strong>. Si está vacía se generan ubicaciones ficticias.</div>
               <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Visualización</div>
               <div class="grid grid-cols-2 gap-2 mb-3">
-                <button id="openGlobe" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">🌍 Mundo</button>
-                <button id="openExplore" class="px-3 py-2 btn-gradient">🧪 Explorar</button>
-                <button id="openPresupuestar" class="px-3 py-2 btn-gradient">💶 Presupuestar</button>
-                <button id="generateReport" class="px-3 py-2 btn-gradient col-span-2">📊 Generar Reporte</button>
+                <button id="openGlobe" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-300 rounded-md">🌍 Mundo</button>
+                <button id="openExplore" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-300 rounded-md">🧪 Explorar</button>
+                <button id="openPresupuestar" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-300 rounded-md col-span-2 w-full">💶 Presupuestar</button>
+                <button id="generateReport" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-300 rounded-md col-span-2">📊 Generar Reporte</button>
               </div>
               <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Presentación</div>
               <div class="grid grid-cols-1 gap-2 mb-3">
-                <button id="btnPresentationMode" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">🎯 Modo Presentación</button>
+                <button id="btnPresentationMode" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-300 rounded-md">🎯 Modo Presentación</button>
               </div>
               <div class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Exportar</div>
               <div class="grid grid-cols-2 gap-2">
-                <button id="exportPDF" class="px-3 py-2 btn-gradient col-span-2">🧾 PDF</button>
-                <button id="exportMaestroUbic" class="px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 col-span-2">🌍 Export Maestro + Ubic</button>
+                <button id="exportPDF" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-300 rounded-md col-span-2">🧾 PDF</button>
+                <button id="exportMaestroUbic" class="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-300 rounded-md col-span-2">🌍 Export Maestro + Ubic</button>
               </div>
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">Atajos: Alt+L (Cargar) · Alt+G (Mundo) · Alt+P (PDF) · Alt+A (Menú)</div>
             </div>
@@ -983,12 +987,15 @@
   <!-- Full screen panel -->
   <div class="absolute inset-0 bg-white dark:bg-gray-900 flex flex-col modal-panel" style="border-radius:0; overflow:auto;">
         <div class="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-3">
-          <div class="text-xl font-extrabold">💶 Presupuestar — Facturación € + Volumen (Maestro)</div>
-          <div style="margin-left:1rem;">
-            <label for="presuYearFilter" class="text-sm text-gray-600" style="display:block;">Seleccionar año</label>
-            <select id="presuYearFilter" class="px-2 py-1 rounded border border-gray-300 text-sm fancy-select"></select>
+          <img src="./teixido.png" alt="Teixido" style="height: 40px;">
+          <div class="text-xl font-extrabold text-blue-700">PRESSUPOST</div>
+          <div style="margin-left:1rem; display:flex; align-items:center; gap:0.5rem;">
+            <label for="presuYearFilter" class="text-sm text-gray-600 font-medium">Año:</label>
+            <select id="presuYearFilter" class="px-3 py-2 rounded-md border border-blue-300 text-sm bg-blue-50 hover:bg-blue-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors fancy-select shadow-md hover:shadow-lg" style="min-width:120px; cursor:pointer; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);"></select>
           </div>
-          <div class="ml-auto text-sm text-gray-500">Suma todos los clientes (ignora OLD)</div>
+          <button id="exportPresupuestarPDF" class="ml-4 px-3 py-1 rounded bg-gradient-to-r from-blue-500 to-blue-700 text-white hover:from-blue-600 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200">Exportar PDF</button>
+          <button id="exportPresupuestarTablaPDF" class="ml-2 px-3 py-1 rounded bg-gradient-to-r from-blue-500 to-blue-700 text-white hover:from-blue-600 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200">Exportar Tabla PDF</button>
+          <button id="exportPresupuestarExcel" class="ml-2 px-3 py-1 rounded bg-gradient-to-r from-blue-500 to-blue-700 text-white hover:from-blue-600 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200">Exportar Excel</button>
           <button id="closePresupuestar" class="ml-4 px-3 py-1 rounded bg-red-600 text-white">Cerrar</button>
         </div>
         <div style="flex:0 0 50%; min-height:360px; max-height:60vh; padding:1rem;">
@@ -998,10 +1005,10 @@
         </div>
         <div style="flex:1 1 auto; padding:1rem; background:var(--bg-table,#f8fafc);">
           <div id="presu-controls">
-            <div class="label">Resumen por cliente</div>
+            <div class="label" id="tableTitle">Resumen por cliente</div>
             <div style="margin-left:auto; display:flex; gap:.5rem; align-items:center;">
               <div class="label" style="font-weight:600; font-size:.85rem; color:#085f46;">Año:</div>
-              <select id="presuYearFilterInline" class="px-2 py-1 rounded border border-gray-300 text-sm fancy-select"></select>
+              <select id="presuYearFilterInline" class="px-3 py-2 rounded-md border border-blue-300 text-sm bg-blue-50 hover:bg-blue-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors fancy-select shadow-md hover:shadow-lg" style="min-width:120px; cursor:pointer; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);"></select>
             </div>
           </div>
           <div id="presupuestarTableWrap">
@@ -4199,7 +4206,16 @@ document.head.appendChild(styleFade);
     // Ensure buttons control the load menu
     document.getElementById('openLoadMenu')?.addEventListener('click', (e)=>{ e.preventDefault(); openLoadMenuPanel(); });
     document.getElementById('closeLoadMenu')?.addEventListener('click', (e)=>{ e.preventDefault(); closeLoadMenuPanel(); });
-    // (Removed extra actions from Actions menu)
+    // Clear and load maestro
+    document.getElementById('clearAndLoadMaestro')?.addEventListener('click', async ()=>{
+      if(confirm('¿Borrar Maestro actual y cargar nuevo?')) {
+        state.unifiedRows = [];
+        await backupClearLocal();
+        await idbDelBig('unifiedRows');
+        await opfsDeleteMaestro();
+        document.getElementById('fileUnified').click();
+      }
+    });
 
     // Keyboard shortcuts (Alt+ key), ignore when typing in inputs
     document.addEventListener('keydown', (e)=>{
@@ -8097,7 +8113,7 @@ function limpiarFiltrosTabla() {
       
       // Apply client filter if specified
       if (clientFilter) {
-        data = data.filter(row => row.cliente === clientFilter);
+        data = data.filter(row => matchesClient(row.cliente, clientFilter));
       }
 
         // Apply extra filters (ref, planta, cliente)
@@ -8426,7 +8442,7 @@ function limpiarFiltrosTabla() {
       }
       
       if (activeClient) {
-        data = data.filter(row => row.cliente === activeClient);
+        data = data.filter(row => matchesClient(row.cliente, activeClient));
       }
       
       if (!data || data.length === 0) {
@@ -8518,6 +8534,14 @@ function limpiarFiltrosTabla() {
 
       if(openBtn){ openBtn.addEventListener('click', function(e){ e.preventDefault(); openModal(); }); console.debug('[Presupuestar] bound openBtn'); }
       if(closeBtn){ closeBtn.addEventListener('click', function(e){ e.preventDefault(); closeModal(); }); console.debug('[Presupuestar] bound closeBtn'); }
+
+      // Add event listener for PDF export button
+      const exportBtn = document.getElementById('exportPresupuestarPDF');
+      if(exportBtn){ exportBtn.addEventListener('click', function(e){ e.preventDefault(); exportPresupuestarPDF(); }); console.debug('[Presupuestar] bound exportBtn'); }
+      const tablaPdfBtn = document.getElementById('exportPresupuestarTablaPDF');
+      if(tablaPdfBtn){ tablaPdfBtn.addEventListener('click', function(e){ e.preventDefault(); exportPresupuestarTablaPDF(); }); console.debug('[Presupuestar] bound tablaPdfBtn'); }
+      const excelBtn = document.getElementById('exportPresupuestarExcel');
+      if(excelBtn){ excelBtn.addEventListener('click', function(e){ e.preventDefault(); exportPresupuestarExcel(); }); console.debug('[Presupuestar] bound excelBtn'); }
 
       // as extra fallback, listen document-wide for clicks on matching id
       document.addEventListener('click', function(e){
@@ -8696,6 +8720,10 @@ function limpiarFiltrosTabla() {
 
       // If a year is selected, filter chart data and make monthly columns limited to that year
       const selectedYear = (headerYearSel && headerYearSel.value) ? Number(headerYearSel.value) : (inlineYearSel && inlineYearSel.value ? Number(inlineYearSel.value) : null);
+      const tableTitleEl = document.getElementById('tableTitle');
+      if (tableTitleEl) {
+        tableTitleEl.textContent = selectedYear ? `Resumen por cliente (${selectedYear})` : 'Resumen por cliente (Todos los años)';
+      }
       let chartLabels = labels; let chartDataFact = dataFact; let chartDataQty = dataQty;
       if(selectedYear){
         const yearKeys = keys.filter(k => k.startsWith(String(selectedYear)+'-'));
@@ -8764,9 +8792,12 @@ function limpiarFiltrosTabla() {
         const clientKeys = Array.from(clients.keys()).sort((a,b)=> a.localeCompare(b, undefined, {sensitivity:'base'}));
         clientKeys.forEach(cliKey=>{
           const c = clients.get(cliKey);
+          // Use year-specific totals when a year is selected
+          const displayQty = selectedYear ? ((c.years.get(selectedYear)?.qty) || 0) : c.totalQty;
+          const displayFact = selectedYear ? ((c.years.get(selectedYear)?.fact) || 0) : c.totalFact;
     let r = `<tr><td style="padding:.45rem; border-bottom:1px solid #eee;">${htmlEscape(cliKey)}</td>` +
-      `<td class="cell-qty" style="padding:.45rem;border-bottom:1px solid #eee;">${numFmt.format(c.totalQty)}</td>` +
-      `<td class="cell-currency" style="padding:.45rem;border-bottom:1px solid #eee;">${eurFmt.format(c.totalFact)}</td>`;
+      `<td class="cell-qty" style="padding:.45rem;border-bottom:1px solid #eee;">${numFmt.format(displayQty)}</td>` +
+      `<td class="cell-currency" style="padding:.45rem;border-bottom:1px solid #eee;">${eurFmt.format(displayFact)}</td>`;
           if(selectedYear){
             // per-month cells for selectedYear (use c.months aggregation)
             for(let m=1;m<=12;m++){
@@ -8785,8 +8816,18 @@ function limpiarFiltrosTabla() {
           rowsHtml.push(r);
         });
         // Totals row
-        const totalFactAll = Array.from(clients.values()).reduce((s,c)=> s + (c.totalFact||0), 0);
-        const totalQtyAll = Array.from(clients.values()).reduce((s,c)=> s + (c.totalQty||0), 0);
+        let totalFactAll, totalQtyAll;
+        if (selectedYear) {
+          // When year is selected, calculate totals from that year's data
+          totalFactAll = Array.from(clients.values()).reduce((s,c)=> s + ((c.years.get(selectedYear)?.fact)||0), 0);
+          totalQtyAll = Array.from(clients.values()).reduce((s,c)=> s + ((c.years.get(selectedYear)?.qty)||0), 0);
+          console.log(`Totales calculados para año ${selectedYear}: Fact=${totalFactAll}, Qty=${totalQtyAll}`);
+        } else {
+          // When no year selected, use overall totals
+          totalFactAll = Array.from(clients.values()).reduce((s,c)=> s + (c.totalFact||0), 0);
+          totalQtyAll = Array.from(clients.values()).reduce((s,c)=> s + (c.totalQty||0), 0);
+          console.log(`Totales calculados para todos los años: Fact=${totalFactAll}, Qty=${totalQtyAll}`);
+        }
   let totalsRow = `<tr id="presupuestarTotals"><td style="padding:.45rem; border-top:2px solid #e6f0ff;">Totales</td>` +
       `<td style="padding:.45rem;border-top:2px solid #e6f0ff;">${numFmt.format(totalQtyAll)}</td>` +
       `<td style="padding:.45rem;border-top:2px solid #e6f0ff;">${eurFmt.format(totalFactAll)}</td>`;
@@ -8802,6 +8843,498 @@ function limpiarFiltrosTabla() {
            years.forEach(y=>{ const yf = Array.from(clients.values()).reduce((s,c)=> s + ((c.years.get(y)?.fact)||0), 0); const yq = Array.from(clients.values()).reduce((s,c)=> s + ((c.years.get(y)?.qty)||0), 0); totalsRow += `<td style="padding:.45rem;border-top:2px solid #e6f0ff;">${eurFmt.format(yf)}</td><td style="padding:.45rem;border-top:2px solid #e6f0ff;">${numFmt.format(yq)}</td>` }); }
         totalsRow += '</tr>';
         tableBody.innerHTML = rowsHtml.join('') + totalsRow;
+      }
+    }
+
+    // Function to export presupuestar table to Excel
+    async function exportPresupuestarExcel() {
+      try {
+        // Show loading message
+        if (typeof showToast === 'function') showToast('Generando Excel...', 'info');
+
+        // Get the table element
+        const table = document.getElementById('presupuestarTable');
+        if (!table) {
+          alert('Tabla no encontrada para exportar.');
+          return;
+        }
+
+        // Get selected year for filename
+        const headerYearSel = document.getElementById('presuYearFilter');
+        const inlineYearSel = document.getElementById('presuYearFilterInline');
+        const selectedYear = (headerYearSel && headerYearSel.value) ? headerYearSel.value : (inlineYearSel && inlineYearSel.value ? inlineYearSel.value : 'todos');
+
+        // Convert table to worksheet
+        const ws = XLSX.utils.table_to_sheet(table, { raw: true });
+
+        // Set column widths for better readability
+        const colWidths = [];
+        const headers = XLSX.utils.sheet_to_json(ws, { header: 1 })[0] || [];
+        headers.forEach((header, index) => {
+          const headerText = String(header || '');
+          let width = Math.max(12, headerText.length + 2);
+          // Special widths for certain columns
+          if (headerText.toLowerCase().includes('cliente')) width = 15;
+          if (headerText.toLowerCase().includes('total')) width = 14;
+          if (headerText.toLowerCase().includes('volumen')) width = 12;
+          if (headerText.toLowerCase().includes('facturación')) width = 14;
+          colWidths.push({ wch: width });
+        });
+        ws['!cols'] = colWidths;
+
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Presupuesto');
+
+        // Generate filename
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `presupuest_${selectedYear}_${timestamp}.xlsx`;
+
+        // Download Excel file
+        XLSX.writeFile(wb, filename);
+
+        if (typeof showToast === 'function') showToast('Excel generado correctamente', 'success');
+
+      } catch (error) {
+        console.error('Error generando Excel:', error);
+        alert('Error al generar el Excel. Revisa la consola para más detalles.');
+        if (typeof showToast === 'function') showToast('Error generando Excel', 'error');
+      }
+    }
+    async function exportPresupuestarPDF() {
+      if (!window.html2canvas || !window.jspdf) {
+        alert('Bibliotecas de exportación no cargadas. Inténtalo de nuevo.');
+        return;
+      }
+
+      try {
+        // Show loading message
+        if (typeof showToast === 'function') showToast('Generando PDF...', 'info');
+
+        // Get elements
+        const chartCanvas = document.getElementById('presupuestarChart');
+        const tableWrap = document.getElementById('presupuestarTableWrap');
+        const tableTitle = document.getElementById('tableTitle');
+
+        if (!chartCanvas || !tableWrap) {
+          alert('Elementos no encontrados para exportar.');
+          return;
+        }
+
+        // Get selected year for filename
+        const headerYearSel = document.getElementById('presuYearFilter');
+        const inlineYearSel = document.getElementById('presuYearFilterInline');
+        const selectedYear = (headerYearSel && headerYearSel.value) ? headerYearSel.value : (inlineYearSel && inlineYearSel.value ? inlineYearSel.value : 'todos');
+
+        // Capture chart
+        const chartImgData = await html2canvas(chartCanvas, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true
+        });
+
+        // Capture table
+        const tableImgData = await html2canvas(tableWrap, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+          useCORS: true
+        });
+
+        // Create PDF
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 10;
+
+        // Add title
+        pdf.setFontSize(16);
+        pdf.text('PRESSUPOST - Resumen de Presupuesto', margin, margin + 10);
+
+        // Add year info if selected
+        if (selectedYear !== 'todos') {
+          pdf.setFontSize(12);
+          pdf.text(`Año: ${selectedYear}`, margin, margin + 20);
+        }
+
+        // Add chart
+        const chartWidth = pageWidth - 2 * margin;
+        const chartHeight = (chartImgData.height * chartWidth) / chartImgData.width;
+        let yPos = margin + 30;
+
+        if (yPos + chartHeight > pageHeight - margin) {
+          pdf.addPage();
+          yPos = margin;
+        }
+
+        pdf.addImage(chartImgData.toDataURL('image/png'), 'PNG', margin, yPos, chartWidth, chartHeight);
+
+        yPos += chartHeight + 10;
+
+        // Add table title
+        pdf.setFontSize(14);
+        const titleText = tableTitle ? tableTitle.textContent : 'Resumen por cliente';
+        pdf.text(titleText, margin, yPos);
+        yPos += 10;
+
+        // Add table
+        const tableWidth = pageWidth - 2 * margin;
+        const tableHeight = (tableImgData.height * tableWidth) / tableImgData.width;
+
+        if (yPos + tableHeight > pageHeight - margin) {
+          pdf.addPage();
+          yPos = margin;
+        }
+
+        pdf.addImage(tableImgData.toDataURL('image/png'), 'PNG', margin, yPos, tableWidth, tableHeight);
+
+        // Generate filename
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `presupuest_${selectedYear}_${timestamp}.pdf`;
+
+        // Download PDF
+        pdf.save(filename);
+
+        if (typeof showToast === 'function') showToast('PDF generado correctamente', 'success');
+
+      } catch (error) {
+        console.error('Error generando PDF:', error);
+        alert('Error al generar el PDF. Revisa la consola para más detalles.');
+        if (typeof showToast === 'function') showToast('Error generando PDF', 'error');
+      }
+    }
+
+    // Function to export presupuestar table to PDF (table only) - VECTORIAL VERSION
+    async function exportPresupuestarTablaPDF() {
+      if (!window.jspdf) {
+        alert('Bibliotecas de exportación no cargadas. Inténtalo de nuevo.');
+        return;
+      }
+
+      try {
+        // Show loading message
+        if (typeof showToast === 'function') showToast('Generando PDF vectorial...', 'info');
+
+        // Get table element
+        const table = document.getElementById('presupuestarTable');
+        if (!table) {
+          alert('Tabla no encontrada para exportar.');
+          return;
+        }
+
+        // Get selected year for filename
+        const headerYearSel = document.getElementById('presuYearFilter');
+        const inlineYearSel = document.getElementById('presuYearFilterInline');
+        const selectedYear = (headerYearSel && headerYearSel.value) ? headerYearSel.value : (inlineYearSel && inlineYearSel.value ? inlineYearSel.value : 'todos');
+
+        // Extract table data for separate tables
+        const facturacionData = extractFacturacionData(table);
+        const volumenData = extractVolumenData(table);
+
+        // Create PDF with landscape orientation for wide tables
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('l', 'mm', 'a4'); // landscape
+
+        const pageWidth = pdf.internal.pageSize.getWidth();
+
+        // Add main title with selected year
+        pdf.setFontSize(18);
+        const titleText = selectedYear !== 'todos' ? `PRESUPUESTO ${selectedYear}` : 'PRESUPUESTO TODOS LOS AÑOS';
+        pdf.text(titleText, pageWidth / 2 - (pdf.getTextWidth(titleText) / 2), 15);
+
+        // Calcular posición Y centrada verticalmente
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const estimatedTableHeight = 40 + (facturacionData.body.length * 12) + 20; // header + rows + margin
+        const centeredY = Math.max(40, (pageHeight - estimatedTableHeight) / 2);
+
+        const facturacionConfig = {
+          startY: centeredY,
+          head: [facturacionData.headers],
+          body: facturacionData.body,
+          theme: 'grid',
+          styles: {
+            fontSize: 8,
+            cellPadding: 2,
+            overflow: 'linebreak',
+            cellWidth: 'wrap',
+            halign: 'center',
+            valign: 'middle'
+          },
+          headStyles: {
+            fillColor: [37, 99, 235], // blue-600
+            textColor: 255,
+            fontSize: 9,
+            fontStyle: 'bold',
+            halign: 'center',
+            valign: 'middle'
+          },
+          alternateRowStyles: {
+            fillColor: [248, 250, 252] // gray-50
+          },
+          bodyStyles: function(row, data) {
+            // Make totals row bold
+            if (row.raw && row.raw[0] && String(row.raw[0]).includes('Totales')) {
+              console.log('Aplicando negrita a fila de totales (facturación):', row.raw[0]);
+              return { fontStyle: 'bold', fillColor: [240, 240, 240] };
+            }
+            return {};
+          },
+          columnStyles: (() => {
+            const numCols = facturacionData.headers.length;
+            return Object.fromEntries(
+              Array.from({length: numCols}, (_, i) => {
+                if (i === 0) return [i, { cellWidth: 30, halign: 'left' }]; // Cliente - ajustado
+                if (i === 1) return [i, { cellWidth: 20, halign: 'right' }]; // Facturación total - ajustado
+                return [i, { cellWidth: Math.max(18, 120 / (numCols - 2)), halign: 'right' }]; // Monthly/yearly columns - más estrechas
+              })
+            );
+          })(),
+          margin: { top: centeredY, left: 3, right: 3, bottom: 20 },
+          pageBreak: 'auto',
+          rowPageBreak: 'avoid',
+          showHead: 'everyPage',
+          beforePageContent: function(data) {
+            pdf.setFontSize(10);
+            const yearText = selectedYear !== 'todos' ? `Año: ${selectedYear}` : 'Todos los años';
+            pdf.text(yearText, 3, 8);
+          }
+        };
+
+        pdf.autoTable(facturacionConfig);
+
+        // ===== VOLUMEN TABLE ===== (Página 2)
+        pdf.addPage();
+        pdf.setFontSize(14);
+        pdf.text('VOLUMEN (piezas)', pageWidth / 2 - 25, 20);
+
+        // Calcular posición Y centrada verticalmente para la segunda tabla
+        const estimatedTableHeightVol = 40 + (volumenData.body.length * 12) + 20;
+        const centeredYVol = Math.max(40, (pageHeight - estimatedTableHeightVol) / 2);
+
+        const volumenConfig = {
+          startY: centeredYVol,
+          head: [volumenData.headers],
+          body: volumenData.body,
+          theme: 'grid',
+          styles: {
+            fontSize: 8,
+            cellPadding: 2,
+            overflow: 'linebreak',
+            cellWidth: 'wrap',
+            halign: 'center',
+            valign: 'middle'
+          },
+          headStyles: {
+            fillColor: [59, 130, 246], // blue-500 (lighter blue)
+            textColor: 255,
+            fontSize: 9,
+            fontStyle: 'bold',
+            halign: 'center',
+            valign: 'middle'
+          },
+          alternateRowStyles: {
+            fillColor: [248, 250, 252] // gray-50
+          },
+          bodyStyles: function(row, data) {
+            // Make totals row bold
+            if (row.raw && row.raw[0] && String(row.raw[0]).includes('Totales')) {
+              console.log('Aplicando negrita a fila de totales (volumen):', row.raw[0]);
+              return { fontStyle: 'bold', fillColor: [240, 240, 240] };
+            }
+            return {};
+          },
+          columnStyles: (() => {
+            const numCols = volumenData.headers.length;
+            return Object.fromEntries(
+              Array.from({length: numCols}, (_, i) => {
+                if (i === 0) return [i, { cellWidth: 30, halign: 'left' }]; // Cliente - ajustado
+                if (i === 1) return [i, { cellWidth: 20, halign: 'right' }]; // Volumen total - ajustado
+                return [i, { cellWidth: Math.max(18, 120 / (numCols - 2)), halign: 'right' }]; // Monthly/yearly VOL columns - más estrechas
+              })
+            );
+          })(),
+          margin: { top: centeredYVol, left: 3, right: 3, bottom: 20 },
+          pageBreak: 'auto',
+          rowPageBreak: 'avoid',
+          showHead: 'everyPage',
+          beforePageContent: function(data) {
+            pdf.setFontSize(10);
+            const yearText = selectedYear !== 'todos' ? `Año: ${selectedYear}` : 'Todos los años';
+            pdf.text(yearText, 3, 8);
+          }
+        };
+
+        pdf.autoTable(volumenConfig);
+
+        // Generate filename
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `presupuest_tabla_${selectedYear}_${timestamp}.pdf`;
+
+        // Download PDF
+        pdf.save(filename);
+
+        if (typeof showToast === 'function') showToast('PDF vectorial generado correctamente', 'success');
+
+      } catch (error) {
+        console.error('Error generando PDF vectorial:', error);
+        alert('Error al generar el PDF vectorial. Revisa la consola para más detalles.');
+        if (typeof showToast === 'function') showToast('Error generando PDF vectorial', 'error');
+      }
+    }
+
+    // Helper function to extract facturacion data (Cliente + Facturación total + monthly € or yearly fact)
+    function extractFacturacionData(table) {
+      const headers = [];
+      const body = [];
+
+      // Get selected year to determine layout
+      const headerYearSel = document.getElementById('presuYearFilter');
+      const inlineYearSel = document.getElementById('presuYearFilterInline');
+      const selectedYear = (headerYearSel && headerYearSel.value) ? headerYearSel.value : (inlineYearSel && inlineYearSel.value ? inlineYearSel.value : null);
+
+      if (selectedYear) {
+        // Monthly layout
+        headers.push('Cliente', 'Facturación total');
+        const monthAbbr = ['ENE', 'FEBR', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEPT', 'OCT', 'NOV', 'DIC'];
+        monthAbbr.forEach(month => headers.push(month));
+
+        const bodyRows = table.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+          const cells = row.querySelectorAll('td');
+          if (cells.length >= 27) {
+            const rowData = [cells[0].textContent.trim(), cells[2].textContent.trim()];
+            for (let i = 4; i <= 26; i += 2) rowData.push(cells[i].textContent.trim());
+            body.push(rowData);
+          }
+        });
+      } else {
+        // Yearly layout
+        headers.push('Cliente', 'Facturación total');
+        // Get years from header
+        const headRow = table.querySelector('thead tr.sub');
+        if (headRow) {
+          const ths = headRow.querySelectorAll('th');
+          for (let i = 2; i < ths.length; i += 2) {
+            headers.push(ths[i].textContent.trim());
+          }
+        }
+        const bodyRows = table.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+          const cells = row.querySelectorAll('td');
+          if (cells.length >= 5) {
+            const rowData = [cells[0].textContent.trim(), cells[2].textContent.trim()];
+            for (let i = 3; i < cells.length; i += 2) rowData.push(cells[i].textContent.trim());
+            body.push(rowData);
+          }
+        });
+      }
+
+      return { headers, body };
+    }
+
+    // Helper function to extract volumen data (Cliente + Volumen total + monthly VOL or yearly vol)
+    function extractVolumenData(table) {
+      const headers = [];
+      const body = [];
+
+      // Get selected year to determine layout
+      const headerYearSel = document.getElementById('presuYearFilter');
+      const inlineYearSel = document.getElementById('presuYearFilterInline');
+      const selectedYear = (headerYearSel && headerYearSel.value) ? headerYearSel.value : (inlineYearSel && inlineYearSel.value ? inlineYearSel.value : null);
+
+      if (selectedYear) {
+        // Monthly layout
+        headers.push('Cliente', 'Volumen total');
+        const monthAbbr = ['ENE', 'FEBR', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEPT', 'OCT', 'NOV', 'DIC'];
+        monthAbbr.forEach(month => headers.push(month));
+
+        const bodyRows = table.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+          const cells = row.querySelectorAll('td');
+          if (cells.length >= 27) {
+            const rowData = [cells[0].textContent.trim(), cells[1].textContent.trim()];
+            for (let i = 3; i <= 25; i += 2) rowData.push(cells[i].textContent.trim());
+            body.push(rowData);
+          }
+        });
+      } else {
+        // Yearly layout
+        headers.push('Cliente', 'Volumen total');
+        // Get years from header
+        const headRow = table.querySelector('thead tr.sub');
+        if (headRow) {
+          const ths = headRow.querySelectorAll('th');
+          for (let i = 2; i < ths.length; i += 2) {
+            headers.push(ths[i].textContent.trim());
+          }
+        }
+        const bodyRows = table.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+          const cells = row.querySelectorAll('td');
+          if (cells.length >= 5) {
+            const rowData = [cells[0].textContent.trim(), cells[1].textContent.trim()];
+            for (let i = 4; i < cells.length; i += 2) rowData.push(cells[i].textContent.trim());
+            body.push(rowData);
+          }
+        });
+      }
+
+      return { headers, body };
+    }
+
+    // Function to export presupuestar table to Excel
+    async function exportPresupuestarExcel() {
+      try {
+        // Show loading message
+        if (typeof showToast === 'function') showToast('Generando Excel...', 'info');
+
+        // Get the table element
+        const table = document.getElementById('presupuestarTable');
+        if (!table) {
+          alert('Tabla no encontrada para exportar.');
+          return;
+        }
+
+        // Get selected year for filename
+        const headerYearSel = document.getElementById('presuYearFilter');
+        const inlineYearSel = document.getElementById('presuYearFilterInline');
+        const selectedYear = (headerYearSel && headerYearSel.value) ? headerYearSel.value : (inlineYearSel && inlineYearSel.value ? inlineYearSel.value : 'todos');
+
+        // Convert table to worksheet
+        const ws = XLSX.utils.table_to_sheet(table, { raw: true });
+
+        // Set column widths for better readability
+        const colWidths = [];
+        const headers = XLSX.utils.sheet_to_json(ws, { header: 1 })[0] || [];
+        headers.forEach((header, index) => {
+          const headerText = String(header || '');
+          let width = Math.max(12, headerText.length + 2);
+          // Special widths for certain columns
+          if (headerText.toLowerCase().includes('cliente')) width = 15;
+          if (headerText.toLowerCase().includes('total')) width = 14;
+          if (headerText.toLowerCase().includes('volumen')) width = 12;
+          if (headerText.toLowerCase().includes('facturación')) width = 14;
+          colWidths.push({ wch: width });
+        });
+        ws['!cols'] = colWidths;
+
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Presupuesto');
+
+        // Generate filename
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `presupuest_${selectedYear}_${timestamp}.xlsx`;
+
+        // Download Excel file
+        XLSX.writeFile(wb, filename);
+
+        if (typeof showToast === 'function') showToast('Excel generado correctamente', 'success');
+
+      } catch (error) {
+        console.error('Error generando Excel:', error);
+        alert('Error al generar el Excel. Revisa la consola para más detalles.');
+        if (typeof showToast === 'function') showToast('Error generando Excel', 'error');
       }
     }
 
@@ -8980,7 +9513,7 @@ function limpiarFiltrosTabla() {
       }
       
       if (activeClient) {
-        data = data.filter(row => row.cliente === activeClient);
+        data = data.filter(row => matchesClient(row.cliente, activeClient));
       }
       
       if (!data || data.length === 0) {
