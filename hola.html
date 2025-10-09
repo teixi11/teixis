@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracker de Hábitos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #ffffff 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(45deg, #1e3c72, #2a5298, #4facfe);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .date-display {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .habits-section, .dashboard-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .habit-category {
+            margin-bottom: 25px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .category-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #495057;
+            display: flex;
+            align-items: center;
+        }
+
+        .category-icon {
+            margin-right: 10px;
+            font-size: 1.5rem;
+        }
+
+        .habit-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .habit-item:last-child {
+            border-bottom: none;
+        }
+
+        .habit-name {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .habit-checkbox {
+            width: 25px;
+            height: 25px;
+            border: 2px solid #4facfe;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .habit-checkbox.completed {
+            background: linear-gradient(45deg, #1e3c72, #4facfe);
+            color: white;
+        }
+
+        .habit-checkbox:hover {
+            transform: scale(1.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1e3c72;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .streak-display {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .streak-number {
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        .calendar-view {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .calendar-header {
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .calendar-day.today {
+            background: linear-gradient(45deg, #1e3c72, #4facfe);
+            color: white;
+        }
+
+        .calendar-day.completed {
+            background: #28a745;
+            color: white;
+        }
+
+        .calendar-day.partial {
+            background: #ffc107;
+            color: white;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #1e3c72, #4facfe);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(45deg, #2a5298, #00f2fe);
+            transform: translateY(-2px);
+        }
+
+        .btn-telegram {
+            background: linear-gradient(45deg, #0088cc, #229ed9);
+            color: white;
+        }
+
+        .btn-telegram:hover {
+            background: linear-gradient(45deg, #006699, #0088cc);
+            transform: translateY(-2px);
+        }
+
+        .telegram-setup {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .telegram-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: #28a745;
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Tracker de Hábitos</h1>
+            <div class="date-display" id="currentDate"></div>
+        </header>
+
+        <div class="main-content">
+            <div class="habits-section">
+                <h2 class="section-title">Mis Hábitos Diarios</h2>
+                
+                <div class="habit-category" data-category="fitness">
+                    <div class="category-title">
+                        <span class="category-icon">💪</span>
+                        Fitness & Ejercicio
+                    </div>
+                    <div class="habit-item">
+                        <span class="habit-name">Ir al gimnasio</span>
+                        <div class="habit-checkbox" data-habit="gym"></div>
+                    </div>
+                    <div class="habit-item">
+                        <span class="habit-name">Hacer cardio (30 min)</span>
+                        <div class="habit-checkbox" data-habit="cardio"></div>
+                    </div>
+                    <div class="habit-item">
+                        <span class="habit-name">Estiramientos</span>
+                        <div class="habit-checkbox" data-habit="stretching"></div>
+                    </div>
+                </div>
+
+                <div class="habit-category" data-category="hygiene">
+                    <div class="category-title">
+                        <span class="category-icon">🦷</span>
+                        Higiene Personal
+                    </div>
+                    <div class="habit-item">
+                        <span class="habit-name">Lavar dientes (mañana)</span>
+                        <div class="habit-checkbox" data-habit="brush-morning"></div>
+                    </div>
+                    <div class="habit-item">
+                        <span class="habit-name">Lavar dientes (noche)</span>
+                        <div class="habit-checkbox" data-habit="brush-night"></div>
+                    </div>
+                    <div class="habit-item">
+                        <span class="habit-name">Usar hilo dental</span>
+                        <div class="habit-checkbox" data-habit="floss"></div>
+                    </div>
+                </div>
+
+                <div class="habit-category" data-category="skincare">
+                    <div class="category-title">
+                        <span class="category-icon">✨</span>
+                        Cuidado de la Piel
+                    </div>
+                    <div class="habit-item">
+                        <span class="habit-name">Lavar la cara</span>
+                        <div class="habit-checkbox" data-habit="wash-face"></div>
+                    </div>
+                    <div class="habit-item">
+                        <span class="habit-name">Aplicar crema hidratante</span>
+                        <div class="habit-checkbox" data-habit="moisturizer"></div>
+                    </div>
+                    <div class="habit-item">
+                        <span class="habit-name">Protector solar</span>
+                        <div class="habit-checkbox" data-habit="sunscreen"></div>
+                    </div>
+                </div>
+
+                <div class="habit-category" data-category="wellness">
+                    <div class="category-title">
+                        <span class="category-icon">🧘</span>
+                        Bienestar
+                    </div>
+                    <div class="habit-item">
+                        <span class="habit-name">Meditar (10 min)</span>
+                        <div class="habit-checkbox" data-habit="meditation"></div>
+                    </div>
+                    <div class="habit-item">
+                        <span class="habit-name">Leer (30 min)</span>
+                        <div class="habit-checkbox" data-habit="reading"></div>
+                    </div>
+                    <div class="habit-item">
+                        <span class="habit-name">Beber 2L de agua</span>
+                        <div class="habit-checkbox" data-habit="water"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-section">
+                <h2 class="section-title">Dashboard</h2>
+                
+                <div class="streak-display">
+                    <div class="streak-number" id="currentStreak">0</div>
+                    <div>Días consecutivos</div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="todayCompletion">0%</div>
+                        <div class="stat-label">Hoy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="weekCompletion">0%</div>
+                        <div class="stat-label">Esta semana</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="monthCompletion">0%</div>
+                        <div class="stat-label">Este mes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalHabits">12</div>
+                        <div class="stat-label">Hábitos totales</div>
+                    </div>
+                </div>
+
+                <div class="calendar-view">
+                    <div class="calendar-header">Progreso del Mes</div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="exportToExcel()">📊 Exportar Excel</button>
+                    <button class="btn btn-telegram" onclick="sendToTelegram()">📱 Enviar Telegram</button>
+                    <button class="btn btn-secondary" onclick="resetDay()">🔄 Reiniciar Día</button>
+                </div>
+
+                <div class="telegram-setup">
+                    <h4>⚙️ Configuración Telegram</h4>
+                    <input type="text" id="botToken" class="telegram-input" placeholder="Token del Bot (ej: 123456:ABC-DEF...)">
+                    <input type="text" id="chatId" class="telegram-input" placeholder="Chat ID (ej: 123456789)">
+                    <button class="btn btn-telegram" onclick="saveTelegramConfig()">💾 Guardar Config</button>
+                    <p style="font-size: 0.9rem; color: #6c757d; margin-top: 10px;">
+                        📋 <strong>Instrucciones:</strong><br>
+                        1. Habla con @BotFather en Telegram y crea un bot<br>
+                        2. Copia el token que te dé<br>
+                        3. Habla con @userinfobot para obtener tu Chat ID
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Variables globales
+        let habitData = JSON.parse(localStorage.getItem('habitData')) || {};
+        let streakData = JSON.parse(localStorage.getItem('streakData')) || { current: 0, best: 0 };
+
+        // Función para obtener la fecha actual
+        function getCurrentDate() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        // Función para obtener datos del día actual
+        function getTodayData() {
+            const today = getCurrentDate();
+            if (!habitData[today]) {
+                habitData[today] = {};
+            }
+            return habitData[today];
+        }
+
+        // Inicializar la aplicación
+        function initApp() {
+            updateDateDisplay();
+            loadTodayHabits();
+            updateStats();
+            generateCalendar();
+            requestNotificationPermission();
+            setReminders();
+            loadTelegramConfig();
+        }
+
+        // Cargar configuración de Telegram
+        function loadTelegramConfig() {
+            // Configuración predeterminada
+            const defaultConfig = {
+                botToken: '8457996187:AAFWAXO_5DKFOdYowRRMZuaLOEd12W5b6Qw',
+                chatId: '5913234112'
+            };
+            
+            const config = JSON.parse(localStorage.getItem('telegramConfig')) || defaultConfig;
+            
+            // Si no hay configuración guardada, guardar la predeterminada
+            if (!localStorage.getItem('telegramConfig')) {
+                localStorage.setItem('telegramConfig', JSON.stringify(defaultConfig));
+            }
+            
+            document.getElementById('botToken').value = config.botToken || defaultConfig.botToken;
+            document.getElementById('chatId').value = config.chatId || defaultConfig.chatId;
+        }
+
+        // Actualizar display de fecha
+        function updateDateDisplay() {
+            const today = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            };
+            document.getElementById('currentDate').textContent = 
+                today.toLocaleDateString('es-ES', options);
+        }
+
+        // Cargar hábitos del día
+        function loadTodayHabits() {
+            const todayData = getTodayData();
+            const checkboxes = document.querySelectorAll('.habit-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                const habitId = checkbox.dataset.habit;
+                if (todayData[habitId]) {
+                    checkbox.classList.add('completed');
+                    checkbox.innerHTML = '✓';
+                }
+                
+                checkbox.addEventListener('click', () => toggleHabit(habitId));
+            });
+        }
+
+        // Alternar estado del hábito
+        function toggleHabit(habitId) {
+            const todayData = getTodayData();
+            const checkbox = document.querySelector(`[data-habit="${habitId}"]`);
+            
+            if (todayData[habitId]) {
+                delete todayData[habitId];
+                checkbox.classList.remove('completed');
+                checkbox.innerHTML = '';
+            } else {
+                todayData[habitId] = true;
+                checkbox.classList.add('completed');
+                checkbox.innerHTML = '✓';
+            }
+            
+            saveData();
+            updateStats();
+            showNotification('¡Hábito actualizado! 🎉');
+        }
+
+        // Guardar datos en localStorage
+        function saveData() {
+            localStorage.setItem('habitData', JSON.stringify(habitData));
+            localStorage.setItem('streakData', JSON.stringify(streakData));
+        }
+
+        // Actualizar estadísticas
+        function updateStats() {
+            updateTodayCompletion();
+            updateWeekCompletion();
+            updateMonthCompletion();
+            updateStreak();
+        }
+
+        function updateTodayCompletion() {
+            const todayData = getTodayData();
+            const totalHabits = document.querySelectorAll('.habit-checkbox').length;
+            const completedHabits = Object.keys(todayData).length;
+            const percentage = Math.round((completedHabits / totalHabits) * 100);
+            
+            document.getElementById('todayCompletion').textContent = percentage + '%';
+        }
+
+        function updateWeekCompletion() {
+            const today = new Date();
+            const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+            let totalPossible = 0;
+            let totalCompleted = 0;
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(weekStart);
+                date.setDate(date.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                
+                if (date <= today) {
+                    totalPossible += 12; // 12 hábitos por día
+                    if (habitData[dateStr]) {
+                        totalCompleted += Object.keys(habitData[dateStr]).length;
+                    }
+                }
+            }
+            
+            const percentage = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 0;
+            document.getElementById('weekCompletion').textContent = percentage + '%';
+        }
+
+        function updateMonthCompletion() {
+            const today = new Date();
+            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            let totalPossible = 0;
+            let totalCompleted = 0;
+            
+            const currentDate = new Date(monthStart);
+            while (currentDate <= today && currentDate.getMonth() === today.getMonth()) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                totalPossible += 12;
+                
+                if (habitData[dateStr]) {
+                    totalCompleted += Object.keys(habitData[dateStr]).length;
+                }
+                
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            const percentage = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 0;
+            document.getElementById('monthCompletion').textContent = percentage + '%';
+        }
+
+        function updateStreak() {
+            const today = new Date();
+            let streak = 0;
+            let currentDate = new Date(today);
+            
+            // Verificar días consecutivos hacia atrás
+            while (true) {
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const dayData = habitData[dateStr];
+                
+                if (dayData && Object.keys(dayData).length >= 6) { // Al menos 50% de hábitos
+                    streak++;
+                } else {
+                    break;
+                }
+                
+                currentDate.setDate(currentDate.getDate() - 1);
+            }
+            
+            streakData.current = streak;
+            if (streak > streakData.best) {
+                streakData.best = streak;
+            }
+            
+            document.getElementById('currentStreak').textContent = streak;
+            saveData();
+        }
+
+        // Generar calendario
+        function generateCalendar() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth();
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            const calendarGrid = document.getElementById('calendarGrid');
+            calendarGrid.innerHTML = '';
+            
+            // Días de la semana
+            const days = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+            days.forEach(day => {
+                const dayElement = document.createElement('div');
+                dayElement.textContent = day;
+                dayElement.style.fontWeight = 'bold';
+                dayElement.style.textAlign = 'center';
+                calendarGrid.appendChild(dayElement);
+            });
+            
+            // Días del mes
+            const currentDate = new Date(startDate);
+            for (let i = 0; i < 42; i++) { // 6 semanas
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                
+                if (currentDate.getMonth() === month) {
+                    dayElement.textContent = currentDate.getDate();
+                    
+                    const dateStr = currentDate.toISOString().split('T')[0];
+                    const dayData = habitData[dateStr];
+                    
+                    if (dateStr === getCurrentDate()) {
+                        dayElement.classList.add('today');
+                    } else if (dayData) {
+                        const completion = Object.keys(dayData).length / 12;
+                        if (completion >= 0.8) {
+                            dayElement.classList.add('completed');
+                        } else if (completion >= 0.5) {
+                            dayElement.classList.add('partial');
+                        }
+                    }
+                }
+                
+                calendarGrid.appendChild(dayElement);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        }
+
+        // Exportar a Excel
+        function exportToExcel() {
+            // Crear datos para Excel
+            const excelData = [];
+            
+            // Headers
+            excelData.push([
+                'Fecha', 'Gym', 'Cardio', 'Estiramientos', 
+                'Lavar dientes (mañana)', 'Lavar dientes (noche)', 'Hilo dental',
+                'Lavar cara', 'Crema hidratante', 'Protector solar',
+                'Meditación', 'Lectura', 'Agua', 'Total completados', '% Completado'
+            ]);
+            
+            // Datos por fecha
+            const sortedDates = Object.keys(habitData).sort();
+            sortedDates.forEach(date => {
+                const dayData = habitData[date];
+                const row = [date];
+                
+                // Añadir cada hábito (1 si completado, 0 si no)
+                const habits = ['gym', 'cardio', 'stretching', 'brush-morning', 'brush-night', 'floss', 
+                              'wash-face', 'moisturizer', 'sunscreen', 'meditation', 'reading', 'water'];
+                
+                habits.forEach(habit => {
+                    row.push(dayData[habit] ? 1 : 0);
+                });
+                
+                // Total y porcentaje
+                const completed = Object.keys(dayData).length;
+                row.push(completed);
+                row.push(Math.round((completed / 12) * 100) + '%');
+                
+                excelData.push(row);
+            });
+            
+            // Crear CSV (compatible con Excel)
+            const csvContent = excelData.map(row => 
+                row.map(cell => typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell).join(',')
+            ).join('\n');
+            
+            // Añadir BOM para UTF-8 en Excel
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+            
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `habitos_${getCurrentDate()}.csv`;
+            link.click();
+            
+            showNotification('📊 Excel exportado correctamente!');
+        }
+
+        // Configuración de Telegram
+        function saveTelegramConfig() {
+            const botToken = document.getElementById('botToken').value;
+            const chatId = document.getElementById('chatId').value;
+            
+            if (!botToken || !chatId) {
+                showNotification('⚠️ Completa todos los campos de Telegram');
+                return;
+            }
+            
+            localStorage.setItem('telegramConfig', JSON.stringify({
+                botToken: botToken,
+                chatId: chatId
+            }));
+            
+            showNotification('✅ Configuración de Telegram guardada!');
+        }
+
+        // Enviar reporte a Telegram
+        async function sendToTelegram() {
+            const config = JSON.parse(localStorage.getItem('telegramConfig'));
+            
+            if (!config || !config.botToken || !config.chatId) {
+                showNotification('⚠️ Configura Telegram primero');
+                return;
+            }
+            
+            const todayData = getTodayData();
+            const today = getCurrentDate();
+            const todayDate = new Date().toLocaleDateString('es-ES', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+            
+            // Crear reporte
+            let message = `🎯 *Reporte de Hábitos*\n📅 ${todayDate}\n\n`;
+            
+            const categories = {
+                '💪 Fitness & Ejercicio': ['gym', 'cardio', 'stretching'],
+                '🦷 Higiene Personal': ['brush-morning', 'brush-night', 'floss'],
+                '✨ Cuidado de la Piel': ['wash-face', 'moisturizer', 'sunscreen'],
+                '🧘 Bienestar': ['meditation', 'reading', 'water']
+            };
+            
+            const habitNames = {
+                'gym': 'Ir al gimnasio',
+                'cardio': 'Hacer cardio (30 min)',
+                'stretching': 'Estiramientos',
+                'brush-morning': 'Lavar dientes (mañana)',
+                'brush-night': 'Lavar dientes (noche)',
+                'floss': 'Usar hilo dental',
+                'wash-face': 'Lavar la cara',
+                'moisturizer': 'Aplicar crema hidratante',
+                'sunscreen': 'Protector solar',
+                'meditation': 'Meditar (10 min)',
+                'reading': 'Leer (30 min)',
+                'water': 'Beber 2L de agua'
+            };
+            
+            Object.entries(categories).forEach(([categoryName, habits]) => {
+                message += `${categoryName}\n`;
+                habits.forEach(habit => {
+                    const completed = todayData[habit] ? '✅' : '❌';
+                    message += `${completed} ${habitNames[habit]}\n`;
+                });
+                message += '\n';
+            });
+            
+            const completedCount = Object.keys(todayData).length;
+            const percentage = Math.round((completedCount / 12) * 100);
+            
+            message += `📊 *Resumen del día:*\n`;
+            message += `✅ Completados: ${completedCount}/12\n`;
+            message += `📈 Porcentaje: ${percentage}%\n`;
+            message += `🔥 Racha actual: ${streakData.current} días\n\n`;
+            
+            if (percentage >= 80) {
+                message += '🎉 ¡Excelente día! ¡Sigue así!';
+            } else if (percentage >= 60) {
+                message += '👍 ¡Buen trabajo! Puedes mejorar mañana';
+            } else {
+                message += '💪 ¡Mañana será mejor! No te rindas';
+            }
+            
+            // Enviar a Telegram
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${config.botToken}/sendMessage`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: config.chatId,
+                        text: message,
+                        parse_mode: 'Markdown'
+                    })
+                });
+                
+                if (response.ok) {
+                    showNotification('� Reporte enviado a Telegram!');
+                } else {
+                    throw new Error('Error al enviar mensaje');
+                }
+            } catch (error) {
+                showNotification('❌ Error al enviar a Telegram. Verifica tu configuración');
+                console.error('Error:', error);
+            }
+        }
+
+        // Reiniciar día
+        function resetDay() {
+            if (confirm('¿Estás seguro de que quieres reiniciar el progreso de hoy?')) {
+                const today = getCurrentDate();
+                delete habitData[today];
+                saveData();
+                location.reload();
+            }
+        }
+
+        // Sistema de notificaciones
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function sendBrowserNotification(message) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Recordatorio de Hábitos', {
+                    body: message,
+                    icon: '🎯'
+                });
+            }
+        }
+
+        // Configurar recordatorios
+        function setReminders() {
+            // Recordatorio matutino (8:00 AM)
+            scheduleNotification(8, 0, '¡Buenos días! Es hora de empezar con tus hábitos matutinos 🌅');
+            
+            // Recordatorio de almuerzo (12:00 PM)
+            scheduleNotification(12, 0, '¡Hora del almuerzo! No olvides beber agua 💧');
+            
+            // Recordatorio nocturno (9:00 PM)
+            scheduleNotification(21, 0, '¡Es hora de tus hábitos nocturnos! 🌙');
+        }
+
+        function scheduleNotification(hour, minute, message) {
+            const now = new Date();
+            const scheduledTime = new Date();
+            scheduledTime.setHours(hour, minute, 0, 0);
+            
+            if (scheduledTime <= now) {
+                scheduledTime.setDate(scheduledTime.getDate() + 1);
+            }
+            
+            const timeUntilNotification = scheduledTime - now;
+            
+            setTimeout(() => {
+                sendBrowserNotification(message);
+                // Reprogramar para el día siguiente
+                scheduleNotification(hour, minute, message);
+            }, timeUntilNotification);
+        }
+
+        // Inicializar cuando se carga la página
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
