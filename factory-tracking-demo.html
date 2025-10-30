@@ -51,6 +51,45 @@
         .demo-subtitle {
             color: var(--text-muted);
             font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .main-navigation {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .nav-tab {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--border);
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .nav-tab:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, var(--primary), #667eea);
+            border-color: var(--primary);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         .container {
@@ -314,11 +353,26 @@
 </head>
 <body>
     <header class="demo-header">
-        <h1 class="demo-title">🏭 Factory Explorer Pro - Live Tracking Demo</h1>
-        <p class="demo-subtitle">Simulación de tracking en tiempo real sin hardware adicional</p>
+        <h1 class="demo-title">🏭 Factory Explorer Pro</h1>
+        <p class="demo-subtitle">Plataforma Industrial Inteligente</p>
+        
+        <!-- Navigation Menu -->
+        <nav class="main-navigation">
+            <button class="nav-tab active" onclick="switchTab('tracking')">
+                📍 Live Tracking
+            </button>
+            <button class="nav-tab" onclick="switchTab('showcase')">
+                🎬 3D Showcase
+            </button>
+            <button class="nav-tab" onclick="switchTab('analytics')">
+                📊 Analytics
+            </button>
+        </nav>
     </header>
 
     <div class="container">
+        <!-- Live Tracking Tab Content -->
+        <div id="liveTrackingTab" class="tab-content active">
         <!-- Mapa Principal -->
         <div class="map-section">
             <div class="map-header">
@@ -645,6 +699,823 @@
                 }
             );
         }
+
+        // Navigation System
+        function switchTab(tabName) {
+            // Remove active class from all tabs and content
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+            
+            // Show corresponding content
+            const contentId = `${tabName}Tab`;
+            if (tabName === 'tracking') {
+                document.getElementById('liveTrackingTab').classList.add('active');
+            } else if (tabName === 'showcase') {
+                showThreeDShowcase();
+            } else if (tabName === 'analytics') {
+                showAnalytics();
+            }
+        }
+
+        function showThreeDShowcase() {
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Create or show 3D Showcase content
+            let showcaseContent = document.getElementById('threeDShowcaseTab');
+            if (!showcaseContent) {
+                showcaseContent = document.createElement('div');
+                showcaseContent.id = 'threeDShowcaseTab';
+                showcaseContent.className = 'tab-content';
+                showcaseContent.innerHTML = `
+                    <div class="showcase-container">
+                        <div class="showcase-header">
+                            <h2>🎬 Factory 3D Showcase</h2>
+                            <p>Experiencia inmersiva de la planta industrial</p>
+                        </div>
+                        <div class="showcase-viewer">
+                            <canvas id="threejs-canvas"></canvas>
+                            <div class="showcase-overlay">
+                                <div class="hotspot-info" id="hotspotInfo" style="display: none;">
+                                    <h4 id="hotspotTitle">Sección</h4>
+                                    <p id="hotspotDesc">Información</p>
+                                    <div class="hotspot-metrics">
+                                        <span class="metric">Eficiencia: <strong id="hotspotEfficiency">--</strong></span>
+                                        <span class="metric">Estado: <strong id="hotspotStatus">--</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="showcase-controls">
+                            <button class="showcase-btn" onclick="startCinematicTour()">
+                                🎥 Tour Cinemático
+                            </button>
+                            <button class="showcase-btn" onclick="enableFreeCamera()">
+                                🎮 Cámara Libre
+                            </button>
+                            <button class="showcase-btn" onclick="showHotspots()">
+                                📍 Ver Hotspots
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.querySelector('.container').appendChild(showcaseContent);
+                
+                // Add showcase styles dynamically
+                const showcaseStyles = document.createElement('style');
+                showcaseStyles.textContent = `
+                    .showcase-container {
+                        padding: 2rem;
+                        height: 100vh;
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    
+                    .showcase-header {
+                        text-align: center;
+                        margin-bottom: 2rem;
+                    }
+                    
+                    .showcase-header h2 {
+                        font-size: 2.5rem;
+                        margin-bottom: 0.5rem;
+                        background: linear-gradient(135deg, var(--primary), #667eea);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                    }
+                    
+                    .showcase-viewer {
+                        flex: 1;
+                        background: rgba(0,0,0,0.3);
+                        border-radius: 20px;
+                        border: 1px solid var(--border);
+                        position: relative;
+                        overflow: hidden;
+                    }
+                    
+                    #threejs-canvas {
+                        width: 100%;
+                        height: 100%;
+                        display: block;
+                        border-radius: 20px;
+                    }
+                    
+                    .showcase-overlay {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        pointer-events: none;
+                        z-index: 10;
+                    }
+                    
+                    .hotspot-info {
+                        position: absolute;
+                        background: rgba(0,0,0,0.8);
+                        border: 1px solid var(--primary);
+                        border-radius: 12px;
+                        padding: 1rem;
+                        color: white;
+                        min-width: 200px;
+                        pointer-events: auto;
+                        backdrop-filter: blur(10px);
+                    }
+                    
+                    .hotspot-info h4 {
+                        margin: 0 0 0.5rem 0;
+                        color: var(--primary);
+                        font-size: 1.1rem;
+                    }
+                    
+                    .hotspot-info p {
+                        margin: 0 0 1rem 0;
+                        font-size: 0.9rem;
+                        color: var(--text-light);
+                    }
+                    
+                    .hotspot-metrics {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 0.25rem;
+                    }
+                    
+                    .metric {
+                        font-size: 0.8rem;
+                        color: var(--text-muted);
+                    }
+                    
+                    .metric strong {
+                        color: var(--success);
+                    }
+                    
+                    .viewer-placeholder {
+                        height: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        color: var(--text-light);
+                    }
+                    
+                    .loading-spinner {
+                        width: 60px;
+                        height: 60px;
+                        border: 4px solid rgba(0, 212, 255, 0.1);
+                        border-left: 4px solid var(--primary);
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                        margin-bottom: 1rem;
+                    }
+                    
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                    
+                    .showcase-controls {
+                        display: flex;
+                        justify-content: center;
+                        gap: 1rem;
+                        margin-top: 2rem;
+                    }
+                    
+                    .showcase-btn {
+                        background: rgba(255,255,255,0.1);
+                        border: 1px solid var(--border);
+                        border-radius: 12px;
+                        padding: 1rem 2rem;
+                        color: var(--text-light);
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        font-size: 1rem;
+                        font-weight: 500;
+                    }
+                    
+                    .showcase-btn:hover {
+                        background: rgba(255,255,255,0.15);
+                        transform: translateY(-2px);
+                        box-shadow: 0 8px 25px rgba(0, 212, 255, 0.2);
+                    }
+                `;
+                document.head.appendChild(showcaseStyles);
+            }
+            showcaseContent.classList.add('active');
+            
+            // Load and initialize Three.js
+            loadThreeJS();
+        }
+
+        function showAnalytics() {
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Create or show Analytics content
+            let analyticsContent = document.getElementById('analyticsTab');
+            if (!analyticsContent) {
+                analyticsContent = document.createElement('div');
+                analyticsContent.id = 'analyticsTab';
+                analyticsContent.className = 'tab-content';
+                analyticsContent.innerHTML = `
+                    <div class="analytics-container">
+                        <div class="analytics-header">
+                            <h2>📊 Factory Analytics</h2>
+                            <p>Métricas y estadísticas de la planta industrial</p>
+                        </div>
+                        <div class="analytics-grid">
+                            <div class="analytics-card">
+                                <h3>📈 Rendimiento de Tours</h3>
+                                <div class="metric-value">94%</div>
+                                <p>Tasa de finalización</p>
+                            </div>
+                            <div class="analytics-card">
+                                <h3>⏱️ Tiempo promedio</h3>
+                                <div class="metric-value">28 min</div>
+                                <p>Duración del tour</p>
+                            </div>
+                            <div class="analytics-card">
+                                <h3>🎯 Precisión GPS</h3>
+                                <div class="metric-value">±8m</div>
+                                <p>Margen de error</p>
+                            </div>
+                            <div class="analytics-card">
+                                <h3>👥 Visitantes hoy</h3>
+                                <div class="metric-value">42</div>
+                                <p>Tours completados</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.querySelector('.container').appendChild(analyticsContent);
+                
+                // Add analytics styles dynamically
+                const analyticsStyles = document.createElement('style');
+                analyticsStyles.textContent = `
+                    .analytics-container {
+                        padding: 2rem;
+                    }
+                    
+                    .analytics-header {
+                        text-align: center;
+                        margin-bottom: 3rem;
+                    }
+                    
+                    .analytics-header h2 {
+                        font-size: 2.5rem;
+                        margin-bottom: 0.5rem;
+                        background: linear-gradient(135deg, var(--primary), #667eea);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                    }
+                    
+                    .analytics-grid {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                        gap: 2rem;
+                        max-width: 1200px;
+                        margin: 0 auto;
+                    }
+                    
+                    .analytics-card {
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid var(--border);
+                        border-radius: 20px;
+                        padding: 2rem;
+                        text-align: center;
+                        transition: all 0.3s ease;
+                    }
+                    
+                    .analytics-card:hover {
+                        transform: translateY(-5px);
+                        box-shadow: 0 15px 35px rgba(0, 212, 255, 0.15);
+                    }
+                    
+                    .analytics-card h3 {
+                        color: var(--text-light);
+                        margin-bottom: 1rem;
+                        font-size: 1.1rem;
+                    }
+                    
+                    .metric-value {
+                        font-size: 3rem;
+                        font-weight: 700;
+                        background: linear-gradient(135deg, var(--primary), #667eea);
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+                        margin-bottom: 0.5rem;
+                    }
+                    
+                    .analytics-card p {
+                        color: var(--text-muted);
+                        font-size: 0.9rem;
+                    }
+                `;
+                document.head.appendChild(analyticsStyles);
+            }
+            analyticsContent.classList.add('active');
+        }
+
+        // 3D Showcase variables
+        let scene, camera, renderer, controls;
+        let factorySections = [];
+        let particles = [];
+        let cinematicMode = false;
+        let hotspotsVisible = false;
+        
+        // Initialize 3D Scene
+        function init3DScene() {
+            const canvas = document.getElementById('threejs-canvas');
+            const container = canvas.parentElement;
+            
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a1a);
+            scene.fog = new THREE.Fog(0x0a0a1a, 10, 100);
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 15, 25);
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(10, 20, 10);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Create factory sections
+            createFactorySections();
+            
+            // Create particle system
+            createParticleSystem();
+            
+            // Create orbit controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 50;
+            controls.minDistance = 5;
+            
+            // Add click event for hotspots
+            canvas.addEventListener('click', onCanvasClick);
+            
+            // Handle resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Start animation loop
+            animate();
+        }
+        
+        function createFactorySections() {
+            const sectionsData = [
+                { name: 'Recepción', pos: [-15, 0, -10], color: 0x60a5fa, efficiency: '92%' },
+                { name: 'Carrocería', pos: [0, 0, -10], color: 0x34d399, efficiency: '95%' },
+                { name: 'Pintura', pos: [15, 0, -10], color: 0xf59e0b, efficiency: '88%' },
+                { name: 'Powertrain', pos: [-15, 0, 0], color: 0xa78bfa, efficiency: '91%' },
+                { name: 'Ensamblaje', pos: [0, 0, 0], color: 0xf87171, efficiency: '94%' },
+                { name: 'Control Calidad', pos: [15, 0, 0], color: 0x06d6a0, efficiency: '97%' },
+                { name: 'Almacén', pos: [-15, 0, 10], color: 0xfbbf24, efficiency: '89%' },
+                { name: 'Expedición', pos: [15, 0, 10], color: 0x818cf8, efficiency: '93%' }
+            ];
+            
+            sectionsData.forEach((data, index) => {
+                // Create main building
+                const geometry = new THREE.BoxGeometry(8, 4, 6);
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: data.color,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const building = new THREE.Mesh(geometry, material);
+                building.position.set(...data.pos);
+                building.position.y = 2;
+                building.castShadow = true;
+                building.receiveShadow = true;
+                building.userData = { 
+                    type: 'section', 
+                    name: data.name, 
+                    efficiency: data.efficiency,
+                    status: 'Operativo'
+                };
+                scene.add(building);
+                factorySections.push(building);
+                
+                // Create roof
+                const roofGeometry = new THREE.ConeGeometry(6, 2, 4);
+                const roofMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
+                const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+                roof.position.set(...data.pos);
+                roof.position.y = 5;
+                roof.rotation.y = Math.PI / 4;
+                scene.add(roof);
+                
+                // Create glowing edge effect
+                const edgeGeometry = new THREE.EdgesGeometry(geometry);
+                const edgeMaterial = new THREE.LineBasicMaterial({ 
+                    color: data.color,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+                edges.position.copy(building.position);
+                scene.add(edges);
+            });
+            
+            // Create ground
+            const groundGeometry = new THREE.PlaneGeometry(60, 40);
+            const groundMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x1a1a2e,
+                transparent: true,
+                opacity: 0.8
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            // Add grid
+            const gridHelper = new THREE.GridHelper(50, 20, 0x00d4ff, 0x003366);
+            gridHelper.material.transparent = true;
+            gridHelper.material.opacity = 0.3;
+            scene.add(gridHelper);
+        }
+        
+        function createParticleSystem() {
+            const particleCount = 500;
+            const positions = new Float32Array(particleCount * 3);
+            const velocities = new Float32Array(particleCount * 3);
+            
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 100;
+                positions[i * 3 + 1] = Math.random() * 20;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 80;
+                
+                velocities[i * 3] = (Math.random() - 0.5) * 0.02;
+                velocities[i * 3 + 1] = Math.random() * 0.01;
+                velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
+            }
+            
+            const particleGeometry = new THREE.BufferGeometry();
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            
+            const particleMaterial = new THREE.PointsMaterial({
+                color: 0x00d4ff,
+                size: 0.1,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending
+            });
+            
+            const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+            particleSystem.userData = { velocities: velocities };
+            scene.add(particleSystem);
+            particles.push(particleSystem);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Update controls
+            controls.update();
+            
+            // Animate particles
+            particles.forEach(system => {
+                const positions = system.geometry.attributes.position.array;
+                const velocities = system.userData.velocities;
+                
+                for (let i = 0; i < positions.length; i += 3) {
+                    positions[i] += velocities[i];
+                    positions[i + 1] += velocities[i + 1];
+                    positions[i + 2] += velocities[i + 2];
+                    
+                    if (positions[i + 1] > 20) {
+                        positions[i + 1] = 0;
+                    }
+                }
+                
+                system.geometry.attributes.position.needsUpdate = true;
+            });
+            
+            // Animate factory sections with pulsing effect
+            factorySections.forEach((section, index) => {
+                const time = Date.now() * 0.001;
+                const pulse = Math.sin(time + index) * 0.1 + 1;
+                section.scale.y = pulse;
+                section.material.opacity = 0.6 + Math.sin(time + index) * 0.2;
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        function onCanvasClick(event) {
+            const rect = event.target.getBoundingClientRect();
+            const mouse = new THREE.Vector2(
+                ((event.clientX - rect.left) / rect.width) * 2 - 1,
+                -((event.clientY - rect.top) / rect.height) * 2 + 1
+            );
+            
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            
+            const intersects = raycaster.intersectObjects(factorySections);
+            
+            if (intersects.length > 0) {
+                const section = intersects[0].object;
+                showHotspotInfo(section.userData, event.clientX - rect.left, event.clientY - rect.top);
+            } else {
+                hideHotspotInfo();
+            }
+        }
+        
+        function showHotspotInfo(data, x, y) {
+            const info = document.getElementById('hotspotInfo');
+            document.getElementById('hotspotTitle').textContent = data.name;
+            document.getElementById('hotspotDesc').textContent = `Sección de ${data.name.toLowerCase()}`;
+            document.getElementById('hotspotEfficiency').textContent = data.efficiency;
+            document.getElementById('hotspotStatus').textContent = data.status;
+            
+            info.style.display = 'block';
+            info.style.left = x + 'px';
+            info.style.top = y + 'px';
+        }
+        
+        function hideHotspotInfo() {
+            document.getElementById('hotspotInfo').style.display = 'none';
+        }
+        
+        function onWindowResize() {
+            const container = document.getElementById('threejs-canvas').parentElement;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+        
+        // 3D Showcase functions
+        function startCinematicTour() {
+            cinematicMode = true;
+            controls.enabled = false; // Disable user controls during tour
+            
+            // Create drone-style tour path visiting each station
+            const tourPath = [
+                // Start: High overview of entire factory
+                { 
+                    pos: [0, 35, 40], 
+                    target: [0, 0, 0], 
+                    duration: 3000,
+                    description: "Vista general de la planta industrial"
+                },
+                // Station 1: Recepción - Approach from side
+                { 
+                    pos: [-25, 12, -5], 
+                    target: [-15, 2, -10], 
+                    duration: 2500,
+                    description: "Área de Recepción - Entrada de materias primas"
+                },
+                // Station 2: Carrocería - Fly over and circle
+                { 
+                    pos: [-5, 15, -15], 
+                    target: [0, 2, -10], 
+                    duration: 2500,
+                    description: "Sección Carrocería - Fabricación de chasis"
+                },
+                // Station 3: Pintura - Side approach with tilt
+                { 
+                    pos: [25, 10, -15], 
+                    target: [15, 2, -10], 
+                    duration: 2500,
+                    description: "Cabina de Pintura - Acabados de calidad"
+                },
+                // Transition flight - sweep across factory
+                { 
+                    pos: [20, 20, 5], 
+                    target: [-10, 0, 0], 
+                    duration: 2000,
+                    description: "Transición entre áreas de producción"
+                },
+                // Station 4: Powertrain - Low approach
+                { 
+                    pos: [-25, 8, 5], 
+                    target: [-15, 2, 0], 
+                    duration: 2500,
+                    description: "Powertrain - Motores y transmisiones"
+                },
+                // Station 5: Ensamblaje - Central overhead
+                { 
+                    pos: [0, 18, 8], 
+                    target: [0, 2, 0], 
+                    duration: 2500,
+                    description: "Ensamblaje Final - Montaje principal"
+                },
+                // Station 6: Control Calidad - Precision approach
+                { 
+                    pos: [25, 12, 8], 
+                    target: [15, 2, 0], 
+                    duration: 2500,
+                    description: "Control de Calidad - Inspección y testing"
+                },
+                // Station 7: Almacén - Wide angle
+                { 
+                    pos: [-20, 15, 20], 
+                    target: [-15, 2, 10], 
+                    duration: 2500,
+                    description: "Almacén - Gestión de inventario"
+                },
+                // Station 8: Expedición - Final approach
+                { 
+                    pos: [25, 10, 20], 
+                    target: [15, 2, 10], 
+                    duration: 2500,
+                    description: "Expedición - Productos terminados"
+                },
+                // Final: Spectacular pullback overview
+                { 
+                    pos: [35, 45, 35], 
+                    target: [0, 0, 0], 
+                    duration: 3500,
+                    description: "Vista completa del complejo industrial"
+                }
+            ];
+            
+            let currentSegment = 0;
+            let tourInfo = document.createElement('div');
+            tourInfo.id = 'tourInfo';
+            tourInfo.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 1rem 2rem;
+                border-radius: 25px;
+                border: 1px solid var(--primary);
+                backdrop-filter: blur(10px);
+                font-size: 1.1rem;
+                text-align: center;
+                z-index: 1000;
+                max-width: 400px;
+            `;
+            document.body.appendChild(tourInfo);
+            
+            function animateToNextStation() {
+                if (currentSegment >= tourPath.length) {
+                    // Tour completed - cleanup and return control
+                    cinematicMode = false;
+                    controls.enabled = true;
+                    document.body.removeChild(tourInfo);
+                    
+                    // Show completion message
+                    setTimeout(() => {
+                        alert('🎬 Tour cinemático completado!\n\nHas visitado todas las estaciones de la planta industrial.');
+                    }, 1000);
+                    return;
+                }
+                
+                const segment = tourPath[currentSegment];
+                
+                // Update tour info display
+                tourInfo.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="background: var(--primary); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                            ${currentSegment + 1}
+                        </div>
+                        <div>
+                            <div style="font-weight: bold; margin-bottom: 0.25rem;">Estación ${currentSegment + 1}/${tourPath.length}</div>
+                            <div style="font-size: 0.9rem; color: var(--text-muted);">${segment.description}</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Highlight current section being visited
+                factorySections.forEach((section, index) => {
+                    section.material.emissive.setHex(0x000000);
+                });
+                
+                // Find and highlight the section we're approaching
+                if (currentSegment >= 1 && currentSegment <= 8) {
+                    const sectionIndex = currentSegment - 1;
+                    if (factorySections[sectionIndex]) {
+                        factorySections[sectionIndex].material.emissive.setHex(0x003366);
+                    }
+                }
+                
+                // Create smooth drone-like camera movement
+                const startPos = { 
+                    x: camera.position.x, 
+                    y: camera.position.y, 
+                    z: camera.position.z 
+                };
+                const startTarget = { 
+                    x: controls.target.x, 
+                    y: controls.target.y, 
+                    z: controls.target.z 
+                };
+                
+                // Animate camera position with drone-like easing
+                new TWEEN.Tween(startPos)
+                    .to({ 
+                        x: segment.pos[0], 
+                        y: segment.pos[1], 
+                        z: segment.pos[2] 
+                    }, segment.duration)
+                    .easing(TWEEN.Easing.Cubic.InOut)
+                    .onUpdate(() => {
+                        camera.position.set(startPos.x, startPos.y, startPos.z);
+                    })
+                    .start();
+                
+                // Animate camera target (where it's looking)
+                new TWEEN.Tween(startTarget)
+                    .to({ 
+                        x: segment.target[0], 
+                        y: segment.target[1], 
+                        z: segment.target[2] 
+                    }, segment.duration)
+                    .easing(TWEEN.Easing.Cubic.InOut)
+                    .onUpdate(() => {
+                        controls.target.set(startTarget.x, startTarget.y, startTarget.z);
+                        controls.update();
+                    })
+                    .onComplete(() => {
+                        currentSegment++;
+                        // Pause briefly at each station for observation
+                        setTimeout(animateToNextStation, currentSegment === tourPath.length ? 0 : 1500);
+                    })
+                    .start();
+            }
+            
+            // Start the tour
+            animateToNextStation();
+            
+            // Update TWEEN animations
+            function updateTweens() {
+                if (cinematicMode) {
+                    TWEEN.update();
+                    requestAnimationFrame(updateTweens);
+                }
+            }
+            updateTweens();
+        }
+        
+        function enableFreeCamera() {
+            cinematicMode = false;
+            controls.enabled = true;
+            alert('🎮 Modo cámara libre activado!\n\n' +
+                  '• Arrastra para rotar\n' +
+                  '• Scroll para zoom\n' +
+                  '• Click en secciones para información');
+        }
+        
+        function showHotspots() {
+            hotspotsVisible = !hotspotsVisible;
+            
+            factorySections.forEach(section => {
+                if (hotspotsVisible) {
+                    // Add glowing effect
+                    section.material.emissive.setHex(0x222222);
+                } else {
+                    section.material.emissive.setHex(0x000000);
+                }
+            });
+        }
+        
+        // Load Three.js when 3D tab is shown
+        function loadThreeJS() {
+            if (typeof THREE === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+                script.onload = () => {
+                    const controlsScript = document.createElement('script');
+                    controlsScript.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
+                    controlsScript.onload = () => {
+                        const tweenScript = document.createElement('script');
+                        tweenScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js';
+                        tweenScript.onload = () => {
+                            setTimeout(init3DScene, 500);
+                        };
+                        document.head.appendChild(tweenScript);
+                    };
+                    document.head.appendChild(controlsScript);
+                };
+                document.head.appendChild(script);
+            } else {
+                init3DScene();
+            }
+        }
     </script>
+    </div> <!-- Close live tracking tab -->
 </body>
 </html>
