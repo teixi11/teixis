@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factory Explorer Pro - Demo Tracking en Tiempo Real</title>
+    <style>
+        :root {
+            --primary: #00d4ff;
+            --bg-dark: #0a0e27;
+            --bg-surface: #1a1f35;
+            --text-light: #ffffff;
+            --text-muted: #7a8aa3;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --border: #2d3651;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1f35 100%);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .demo-header {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            text-align: center;
+        }
+
+        .demo-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), #667eea);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .demo-subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+            padding: 2rem;
+            min-height: calc(100vh - 100px);
+        }
+
+        .map-section {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .tracking-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .factory-map {
+            width: 100%;
+            height: 500px;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+                var(--bg-surface);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .factory-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .section {
+            stroke-width: 2;
+            stroke-opacity: 0.8;
+            fill-opacity: 0.15;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .section:hover {
+            fill-opacity: 0.25;
+            stroke-width: 3;
+        }
+
+        .section.visited {
+            fill-opacity: 0.3;
+            stroke-width: 3;
+        }
+
+        .section.current {
+            fill-opacity: 0.4;
+            stroke-width: 4;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+
+        .user-position {
+            fill: var(--primary);
+            filter: drop-shadow(0 0 15px var(--primary));
+            animation: userPulse 3s infinite;
+        }
+
+        @keyframes userPulse {
+            0%, 100% { r: 8; opacity: 1; }
+            50% { r: 12; opacity: 0.8; }
+        }
+
+        .accuracy-ring {
+            fill: rgba(0, 212, 255, 0.2);
+            stroke: rgba(0, 212, 255, 0.4);
+            stroke-width: 1;
+            animation: accuracyPulse 4s infinite;
+        }
+
+        @keyframes accuracyPulse {
+            0%, 100% { r: 20; opacity: 0.3; }
+            50% { r: 30; opacity: 0.1; }
+        }
+
+        .control-panel {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .control-section {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .control-title {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover {
+            background: rgba(255,255,255,0.15);
+            transform: translateY(-1px);
+        }
+
+        .btn.active {
+            background: linear-gradient(135deg, var(--primary), #667eea);
+            border-color: var(--primary);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, var(--success), #00cc7a);
+            border-color: var(--success);
+        }
+
+        .location-info {
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .current-location {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .next-destination {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .tracking-method {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .method-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .method-status {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .simulation-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.75rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .demo-header {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="demo-header">
+        <h1 class="demo-title">🏭 Factory Explorer Pro - Live Tracking Demo</h1>
+        <p class="demo-subtitle">Simulación de tracking en tiempo real sin hardware adicional</p>
+    </header>
+
+    <div class="container">
+        <!-- Mapa Principal -->
+        <div class="map-section">
+            <div class="map-header">
+                <h2>🗺️ Mapa de Planta Industrial</h2>
+                <div class="tracking-status">
+                    <div class="status-dot"></div>
+                    <span>Tracking activo</span>
+                </div>
+            </div>
+
+            <div class="factory-map">
+                <svg class="factory-svg" viewBox="0 0 800 500">
+                    <!-- Grid de fondo -->
+                    <defs>
+                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                        </pattern>
+                    </defs>
+                    <rect width="800" height="500" fill="url(#grid)"/>
+
+                    <!-- Secciones de la planta -->
+                    <rect id="recepcion" class="section" x="50" y="50" width="120" height="100" 
+                          fill="#60a5fa" stroke="#60a5fa" rx="8" data-section="recepcion"/>
+                    <text x="110" y="105" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">Recepción</text>
+
+                    <rect id="carroceria" class="section current" x="200" y="50" width="150" height="100" 
+                          fill="#34d399" stroke="#34d399" rx="8" data-section="carroceria"/>
+                    <text x="275" y="105" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">Carrocería</text>
+
+                    <rect id="pintura" class="section" x="380" y="50" width="120" height="100" 
+                          fill="#f59e0b" stroke="#f59e0b" rx="8" data-section="pintura"/>
+                    <text x="440" y="105" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">Pintura</text>
+
+                    <rect id="powertrain" class="section" x="50" y="180" width="150" height="100" 
+                          fill="#a78bfa" stroke="#a78bfa" rx="8" data-section="powertrain"/>
+                    <text x="125" y="235" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">Powertrain</text>
+
+                    <rect id="interiores" class="section" x="230" y="180" width="120" height="100" 
+                          fill="#f472b6" stroke="#f472b6" rx="8" data-section="interiores"/>
+                    <text x="290" y="235" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">Interiores</text>
+
+                    <rect id="final" class="section" x="380" y="180" width="120" height="100" 
+                          fill="#22d3ee" stroke="#22d3ee" rx="8" data-section="final"/>
+                    <text x="440" y="235" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">Ensamblaje</text>
+
+                    <rect id="expedicion" class="section" x="530" y="50" width="100" height="180" 
+                          fill="#f43f5e" stroke="#f43f5e" rx="8" data-section="expedicion"/>
+                    <text x="580" y="145" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">Expedición</text>
+
+                    <rect id="calidad" class="section" x="50" y="310" width="120" height="80" 
+                          fill="#8b5cf6" stroke="#8b5cf6" rx="8" data-section="calidad"/>
+                    <text x="110" y="355" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">Calidad</text>
+
+                    <rect id="mantenimiento" class="section" x="200" y="310" width="120" height="80" 
+                          fill="#06b6d4" stroke="#06b6d4" rx="8" data-section="mantenimiento"/>
+                    <text x="260" y="355" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="600">Mantenimiento</text>
+
+                    <!-- Círculo de precisión GPS -->
+                    <circle id="accuracyRing" class="accuracy-ring" cx="275" cy="100" r="25"/>
+                    
+                    <!-- Posición del usuario -->
+                    <circle id="userPosition" class="user-position" cx="275" cy="100" r="8"/>
+                </svg>
+            </div>
+
+            <!-- Info de ubicación actual -->
+            <div class="location-info">
+                <div class="current-location" id="currentLocation">📍 Ubicación actual: Carrocería</div>
+                <div class="next-destination" id="nextDestination">➡️ Siguiente destino: Pintura (2 min estimado)</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="tourProgress" style="width: 25%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Control -->
+        <div class="control-panel">
+            <!-- Método de Tracking -->
+            <div class="control-section">
+                <div class="control-title">📡 Método de Tracking</div>
+                <div class="tracking-method">
+                    <div class="method-title" id="trackingMethod">🛰️ GPS Asistido</div>
+                    <div class="method-status" id="trackingStatus">Precisión: ±8m | Actualización: 3s</div>
+                </div>
+                <button class="btn" onclick="switchTrackingMethod()">Cambiar Método</button>
+            </div>
+
+            <!-- Controles de Simulación -->
+            <div class="control-section">
+                <div class="control-title">🎮 Simulación</div>
+                <div class="simulation-controls">
+                    <button class="btn active" onclick="startAutoTour()">▶️ Iniciar Tour Automático</button>
+                    <button class="btn" onclick="pauseTour()">⏸️ Pausar</button>
+                    <button class="btn" onclick="resetTour()">🔄 Reiniciar</button>
+                </div>
+            </div>
+
+            <!-- Control Manual -->
+            <div class="control-section">
+                <div class="control-title">👆 Confirmar Ubicación</div>
+                <button class="btn" onclick="confirmLocation('recepcion')">🏪 Recepción</button>
+                <button class="btn success" onclick="confirmLocation('carroceria')">🏭 Carrocería</button>
+                <button class="btn" onclick="confirmLocation('pintura')">🎨 Pintura</button>
+                <button class="btn" onclick="confirmLocation('powertrain')">⚡ Powertrain</button>
+                <button class="btn" onclick="confirmLocation('interiores')">🪑 Interiores</button>
+                <button class="btn" onclick="confirmLocation('final')">🔧 Ensamblaje</button>
+                <button class="btn" onclick="confirmLocation('expedicion')">📦 Expedición</button>
+            </div>
+
+            <!-- Estadísticas -->
+            <div class="control-section">
+                <div class="control-title">📊 Estadísticas del Tour</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="visitedSections">2/9</div>
+                        <div class="stat-label">Secciones</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="tourTime">00:05</div>
+                        <div class="stat-label">Tiempo</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="accuracy">±8m</div>
+                        <div class="stat-label">Precisión</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="completion">25%</div>
+                        <div class="stat-label">Completado</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Estado del sistema
+        let currentSection = 'carroceria';
+        let visitedSections = ['recepcion', 'carroceria'];
+        let trackingMode = 'gps'; // 'gps', 'manual', 'simulated'
+        let tourActive = false;
+        let tourStartTime = Date.now();
+        let tourTimer = null;
+
+        const sections = [
+            { id: 'recepcion', name: 'Recepción', x: 110, y: 100, duration: 3 },
+            { id: 'carroceria', name: 'Carrocería', x: 275, y: 100, duration: 4 },
+            { id: 'pintura', name: 'Pintura', x: 440, y: 100, duration: 5 },
+            { id: 'powertrain', name: 'Powertrain', x: 125, y: 230, duration: 4 },
+            { id: 'interiores', name: 'Interiores', x: 290, y: 230, duration: 3 },
+            { id: 'final', name: 'Ensamblaje Final', x: 440, y: 230, duration: 5 },
+            { id: 'expedicion', name: 'Expedición', x: 580, y: 140, duration: 2 },
+            { id: 'calidad', name: 'Control de Calidad', x: 110, y: 350, duration: 3 },
+            { id: 'mantenimiento', name: 'Mantenimiento', x: 260, y: 350, duration: 2 }
+        ];
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDisplay();
+            simulateGPSTracking();
+            updateTimer();
+            setInterval(updateTimer, 1000);
+        });
+
+        // Simula tracking GPS con pequeñas variaciones
+        function simulateGPSTracking() {
+            if (trackingMode === 'gps') {
+                setInterval(() => {
+                    const currentSectionData = sections.find(s => s.id === currentSection);
+                    if (currentSectionData) {
+                        // Simula pequeñas variaciones de GPS (±5 píxeles)
+                        const jitterX = (Math.random() - 0.5) * 10;
+                        const jitterY = (Math.random() - 0.5) * 10;
+                        
+                        animateUserPosition(
+                            currentSectionData.x + jitterX, 
+                            currentSectionData.y + jitterY
+                        );
+                    }
+                }, 3000);
+            }
+        }
+
+        // Anima la posición del usuario
+        function animateUserPosition(x, y, duration = 2000) {
+            const userPos = document.getElementById('userPosition');
+            const accuracyRing = document.getElementById('accuracyRing');
+            
+            // Animación suave usando CSS transitions
+            userPos.style.transition = `cx ${duration}ms ease-out, cy ${duration}ms ease-out`;
+            accuracyRing.style.transition = `cx ${duration}ms ease-out, cy ${duration}ms ease-out`;
+            
+            userPos.setAttribute('cx', x);
+            userPos.setAttribute('cy', y);
+            accuracyRing.setAttribute('cx', x);
+            accuracyRing.setAttribute('cy', y);
+        }
+
+        // Confirma ubicación manualmente
+        function confirmLocation(sectionId) {
+            const sectionData = sections.find(s => s.id === sectionId);
+            if (!sectionData) return;
+
+            currentSection = sectionId;
+            
+            if (!visitedSections.includes(sectionId)) {
+                visitedSections.push(sectionId);
+            }
+
+            // Actualiza estilos de secciones
+            document.querySelectorAll('.section').forEach(el => {
+                el.classList.remove('current');
+                if (visitedSections.includes(el.dataset.section)) {
+                    el.classList.add('visited');
+                }
+            });
+            
+            document.getElementById(sectionId).classList.add('current');
+
+            // Anima a nueva posición
+            animateUserPosition(sectionData.x, sectionData.y, 3000);
+            
+            updateDisplay();
+        }
+
+        // Inicia tour automático
+        function startAutoTour() {
+            tourActive = true;
+            let currentIndex = sections.findIndex(s => s.id === currentSection);
+            
+            tourTimer = setInterval(() => {
+                currentIndex = (currentIndex + 1) % sections.length;
+                confirmLocation(sections[currentIndex].id);
+            }, 5000); // Cambia cada 5 segundos
+
+            document.querySelector('button[onclick="startAutoTour()"]').textContent = '⏸️ Tour en marcha...';
+        }
+
+        // Pausa el tour
+        function pauseTour() {
+            tourActive = false;
+            if (tourTimer) {
+                clearInterval(tourTimer);
+                tourTimer = null;
+            }
+            document.querySelector('button[onclick="startAutoTour()"]').textContent = '▶️ Iniciar Tour Automático';
+        }
+
+        // Reinicia el tour
+        function resetTour() {
+            pauseTour();
+            visitedSections = ['recepcion'];
+            confirmLocation('recepcion');
+            tourStartTime = Date.now();
+        }
+
+        // Cambia método de tracking
+        function switchTrackingMethod() {
+            const methods = ['gps', 'manual', 'simulated'];
+            const currentIndex = methods.indexOf(trackingMode);
+            trackingMode = methods[(currentIndex + 1) % methods.length];
+            
+            const methodNames = {
+                'gps': '🛰️ GPS Asistido',
+                'manual': '👆 Manual',
+                'simulated': '🎮 Simulado'
+            };
+            
+            const methodStatuses = {
+                'gps': 'Precisión: ±8m | Actualización: 3s',
+                'manual': 'Confirmación manual | Precisión: 100%',
+                'simulated': 'Movimiento automático | Demo mode'
+            };
+
+            document.getElementById('trackingMethod').textContent = methodNames[trackingMode];
+            document.getElementById('trackingStatus').textContent = methodStatuses[trackingMode];
+        }
+
+        // Actualiza la visualización
+        function updateDisplay() {
+            const currentSectionData = sections.find(s => s.id === currentSection);
+            const nextSectionIndex = sections.findIndex(s => s.id === currentSection) + 1;
+            const nextSection = sections[nextSectionIndex % sections.length];
+
+            document.getElementById('currentLocation').textContent = 
+                `📍 Ubicación actual: ${currentSectionData.name}`;
+            
+            document.getElementById('nextDestination').textContent = 
+                `➡️ Siguiente destino: ${nextSection.name} (${nextSection.duration} min estimado)`;
+
+            document.getElementById('visitedSections').textContent = 
+                `${visitedSections.length}/${sections.length}`;
+
+            const completion = Math.round((visitedSections.length / sections.length) * 100);
+            document.getElementById('completion').textContent = `${completion}%`;
+            document.getElementById('tourProgress').style.width = `${completion}%`;
+
+            // Actualiza precisión según método
+            const accuracyText = {
+                'gps': '±8m',
+                'manual': '100%',
+                'simulated': '±0m'
+            };
+            document.getElementById('accuracy').textContent = accuracyText[trackingMode];
+        }
+
+        // Actualiza el timer
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - tourStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            document.getElementById('tourTime').textContent = `${minutes}:${seconds}`;
+        }
+
+        // Simula datos GPS reales (para demo)
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    console.log('GPS real disponible:', position.coords);
+                    document.getElementById('trackingStatus').textContent = 
+                        `GPS real detectado | Precisión: ±${Math.round(position.coords.accuracy)}m`;
+                },
+                error => {
+                    console.log('GPS no disponible, usando simulación');
+                }
+            );
+        }
+    </script>
+</body>
+</html>
