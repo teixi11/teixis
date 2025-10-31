@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Factory Explorer Pro - Demo Tracking en Tiempo Real</title>
+    <title>Teixidó Factory Explorer Pro - Demo Tracking en Tiempo Real</title>
     <style>
         :root {
             --primary: #00d4ff;
@@ -28,6 +28,10 @@
             color: var(--text-light);
             min-height: 100vh;
             overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
         }
 
         .demo-header {
@@ -36,6 +40,14 @@
             border-bottom: 1px solid var(--border);
             padding: 1rem 2rem;
             text-align: center;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            width: 100%;
         }
 
         .demo-title {
@@ -92,12 +104,51 @@
             display: block;
         }
 
-        .container {
+        #liveTrackingTab.active {
             display: grid;
-            grid-template-columns: 1fr 350px;
+            grid-template-columns: 1fr 360px;
             gap: 2rem;
+            align-items: start;
+        }
+
+        .container {
             padding: 2rem;
             min-height: calc(100vh - 100px);
+            max-width: 1200px;
+            margin: 0 auto; /* centra el contenido */
+            width: 100%;
+        }
+
+        /* Extra centering for large screens */
+        @media (min-width: 1400px) {
+            .container, .header-content {
+                padding-left: 2rem;
+                padding-right: 2rem;
+            }
+            
+            body {
+                padding: 0 5%;
+            }
+        }
+
+        /* Responsive: single column on small screens */
+        @media (max-width: 1100px) {
+            .container {
+                padding: 1rem;
+                width: calc(100% - 2rem);
+            }
+            #liveTrackingTab.active {
+                grid-template-columns: 1fr;
+            }
+            .map-section {
+                order: 1;
+            }
+            .sidebar {
+                order: 2;
+            }
+            .factory-map {
+                height: 420px;
+            }
         }
 
         .map-section {
@@ -107,6 +158,9 @@
             padding: 1.5rem;
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* centra contenido interno como el mapa */
         }
 
         .map-header {
@@ -138,6 +192,7 @@
 
         .factory-map {
             width: 100%;
+            max-width: 800px; /* limita el ancho para centrar visualmente el mapa */
             height: 500px;
             background: 
                 radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
@@ -146,11 +201,14 @@
             border-radius: 12px;
             position: relative;
             overflow: hidden;
+            margin: 0 auto; /* centra la caja del mapa dentro de .map-section */
         }
 
         .factory-svg {
             width: 100%;
             height: 100%;
+            display: block;
+            margin: 0 auto; /* asegura que el SVG se centre dentro de .factory-map */
         }
 
         .section {
@@ -349,25 +407,293 @@
                 padding: 1rem;
             }
         }
+
+        /* === SPLASH SCREEN STYLES === */
+        .splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #1a237e 0%, #0d1421 50%, #000511 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 1s ease-out, transform 1s ease-out;
+        }
+
+        .splash-screen.fade-out {
+            opacity: 0;
+            transform: scale(1.1);
+            pointer-events: none;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            opacity: 0;
+            transform: scale(0.5) translateY(50px);
+            animation: logoEntrance 2s ease-out forwards;
+        }
+
+        @keyframes logoEntrance {
+            0% {
+                opacity: 0;
+                transform: scale(0.5) translateY(50px);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.1) translateY(0px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0px);
+            }
+        }
+
+        .logo-svg {
+            width: 120px;
+            height: 120px;
+            filter: drop-shadow(0 0 30px rgba(37, 117, 188, 0.8));
+            animation: logoGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes logoGlow {
+            0% {
+                filter: drop-shadow(0 0 20px rgba(37, 117, 188, 0.6));
+            }
+            100% {
+                filter: drop-shadow(0 0 40px rgba(37, 117, 188, 1));
+            }
+        }
+
+        .company-name {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #2575bc;
+            margin-left: 1rem;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(37, 117, 188, 0.5);
+            animation: nameSlide 2.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        @keyframes nameSlide {
+            0% {
+                opacity: 0;
+                transform: translateX(-100px);
+            }
+            60% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .splash-subtitle {
+            margin-top: 2rem;
+            font-size: 1.5rem;
+            color: #ffffff;
+            text-align: center;
+            opacity: 0;
+            animation: subtitleFade 3s ease-out 1.5s forwards;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes subtitleFade {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading-indicator {
+            margin-top: 3rem;
+            opacity: 0;
+            animation: loadingFade 3.5s ease-out 2s forwards;
+        }
+
+        @keyframes loadingFade {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .loading-bar {
+            width: 300px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 1rem auto;
+        }
+
+        .loading-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #2575bc, #00d4ff);
+            border-radius: 2px;
+            width: 0;
+            animation: loadingProgress 2s ease-out 2.5s forwards;
+            box-shadow: 0 0 15px rgba(37, 117, 188, 0.8);
+        }
+
+        @keyframes loadingProgress {
+            0% {
+                width: 0;
+            }
+            100% {
+                width: 100%;
+            }
+        }
+
+        .loading-text {
+            color: #ffffff;
+            font-size: 1rem;
+            text-align: center;
+            margin-top: 0.5rem;
+            opacity: 0.8;
+        }
+
+        /* Particles background */
+        .particles-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(37, 117, 188, 0.6);
+            border-radius: 50%;
+            animation: float 8s linear infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-10vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* Hide main content initially */
+        .main-app {
+            opacity: 0;
+            transition: opacity 1s ease-in;
+        }
+
+        .main-app.show {
+            opacity: 1;
+        }
+
+        /* Responsive splash */
+        @media (max-width: 768px) {
+            .company-name {
+                font-size: 2.5rem;
+                margin-left: 0.5rem;
+            }
+            
+            .logo-svg {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .splash-subtitle {
+                font-size: 1.2rem;
+                padding: 0 1rem;
+            }
+            
+            .loading-bar {
+                width: 250px;
+            }
+        }
     </style>
 </head>
 <body>
-    <header class="demo-header">
-        <h1 class="demo-title">🏭 Factory Explorer Pro</h1>
-        <p class="demo-subtitle">Plataforma Industrial Inteligente</p>
+    <!-- Splash Screen -->
+    <div class="splash-screen" id="splashScreen">
+        <div class="particles-bg" id="particlesBg"></div>
         
-        <!-- Navigation Menu -->
-        <nav class="main-navigation">
-            <button class="nav-tab active" onclick="switchTab('tracking')">
-                📍 Live Tracking
-            </button>
-            <button class="nav-tab" onclick="switchTab('showcase')">
-                🎬 3D Showcase
-            </button>
-            <button class="nav-tab" onclick="switchTab('analytics')">
-                📊 Analytics
-            </button>
-        </nav>
+        <div class="logo-container">
+            <svg class="logo-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                <!-- Círculo base gris -->
+                <circle cx="60" cy="60" r="50" fill="#a8a8a8" opacity="0.7"/>
+                
+                <!-- Segmento azul -->
+                <path d="M 60 10 A 50 50 0 0 1 95 35 L 60 60 Z" fill="#2575bc"/>
+                
+                <!-- X central blanca -->
+                <g transform="translate(60, 60)">
+                    <!-- Brazo izquierdo de la X -->
+                    <path d="M -15 -15 L 15 15 L 10 20 L -20 -10 Z" fill="white"/>
+                    <!-- Brazo derecho de la X -->
+                    <path d="M 15 -15 L -15 15 L -20 10 L 10 -20 Z" fill="white"/>
+                </g>
+            </svg>
+            
+            <div class="company-name">Teixidó</div>
+        </div>
+        
+        <div class="splash-subtitle">
+            Factory Explorer Pro<br>
+            <small>Plataforma Industrial Inteligente</small>
+        </div>
+        
+        <div class="loading-indicator">
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+            <div class="loading-text">Cargando sistema...</div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div class="main-app" id="mainApp">
+    <header class="demo-header">
+        <div class="header-content">
+            <h1 class="demo-title">🏭 Factory Explorer Pro</h1>
+            <p class="demo-subtitle">Plataforma Industrial Inteligente</p>
+            
+            <!-- Navigation Menu -->
+            <nav class="main-navigation">
+                <button class="nav-tab active" onclick="switchTab('tracking')">
+                    📍 Live Tracking
+                </button>
+                <button class="nav-tab" onclick="switchTab('showcase')">
+                    🎬 3D Showcase
+                </button>
+                <button class="nav-tab" onclick="switchTab('analytics')">
+                    📊 Analytics
+                </button>
+            </nav>
+        </div>
     </header>
 
     <div class="container">
@@ -528,13 +854,8 @@
             { id: 'mantenimiento', name: 'Mantenimiento', x: 260, y: 350, duration: 2 }
         ];
 
-        // Inicialización
-        document.addEventListener('DOMContentLoaded', function() {
-            updateDisplay();
-            simulateGPSTracking();
-            updateTimer();
-            setInterval(updateTimer, 1000);
-        });
+        // Inicialización (moved to splash screen script)
+        // This will be called after splash screen completes
 
         // Simula tracking GPS con pequeñas variaciones
         function simulateGPSTracking() {
@@ -772,6 +1093,9 @@
                         height: 100vh;
                         display: flex;
                         flex-direction: column;
+                        max-width: 1200px;
+                        margin: 0 auto;
+                        width: calc(100% - 4rem);
                     }
                     
                     .showcase-header {
@@ -956,6 +1280,9 @@
                 analyticsStyles.textContent = `
                     .analytics-container {
                         padding: 2rem;
+                        max-width: 1200px;
+                        margin: 0 auto;
+                        width: calc(100% - 4rem);
                     }
                     
                     .analytics-header {
@@ -1517,5 +1844,48 @@
         }
     </script>
     </div> <!-- Close live tracking tab -->
+    </div> <!-- Close main app -->
+
+    <!-- Splash Screen Script -->
+    <script>
+        // Create floating particles
+        function createParticles() {
+            const particlesBg = document.getElementById('particlesBg');
+            const particleCount = 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 8 + 's';
+                particle.style.animationDuration = (Math.random() * 4 + 6) + 's';
+                particlesBg.appendChild(particle);
+            }
+        }
+
+        // Initialize splash screen
+        document.addEventListener('DOMContentLoaded', function() {
+            createParticles();
+            
+            // Hide splash screen after animation completes
+            setTimeout(() => {
+                const splashScreen = document.getElementById('splashScreen');
+                const mainApp = document.getElementById('mainApp');
+                
+                splashScreen.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                    mainApp.classList.add('show');
+                    
+                    // Initialize main app after splash
+                    updateDisplay();
+                    simulateGPSTracking();
+                    updateTimer();
+                    setInterval(updateTimer, 1000);
+                }, 1000);
+            }, 4500); // Total splash duration: 4.5 seconds
+        });
+    </script>
 </body>
 </html>
