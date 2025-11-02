@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teixidó Factory Explorer Pro - Demo Tracking en Tiempo Real</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #00d4ff;
@@ -192,8 +193,8 @@
 
         .factory-map {
             width: 100%;
-            max-width: 800px; /* limita el ancho para centrar visualmente el mapa */
-            height: 500px;
+            max-width: 1000px; /* limita el ancho para centrar visualmente el mapa */
+            height: 700px;
             background: 
                 radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
                 var(--bg-surface);
@@ -395,6 +396,34 @@
             font-size: 0.7rem;
             color: var(--text-muted);
             margin-top: 0.25rem;
+        }
+
+        .tour-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .tour-btn .btn-icon {
+            font-size: 1.1rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .tour-btn:hover .btn-icon {
+            transform: scale(1.2);
+        }
+        
+        .tour-btn.active {
+            background: linear-gradient(135deg, var(--success), #00cc7a);
+            border-color: var(--success);
+            animation: tourPulse 1.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes tourPulse {
+            0% { box-shadow: 0 0 5px rgba(0, 255, 136, 0.3); }
+            100% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
         }
 
         @media (max-width: 768px) {
@@ -710,14 +739,14 @@
             </div>
 
             <div class="factory-map">
-                <svg class="factory-svg" viewBox="0 0 800 500">
+                <svg class="factory-svg" viewBox="0 0 1000 700">
                     <!-- Grid de fondo -->
                     <defs>
                         <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
                             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
                         </pattern>
                     </defs>
-                    <rect width="800" height="500" fill="url(#grid)"/>
+                    <rect width="1000" height="700" fill="url(#grid)"/>
 
                     <!-- Secciones de la planta -->
                     <rect id="recepcion" class="section" x="50" y="50" width="120" height="100" 
@@ -790,7 +819,10 @@
             <div class="control-section">
                 <div class="control-title">🎮 Simulación</div>
                 <div class="simulation-controls">
-                    <button class="btn active" onclick="startAutoTour()">▶️ Iniciar Tour Automático</button>
+                    <button class="btn tour-btn" id="autoTourBtn" onclick="startAutoTour()">
+                        <span class="btn-icon">▶️</span>
+                        <span class="btn-text">Iniciar Tour Automático</span>
+                    </button>
                     <button class="btn" onclick="pauseTour()">⏸️ Pausar</button>
                     <button class="btn" onclick="resetTour()">🔄 Reiniciar</button>
                 </div>
@@ -894,23 +926,37 @@
         // Confirma ubicación manualmente
         function confirmLocation(sectionId) {
             const sectionData = sections.find(s => s.id === sectionId);
-            if (!sectionData) return;
+            if (!sectionData) {
+                console.error(`❌ Sección no encontrada: ${sectionId}`);
+                return;
+            }
 
+            console.log(`📍 Confirmando ubicación: ${sectionData.name}`);
             currentSection = sectionId;
             
             if (!visitedSections.includes(sectionId)) {
                 visitedSections.push(sectionId);
+                console.log(`✅ Nueva sección visitada: ${sectionData.name}`);
             }
 
             // Actualiza estilos de secciones
-            document.querySelectorAll('.section').forEach(el => {
+            const sectionElements = document.querySelectorAll('.section');
+            console.log(`🎨 Actualizando ${sectionElements.length} elementos de sección`);
+            
+            sectionElements.forEach(el => {
                 el.classList.remove('current');
                 if (visitedSections.includes(el.dataset.section)) {
                     el.classList.add('visited');
                 }
             });
             
-            document.getElementById(sectionId).classList.add('current');
+            const currentElement = document.getElementById(sectionId);
+            if (currentElement) {
+                currentElement.classList.add('current');
+                console.log(`🎯 Sección marcada como actual: ${sectionId}`);
+            } else {
+                console.warn(`⚠️ Elemento DOM no encontrado para sección: ${sectionId}`);
+            }
 
             // Anima a nueva posición
             animateUserPosition(sectionData.x, sectionData.y, 3000);
@@ -920,33 +966,70 @@
 
         // Inicia tour automático
         function startAutoTour() {
+            if (tourActive) {
+                // Si ya está activo, pausar
+                pauseTour();
+                return;
+            }
+            
+            console.log('🚀 Iniciando tour automático...');
             tourActive = true;
             let currentIndex = sections.findIndex(s => s.id === currentSection);
             
+            const autoTourBtn = document.getElementById('autoTourBtn');
+            if (autoTourBtn) {
+                autoTourBtn.querySelector('.btn-icon').textContent = '⏸️';
+                autoTourBtn.querySelector('.btn-text').textContent = 'Pausar Tour';
+                autoTourBtn.classList.add('active');
+            }
+            
             tourTimer = setInterval(() => {
                 currentIndex = (currentIndex + 1) % sections.length;
-                confirmLocation(sections[currentIndex].id);
-            }, 5000); // Cambia cada 5 segundos
-
-            document.querySelector('button[onclick="startAutoTour()"]').textContent = '⏸️ Tour en marcha...';
+                const nextSection = sections[currentIndex];
+                console.log(`📍 Visitando: ${nextSection.name}`);
+                confirmLocation(nextSection.id);
+            }, 4000); // Cambia cada 4 segundos
         }
 
         // Pausa el tour
         function pauseTour() {
+            console.log('⏸️ Pausando tour automático...');
             tourActive = false;
             if (tourTimer) {
                 clearInterval(tourTimer);
                 tourTimer = null;
             }
-            document.querySelector('button[onclick="startAutoTour()"]').textContent = '▶️ Iniciar Tour Automático';
+            
+            const autoTourBtn = document.getElementById('autoTourBtn');
+            if (autoTourBtn) {
+                autoTourBtn.querySelector('.btn-icon').textContent = '▶️';
+                autoTourBtn.querySelector('.btn-text').textContent = 'Continuar Tour';
+                autoTourBtn.classList.remove('active');
+            }
         }
 
         // Reinicia el tour
         function resetTour() {
+            console.log('🔄 Reiniciando tour...');
             pauseTour();
+            
+            // Reset del estado
             visitedSections = ['recepcion'];
-            confirmLocation('recepcion');
+            currentSection = 'recepcion';
             tourStartTime = Date.now();
+            
+            // Reset visual
+            confirmLocation('recepcion');
+            
+            // Reset botón
+            const autoTourBtn = document.getElementById('autoTourBtn');
+            if (autoTourBtn) {
+                autoTourBtn.querySelector('.btn-icon').textContent = '▶️';
+                autoTourBtn.querySelector('.btn-text').textContent = 'Iniciar Tour Automático';
+                autoTourBtn.classList.remove('active');
+            }
+            
+            console.log('✅ Tour reiniciado - Posición inicial: Recepción');
         }
 
         // Cambia método de tracking
@@ -1007,18 +1090,62 @@
             document.getElementById('tourTime').textContent = `${minutes}:${seconds}`;
         }
 
-        // Simula datos GPS reales (para demo)
+        // Gestión mejorada de GPS real
         if ('geolocation' in navigator) {
+            console.log('🛰️ Iniciando geolocalización...');
             navigator.geolocation.getCurrentPosition(
                 position => {
-                    console.log('GPS real disponible:', position.coords);
+                    console.log('✅ GPS real disponible:', position.coords);
+                    const accuracy = Math.round(position.coords.accuracy);
+                    
+                    // Actualizar interfaz con datos GPS reales
                     document.getElementById('trackingStatus').textContent = 
-                        `GPS real detectado | Precisión: ±${Math.round(position.coords.accuracy)}m`;
+                        `GPS real activo | Lat: ${position.coords.latitude.toFixed(6)}, Lon: ${position.coords.longitude.toFixed(6)} | ±${accuracy}m`;
+                    
+                    // Si la precisión es buena, usar GPS real
+                    if (accuracy < 100) {
+                        trackingMode = 'gps';
+                        document.getElementById('trackingMethod').textContent = '🛰️ GPS Real Activo';
+                        
+                        // Opcional: mapear coordenadas GPS reales a posiciones de la fábrica
+                        mapRealGPSToFactory(position.coords);
+                    }
                 },
                 error => {
-                    console.log('GPS no disponible, usando simulación');
+                    console.log('⚠️ GPS no disponible:', error.message);
+                    document.getElementById('trackingStatus').textContent = 
+                        'GPS no disponible - Usando simulación | Precisión: ±8m';
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000
                 }
             );
+        } else {
+            console.log('❌ Geolocalización no soportada');
+        }
+        
+        // Mapea coordenadas GPS reales a la fábrica virtual
+        function mapRealGPSToFactory(coords) {
+            // Coordenadas base de tu ubicación (Sevilla área)
+            const baseLatitude = 37.3686272;
+            const baseLongitude = -5.9932672;
+            
+            // Calcular offset relativo
+            const latOffset = (coords.latitude - baseLatitude) * 111000; // metros aprox
+            const lonOffset = (coords.longitude - baseLongitude) * 111000 * Math.cos(coords.latitude * Math.PI / 180);
+            
+            // Mapear a coordenadas de la fábrica (escala reducida)
+            const factoryX = lonOffset / 10; // Escala 1:10
+            const factoryZ = latOffset / 10;
+            
+            console.log(`📍 Posición mapeada en fábrica: X=${factoryX.toFixed(1)}, Z=${factoryZ.toFixed(1)}`);
+            
+            // Actualizar posición del usuario en el mapa
+            if (factoryX >= -30 && factoryX <= 30 && factoryZ >= -20 && factoryZ <= 20) {
+                animateUserPosition(400 + factoryX * 10, 250 + factoryZ * 10);
+            }
         }
 
         // Navigation System
@@ -1060,6 +1187,11 @@
                         <div class="showcase-viewer">
                             <canvas id="threejs-canvas"></canvas>
                             <div class="showcase-overlay">
+                                <div id="explanationOverlay" class="explanation-overlay">
+                                    <h3 id="explanationTitle"></h3>
+                                    <p id="explanationText"></p>
+                                </div>
+                                <div id="guideInfo" class="guide-info"></div>
                                 <div class="hotspot-info" id="hotspotInfo" style="display: none;">
                                     <h4 id="hotspotTitle">Sección</h4>
                                     <p id="hotspotDesc">Información</p>
@@ -1071,14 +1203,17 @@
                             </div>
                         </div>
                         <div class="showcase-controls">
-                            <button class="showcase-btn" onclick="startCinematicTour()">
-                                🎥 Tour Cinemático
+                            <button class="showcase-btn cinematic-btn" onclick="startCinematicTour()">
+                                🎥 Tour Cinemático Immersivo
+                                <small>Experiencia completa con interiores</small>
                             </button>
                             <button class="showcase-btn" onclick="enableFreeCamera()">
                                 🎮 Cámara Libre
+                                <small>Explora a tu ritmo</small>
                             </button>
                             <button class="showcase-btn" onclick="showHotspots()">
                                 📍 Ver Hotspots
+                                <small>Información interactiva</small>
                             </button>
                         </div>
                     </div>
@@ -1089,13 +1224,13 @@
                 const showcaseStyles = document.createElement('style');
                 showcaseStyles.textContent = `
                     .showcase-container {
-                        padding: 2rem;
+                        padding: 0;
                         height: 100vh;
                         display: flex;
                         flex-direction: column;
-                        max-width: 1200px;
+                        max-width: 100%;
                         margin: 0 auto;
-                        width: calc(100% - 4rem);
+                        width: 100%;
                     }
                     
                     .showcase-header {
@@ -1223,6 +1358,177 @@
                         background: rgba(255,255,255,0.15);
                         transform: translateY(-2px);
                         box-shadow: 0 8px 25px rgba(0, 212, 255, 0.2);
+                    }
+                    
+                    .showcase-btn small {
+                        display: block;
+                        font-size: 0.8rem;
+                        color: var(--text-muted);
+                        margin-top: 0.25rem;
+                        font-weight: normal;
+                    }
+                    
+                    .cinematic-btn {
+                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(102, 126, 234, 0.2));
+                        border: 2px solid var(--primary);
+                        animation: cinematicPulse 2s ease-in-out infinite alternate;
+                    }
+                    
+                    @keyframes cinematicPulse {
+                        0% { box-shadow: 0 0 10px rgba(0, 212, 255, 0.3); }
+                        100% { box-shadow: 0 0 25px rgba(0, 212, 255, 0.6), 0 0 50px rgba(0, 212, 255, 0.2); }
+                    }
+                    
+                    .cinematic-btn:hover {
+                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(102, 126, 234, 0.3));
+                        transform: translateY(-3px);
+                        animation: none;
+                        box-shadow: 0 15px 35px rgba(0, 212, 255, 0.4);
+                    }
+
+                    .explanation-overlay {
+                        position: absolute;
+                        top: 20px;
+                        left: 20px;
+                        text-align: left;
+                        color: white;
+                        z-index: 20;
+                        width: 400px;
+                        max-width: 35%;
+                        pointer-events: none;
+                        opacity: 0;
+                        visibility: hidden;
+                        display: none;
+                        transition: opacity 0.5s ease, visibility 0.5s ease;
+                    }
+
+                    .explanation-overlay.visible {
+                        opacity: 1;
+                        visibility: visible;
+                        display: block;
+                    }
+
+                    .explanation-overlay h3 {
+                        font-family: 'Orbitron', sans-serif;
+                        font-size: 1.5rem;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        color: var(--primary);
+                        text-shadow: 0 0 15px var(--primary), 0 0 25px var(--primary), 0 2px 8px rgba(0,0,0,0.8);
+                        margin: 0;
+                        animation: fadeInUp 0.8s ease-out both;
+                    }
+                    
+                    .explanation-overlay p {
+                        font-family: 'Inter', sans-serif;
+                        font-size: 1rem;
+                        margin-top: 0.75rem;
+                        line-height: 1.6;
+                        text-shadow: 
+                            0 0 20px rgba(0,0,0,1),
+                            0 0 10px rgba(0,0,0,1),
+                            0 2px 15px rgba(0,0,0,0.9),
+                            2px 2px 4px rgba(0,0,0,0.8);
+                        animation: fadeInUp 0.8s ease-out 0.3s both;
+                        min-height: 40px;
+                        background: rgba(0, 0, 0, 0.7);
+                        padding: 0.75rem 1rem;
+                        border-radius: 8px;
+                        backdrop-filter: blur(5px);
+                    }
+
+                    .guide-info {
+                        position: absolute;
+                        bottom: 100px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: linear-gradient(135deg, rgba(0, 212, 255, 0.9), rgba(102, 126, 234, 0.9));
+                        color: white;
+                        padding: 1rem 2rem;
+                        border-radius: 15px;
+                        font-family: 'Inter', sans-serif;
+                        font-size: 1.1rem;
+                        font-weight: 600;
+                        text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+                        box-shadow: 0 8px 32px rgba(0, 212, 255, 0.5);
+                        opacity: 0;
+                        visibility: hidden;
+                        transition: opacity 0.5s ease, visibility 0.5s ease;
+                        z-index: 25;
+                        border: 2px solid rgba(255, 255, 255, 0.3);
+                        backdrop-filter: blur(10px);
+                    }
+
+                    .guide-info.visible {
+                        opacity: 1;
+                        visibility: visible;
+                    }
+
+                    .guide-info::before {
+                        content: "👤";
+                        margin-right: 0.5rem;
+                        font-size: 1.3rem;
+                    }
+
+                    @keyframes fadeInUp {
+                        from {
+                            opacity: 0;
+                            transform: translateY(30px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+
+                    .explanation-overlay.fade-out h3,
+                    .explanation-overlay.fade-out p {
+                        animation: fadeOutDown 0.5s ease-in both;
+                    }
+
+                    @keyframes fadeOutDown {
+                        from {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                        to {
+                            opacity: 0;
+                            transform: translateY(30px);
+                        }
+                    }
+
+                    /* Fullscreen mode for cinematic tour */
+                    body.cinematic-mode-active .demo-header,
+                    body.cinematic-mode-active .showcase-header,
+                    body.cinematic-mode-active .showcase-controls {
+                        display: none !important;
+                    }
+
+                    body.cinematic-mode-active .showcase-container {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100vw;
+                        height: 100vh;
+                        padding: 0;
+                        margin: 0;
+                        z-index: 9999;
+                        background: transparent;
+                    }
+
+                    body.cinematic-mode-active .showcase-viewer {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100vw !important;
+                        height: 100vh !important;
+                        border-radius: 0;
+                        border: none;
+                    }
+
+                    body.cinematic-mode-active #threejs-canvas {
+                        width: 100vw !important;
+                        height: 100vh !important;
                     }
                 `;
                 document.head.appendChild(showcaseStyles);
@@ -1354,29 +1660,53 @@
         
         // Initialize 3D Scene
         function init3DScene() {
+            console.log('🎬 Inicializando escena 3D...');
+            
             const canvas = document.getElementById('threejs-canvas');
             const container = canvas.parentElement;
             
+            if (!canvas || !container) {
+                console.error('❌ Canvas no encontrado');
+                return;
+            }
+            
             // Create scene
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0a0a1a);
-            scene.fog = new THREE.Fog(0x0a0a1a, 10, 100);
+            // Color de fondo más claro y niebla ajustada para visibilidad
+            scene.background = new THREE.Color(0x1a2035); // Azul oscuro en lugar de negro
+            scene.fog = new THREE.Fog(0x1a2035, 50, 150); // Niebla más suave y distante
+            
+            console.log('✅ Escena creada');
             
             // Create camera
             camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
             camera.position.set(0, 15, 25);
             
-            // Create renderer
-            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            // Create renderer con configuración optimizada
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas, 
+                antialias: window.devicePixelRatio < 2, // Solo antialias en pantallas normales
+                powerPreference: "high-performance",
+                stencil: false,
+                depth: true
+            });
             renderer.setSize(container.clientWidth, container.clientHeight);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limitar pixel ratio
+            
+            // Sombras solo si hay buen rendimiento
+            const enableShadows = navigator.hardwareConcurrency > 4;
+            renderer.shadowMap.enabled = enableShadows;
+            if (enableShadows) {
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            }
+            
+            console.log(`✅ Renderer creado - Sombras: ${enableShadows ? 'ON' : 'OFF'}`);
             
             // Add lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Aumentar luz ambiental
             scene.add(ambientLight);
             
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2); // Luz direccional un poco más fuerte
             directionalLight.position.set(10, 20, 10);
             directionalLight.castShadow = true;
             directionalLight.shadow.mapSize.width = 2048;
@@ -1408,61 +1738,152 @@
         
         function createFactorySections() {
             const sectionsData = [
-                { name: 'Recepción', pos: [-15, 0, -10], color: 0x60a5fa, efficiency: '92%' },
-                { name: 'Carrocería', pos: [0, 0, -10], color: 0x34d399, efficiency: '95%' },
-                { name: 'Pintura', pos: [15, 0, -10], color: 0xf59e0b, efficiency: '88%' },
-                { name: 'Powertrain', pos: [-15, 0, 0], color: 0xa78bfa, efficiency: '91%' },
-                { name: 'Ensamblaje', pos: [0, 0, 0], color: 0xf87171, efficiency: '94%' },
-                { name: 'Control Calidad', pos: [15, 0, 0], color: 0x06d6a0, efficiency: '97%' },
-                { name: 'Almacén', pos: [-15, 0, 10], color: 0xfbbf24, efficiency: '89%' },
-                { name: 'Expedición', pos: [15, 0, 10], color: 0x818cf8, efficiency: '93%' }
+                { 
+                    name: 'Recepción', 
+                    pos: [-22.5, 0, -15], 
+                    color: 0x60a5fa, 
+                    efficiency: '92%',
+                    equipment: ['forklift', 'conveyor', 'scanner'],
+                    processes: ['entrada_materiales', 'clasificacion', 'almacenaje_temporal']
+                },
+                { 
+                    name: 'Carrocería', 
+                    pos: [0, 0, -15], 
+                    color: 0x34d399, 
+                    efficiency: '95%',
+                    equipment: ['weldingRobot', 'pressStamp', 'assemblyTable'],
+                    processes: ['soldadura_robotica', 'estampado_metal', 'ensamblaje_chasis']
+                },
+                { 
+                    name: 'Pintura', 
+                    pos: [22.5, 0, -15], 
+                    color: 0xf59e0b, 
+                    efficiency: '88%',
+                    equipment: ['paintBooth', 'sprayRobot', 'dryingOven'],
+                    processes: ['preparacion_superficie', 'aplicacion_pintura', 'secado_horneado']
+                },
+                { 
+                    name: 'Powertrain', 
+                    pos: [-22.5, 0, 0], 
+                    color: 0xa78bfa, 
+                    efficiency: '91%',
+                    equipment: ['engineLift', 'testBench', 'assemblyRobot'],
+                    processes: ['montaje_motor', 'testing_dinamico', 'calibracion']
+                },
+                { 
+                    name: 'Ensamblaje', 
+                    pos: [0, 0, 0], 
+                    color: 0xf87171, 
+                    efficiency: '94%',
+                    equipment: ['mainLine', 'liftPlatform', 'torqueTools'],
+                    processes: ['ensamblaje_principal', 'instalacion_componentes', 'verificacion']
+                },
+                { 
+                    name: 'Control Calidad', 
+                    pos: [22.5, 0, 0], 
+                    color: 0x06d6a0, 
+                    efficiency: '97%',
+                    equipment: ['testingStation', 'measurementArm', 'scanner3d'],
+                    processes: ['inspeccion_visual', 'medicion_precision', 'testing_funcional']
+                },
+                { 
+                    name: 'Almacén', 
+                    pos: [-22.5, 0, 15], 
+                    color: 0xfbbf24, 
+                    efficiency: '89%',
+                    equipment: ['rackingSystem', 'agvRobot', 'inventoryScanner'],
+                    processes: ['almacenamiento_automatico', 'gestion_inventario', 'preparacion_pedidos']
+                },
+                { 
+                    name: 'Expedición', 
+                    pos: [22.5, 0, 15], 
+                    color: 0x818cf8, 
+                    efficiency: '93%',
+                    equipment: ['loadingDock', 'packagingStation', 'shippingScanner'],
+                    processes: ['empaquetado_final', 'carga_vehiculos', 'control_envios']
+                }
             ];
             
             sectionsData.forEach((data, index) => {
-                // Create main building
-                const geometry = new THREE.BoxGeometry(8, 4, 6);
-                const material = new THREE.MeshLambertMaterial({ 
-                    color: data.color,
-                    transparent: true,
-                    opacity: 0.8
-                });
-                const building = new THREE.Mesh(geometry, material);
-                building.position.set(...data.pos);
-                building.position.y = 2;
-                building.castShadow = true;
-                building.receiveShadow = true;
-                building.userData = { 
+                // Create main building with detailed interior
+                const buildingGroup = new THREE.Group();
+                buildingGroup.userData = { 
                     type: 'section', 
                     name: data.name, 
                     efficiency: data.efficiency,
-                    status: 'Operativo'
+                    status: 'Operativo',
+                    equipment: data.equipment,
+                    processes: data.processes,
+                    hasInterior: true
                 };
-                scene.add(building);
-                factorySections.push(building);
                 
-                // Create roof
-                const roofGeometry = new THREE.ConeGeometry(6, 2, 4);
-                const roofMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
-                const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-                roof.position.set(...data.pos);
-                roof.position.y = 5;
-                roof.rotation.y = Math.PI / 4;
-                scene.add(roof);
-                
-                // Create glowing edge effect
-                const edgeGeometry = new THREE.EdgesGeometry(geometry);
-                const edgeMaterial = new THREE.LineBasicMaterial({ 
+                // Main building structure
+                const geometry = new THREE.BoxGeometry(12, 6, 10);
+                const material = new THREE.MeshPhongMaterial({ 
                     color: data.color,
+                    transparent: true,
+                    opacity: 0.7,
+                    shininess: 30
+                });
+                const building = new THREE.Mesh(geometry, material);
+                building.position.set(...data.pos);
+                building.position.y = 3;
+                building.castShadow = true;
+                building.receiveShadow = true;
+                buildingGroup.add(building);
+                
+                // Create interior floor
+                const floorGeometry = new THREE.PlaneGeometry(11, 9);
+                const floorMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0x333333,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+                floor.rotation.x = -Math.PI / 2;
+                floor.position.set(...data.pos);
+                floor.position.y = 0.1;
+                buildingGroup.add(floor);
+                
+                // Create interior ceiling
+                const ceiling = floor.clone();
+                ceiling.rotation.x = Math.PI / 2;
+                ceiling.position.y = 5.9;
+                ceiling.material = new THREE.MeshLambertMaterial({ 
+                    color: 0x444444,
                     transparent: true,
                     opacity: 0.6
                 });
-                const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
-                edges.position.copy(building.position);
-                scene.add(edges);
+                buildingGroup.add(ceiling);
+                
+                // Add equipment based on section type
+                createEquipment(buildingGroup, data);
+                
+                // Add interior lighting
+                createInteriorLighting(buildingGroup, data);
+                
+                // Create glowing perimeter outline
+                const outlineGeometry = new THREE.EdgesGeometry(geometry);
+                const outlineMaterial = new THREE.LineBasicMaterial({ 
+                    color: data.color,
+                    transparent: true,
+                    opacity: 0.8,
+                    linewidth: 2
+                });
+                const outline = new THREE.LineSegments(outlineGeometry, outlineMaterial);
+                outline.position.copy(building.position);
+                buildingGroup.add(outline);
+                
+                // Add section label floating above
+                createSectionLabel(buildingGroup, data);
+                
+                buildingGroup.position.set(0, 0, 0);
+                scene.add(buildingGroup);
+                factorySections.push(buildingGroup);
             });
             
             // Create ground
-            const groundGeometry = new THREE.PlaneGeometry(60, 40);
+            const groundGeometry = new THREE.PlaneGeometry(80, 60);
             const groundMaterial = new THREE.MeshLambertMaterial({ 
                 color: 0x1a1a2e,
                 transparent: true,
@@ -1474,25 +1895,474 @@
             scene.add(ground);
             
             // Add grid
-            const gridHelper = new THREE.GridHelper(50, 20, 0x00d4ff, 0x003366);
+            const gridHelper = new THREE.GridHelper(80, 20, 0x00d4ff, 0x003366);
             gridHelper.material.transparent = true;
             gridHelper.material.opacity = 0.3;
             scene.add(gridHelper);
         }
         
+        // Create specific equipment for each section type
+        function createEquipment(parentGroup, sectionData) {
+            const pos = sectionData.pos;
+            
+            switch(sectionData.name) {
+                case 'Recepción':
+                    // Forklift
+                    createForklift(parentGroup, [pos[0] - 3, 0.5, pos[2] + 2]);
+                    // Conveyor belt
+                    createConveyorBelt(parentGroup, [pos[0] + 2, 0.8, pos[2] - 1]);
+                    // Scanning station
+                    createScanningStation(parentGroup, [pos[0] - 1, 1, pos[2] + 3]);
+                    break;
+                    
+                case 'Carrocería':
+                    // Welding robot
+                    createWeldingRobot(parentGroup, [pos[0] - 2, 1, pos[2]]);
+                    // Press stamp
+                    createPressStamp(parentGroup, [pos[0] + 3, 1.5, pos[2] - 2]);
+                    // Assembly table
+                    createAssemblyTable(parentGroup, [pos[0], 0.8, pos[2] + 2]);
+                    break;
+                    
+                case 'Pintura':
+                    // Paint booth
+                    createPaintBooth(parentGroup, [pos[0], 2, pos[2]]);
+                    // Spray robot
+                    createSprayRobot(parentGroup, [pos[0] - 2, 1.5, pos[2] + 1]);
+                    // Drying oven
+                    createDryingOven(parentGroup, [pos[0] + 3, 1, pos[2] - 2]);
+                    break;
+                    
+                case 'Powertrain':
+                    // Engine lift
+                    createEngineLift(parentGroup, [pos[0], 2, pos[2]]);
+                    // Test bench
+                    createTestBench(parentGroup, [pos[0] + 3, 1, pos[2] + 2]);
+                    // Assembly robot
+                    createAssemblyRobot(parentGroup, [pos[0] - 3, 1.5, pos[2] - 1]);
+                    break;
+                    
+                case 'Ensamblaje':
+                    // Main assembly line
+                    createMainLine(parentGroup, [pos[0], 0.5, pos[2]]);
+                    // Lift platform
+                    createLiftPlatform(parentGroup, [pos[0] - 3, 1, pos[2] + 2]);
+                    // Torque tools
+                    createTorqueTools(parentGroup, [pos[0] + 2, 1.5, pos[2] - 2]);
+                    break;
+                    
+                case 'Control Calidad':
+                    // Testing station
+                    createTestingStation(parentGroup, [pos[0], 1, pos[2]]);
+                    // Measurement arm
+                    createMeasurementArm(parentGroup, [pos[0] - 2, 2, pos[2] + 1]);
+                    // 3D scanner
+                    create3DScanner(parentGroup, [pos[0] + 3, 1.5, pos[2] - 2]);
+                    break;
+                    
+                case 'Almacén':
+                    // Racking system
+                    createRackingSystem(parentGroup, [pos[0], 2.5, pos[2]]);
+                    // AGV robot
+                    createAGVRobot(parentGroup, [pos[0] - 3, 0.3, pos[2] + 2]);
+                    // Inventory scanner
+                    createInventoryScanner(parentGroup, [pos[0] + 2, 1.2, pos[2] - 1]);
+                    break;
+                    
+                case 'Expedición':
+                    // Loading dock
+                    createLoadingDock(parentGroup, [pos[0], 1, pos[2] + 3]);
+                    // Packaging station
+                    createPackagingStation(parentGroup, [pos[0] - 2, 0.8, pos[2]]);
+                    // Shipping scanner
+                    createShippingScanner(parentGroup, [pos[0] + 3, 1, pos[2] - 2]);
+                    break;
+            }
+        }
+        
+        // Equipment creation functions
+        function createForklift(parent, position) {
+            const forklift = new THREE.Group();
+            
+            // Body
+            const bodyGeometry = new THREE.BoxGeometry(1.5, 0.8, 2);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xffaa00 });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.4;
+            forklift.add(body);
+            
+            // Forks
+            const forkGeometry = new THREE.BoxGeometry(0.1, 0.1, 1.2);
+            const forkMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
+            const fork1 = new THREE.Mesh(forkGeometry, forkMaterial);
+            const fork2 = new THREE.Mesh(forkGeometry, forkMaterial);
+            fork1.position.set(-0.3, 0.2, 1.2);
+            fork2.position.set(0.3, 0.2, 1.2);
+            forklift.add(fork1, fork2);
+            
+            // Wheels
+            const wheelGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.1);
+            const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x111111 });
+            const wheels = [];
+            const wheelPositions = [[-0.6, 0.15, -0.8], [0.6, 0.15, -0.8], [-0.6, 0.15, 0.8], [0.6, 0.15, 0.8]];
+            wheelPositions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+                wheel.position.set(...pos);
+                wheel.rotation.z = Math.PI / 2;
+                forklift.add(wheel);
+                wheels.push(wheel);
+            });
+            
+            forklift.position.set(...position);
+            forklift.userData = { type: 'equipment', name: 'Forklift', animated: true, wheels: wheels };
+            parent.add(forklift);
+            
+            return forklift;
+        }
+        
+        function createWeldingRobot(parent, position) {
+            const robot = new THREE.Group();
+            
+            // Base
+            const baseGeometry = new THREE.CylinderGeometry(0.8, 0.8, 0.3);
+            const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x2575bc });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            robot.add(base);
+            
+            // Arm segments
+            const armGeometry = new THREE.CylinderGeometry(0.15, 0.15, 1.5);
+            const armMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
+            
+            const arm1 = new THREE.Mesh(armGeometry, armMaterial);
+            arm1.position.set(0, 0.9, 0);
+            robot.add(arm1);
+            
+            const arm2 = new THREE.Mesh(armGeometry, armMaterial);
+            arm2.position.set(0, 1.8, 0.8);
+            arm2.rotation.z = Math.PI / 4;
+            robot.add(arm2);
+            
+            // Welding torch
+            const torchGeometry = new THREE.ConeGeometry(0.1, 0.4);
+            const torchMaterial = new THREE.MeshLambertMaterial({ color: 0xff4444 });
+            const torch = new THREE.Mesh(torchGeometry, torchMaterial);
+            torch.position.set(0, 2.5, 1.2);
+            robot.add(torch);
+            
+            // Welding sparks effect (particles) - Simplificado
+            const sparkGeometry = new THREE.SphereGeometry(0.03);
+            const sparkMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xffff44,
+                transparent: true,
+                opacity: 0.8
+            });
+            const sparks = [];
+            for (let i = 0; i < 3; i++) { // Reducido de 10 a 3 chispas
+                const spark = new THREE.Mesh(sparkGeometry, sparkMaterial);
+                spark.position.set(
+                    (Math.random() - 0.5) * 0.3,
+                    2.3 + Math.random() * 0.2,
+                    1.2 + (Math.random() - 0.5) * 0.2
+                );
+                robot.add(spark);
+                sparks.push(spark);
+            }
+            
+            robot.position.set(...position);
+            robot.userData = { 
+                type: 'equipment', 
+                name: 'Welding Robot', 
+                animated: true,
+                arms: [arm1, arm2],
+                torch: torch,
+                sparks: sparks,
+                animationType: 'welding'
+            };
+            parent.add(robot);
+            
+            return robot;
+        }
+        
+        function createPaintBooth(parent, position) {
+            const booth = new THREE.Group();
+            
+            // Booth chamber
+            const chamberGeometry = new THREE.BoxGeometry(4, 3, 3);
+            const chamberMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xeeeeee,
+                transparent: true,
+                opacity: 0.3
+            });
+            const chamber = new THREE.Mesh(chamberGeometry, chamberMaterial);
+            chamber.position.y = 1.5;
+            booth.add(chamber);
+            
+            // Ventilation system
+            const ventGeometry = new THREE.CylinderGeometry(0.3, 0.3, 3);
+            const ventMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
+            const vent1 = new THREE.Mesh(ventGeometry, ventMaterial);
+            const vent2 = new THREE.Mesh(ventGeometry, ventMaterial);
+            vent1.position.set(-1.5, 3.2, 0);
+            vent2.position.set(1.5, 3.2, 0);
+            booth.add(vent1, vent2);
+            
+            // Paint mist effect - Simplificado
+            const mistGeometry = new THREE.SphereGeometry(0.08);
+            const mistMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x00aaff,
+                transparent: true,
+                opacity: 0.4
+            });
+            const mist = [];
+            for (let i = 0; i < 5; i++) { // Reducido de 20 a 5 partículas
+                const particle = new THREE.Mesh(mistGeometry, mistMaterial);
+                particle.position.set(
+                    (Math.random() - 0.5) * 2,
+                    1 + Math.random() * 1.5,
+                    (Math.random() - 0.5) * 1.5
+                );
+                booth.add(particle);
+                mist.push(particle);
+            }
+            
+            booth.position.set(...position);
+            booth.userData = { 
+                type: 'equipment', 
+                name: 'Paint Booth', 
+                animated: true,
+                mist: mist,
+                animationType: 'painting'
+            };
+            parent.add(booth);
+            
+            return booth;
+        }
+        
+        function createConveyorBelt(parent, position) {
+            const conveyor = new THREE.Group();
+            
+            // Belt base
+            const baseGeometry = new THREE.BoxGeometry(5, 0.2, 0.8);
+            const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            conveyor.add(base);
+            
+            // Belt surface (moving)
+            const beltGeometry = new THREE.PlaneGeometry(5, 0.8);
+            const beltMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x222222,
+                transparent: true,
+                opacity: 0.8
+            });
+            const belt = new THREE.Mesh(beltGeometry, beltMaterial);
+            belt.rotation.x = -Math.PI / 2;
+            belt.position.y = 0.11;
+            conveyor.add(belt);
+            
+            // Support rollers
+            const rollerGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1);
+            const rollerMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
+            const roller1 = new THREE.Mesh(rollerGeometry, rollerMaterial);
+            const roller2 = new THREE.Mesh(rollerGeometry, rollerMaterial);
+            roller1.position.set(-2.3, -0.15, 0);
+            roller2.position.set(2.3, -0.15, 0);
+            roller1.rotation.z = Math.PI / 2;
+            roller2.rotation.z = Math.PI / 2;
+            conveyor.add(roller1, roller2);
+            
+            // Items on conveyor
+            const items = [];
+            for (let i = 0; i < 3; i++) {
+                const itemGeometry = new THREE.BoxGeometry(0.3, 0.2, 0.3);
+                const itemMaterial = new THREE.MeshLambertMaterial({ color: 0x8855aa });
+                const item = new THREE.Mesh(itemGeometry, itemMaterial);
+                item.position.set(-2 + i * 2, 0.2, 0);
+                conveyor.add(item);
+                items.push(item);
+            }
+            
+            conveyor.position.set(...position);
+            conveyor.userData = { 
+                type: 'equipment', 
+                name: 'Conveyor Belt', 
+                animated: true,
+                belt: belt,
+                items: items,
+                rollers: [roller1, roller2],
+                animationType: 'conveyor'
+            };
+            parent.add(conveyor);
+            
+            return conveyor;
+        }
+        
+        function createInteriorLighting(parent, sectionData) {
+            const pos = sectionData.pos;
+            
+            // Solo una luz principal para mejor rendimiento
+            const light = new THREE.PointLight(sectionData.color, 0.6, 12);
+            light.position.set(pos[0], pos[1] + 4, pos[2]);
+            light.castShadow = false; // Desactivar sombras para mejor rendimiento
+            scene.add(light);
+        }
+        
+        function createSectionLabel(parent, sectionData) {
+            // Create floating text label
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 64;
+            
+            context.fillStyle = 'rgba(0, 20, 40, 0.8)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.strokeStyle = '#00d4ff';
+            context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+            
+            context.fillStyle = '#ffffff';
+            context.font = 'bold 20px Arial';
+            context.textAlign = 'center';
+            context.fillText(sectionData.name, canvas.width / 2, 25);
+            
+            context.fillStyle = '#00d4ff';
+            context.font = '14px Arial';
+            context.fillText(`Eficiencia: ${sectionData.efficiency}`, canvas.width / 2, 45);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            
+            const labelMaterial = new THREE.MeshBasicMaterial({ 
+                map: texture, 
+                transparent: true,
+                alphaTest: 0.1
+            });
+            const labelGeometry = new THREE.PlaneGeometry(4, 1);
+            const label = new THREE.Mesh(labelGeometry, labelMaterial);
+            label.position.set(sectionData.pos[0], sectionData.pos[1] + 8, sectionData.pos[2]);
+            label.lookAt(camera.position);
+            
+            scene.add(label);
+        }
+        
+        // Create 3D human guide character
+        function createGuideCharacter(position, name) {
+            const guide = new THREE.Group();
+            
+            // Body - usando CylinderGeometry en lugar de CapsuleGeometry
+            const bodyGeometry = new THREE.CylinderGeometry(0.25, 0.3, 1.2, 8);
+            const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0x2575bc });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 1.2;
+            guide.add(body);
+            
+            // Head
+            const headGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+            const headMaterial = new THREE.MeshPhongMaterial({ color: 0xffdbac });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 2;
+            guide.add(head);
+            
+            // Arms - usando CylinderGeometry
+            const armGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.6, 8);
+            const armMaterial = new THREE.MeshPhongMaterial({ color: 0x2575bc });
+            
+            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+            leftArm.position.set(-0.4, 1.2, 0);
+            leftArm.rotation.z = Math.PI / 6;
+            guide.add(leftArm);
+            
+            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+            rightArm.position.set(0.4, 1.2, 0);
+            rightArm.rotation.z = -Math.PI / 6;
+            guide.add(rightArm);
+            
+            // Legs - usando CylinderGeometry
+            const legGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.7, 8);
+            const legMaterial = new THREE.MeshPhongMaterial({ color: 0x333333 });
+            
+            const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+            leftLeg.position.set(-0.15, 0.4, 0);
+            guide.add(leftLeg);
+            
+            const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+            rightLeg.position.set(0.15, 0.4, 0);
+            guide.add(rightLeg);
+            
+            // Add a glowing effect
+            const glowGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x00d4ff,
+                transparent: true,
+                opacity: 0.2
+            });
+            const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+            glow.position.y = 1.2;
+            guide.add(glow);
+            
+            guide.position.set(...position);
+            guide.userData = { 
+                type: 'guide', 
+                name: name,
+                animated: true,
+                initialY: position[1]
+            };
+            
+            scene.add(guide);
+            return guide;
+        }
+        
+        let guideCharacters = {};
+        
+        // Placeholder functions for other equipment (you can expand these)
+        function createScanningStation(parent, pos) { createGenericEquipment(parent, pos, 0x00ff88, 'Scanner'); }
+        function createPressStamp(parent, pos) { createGenericEquipment(parent, pos, 0xff4444, 'Press'); }
+        function createAssemblyTable(parent, pos) { createGenericEquipment(parent, pos, 0x666666, 'Table'); }
+        function createSprayRobot(parent, pos) { createGenericEquipment(parent, pos, 0x4488ff, 'Spray Robot'); }
+        function createDryingOven(parent, pos) { createGenericEquipment(parent, pos, 0xff8844, 'Oven'); }
+        function createEngineLift(parent, pos) { createGenericEquipment(parent, pos, 0x8844ff, 'Lift'); }
+        function createTestBench(parent, pos) { createGenericEquipment(parent, pos, 0x44ff88, 'Test Bench'); }
+        function createAssemblyRobot(parent, pos) { createGenericEquipment(parent, pos, 0xff4488, 'Assembly Robot'); }
+        function createMainLine(parent, pos) { createGenericEquipment(parent, pos, 0x88ff44, 'Main Line'); }
+        function createLiftPlatform(parent, pos) { createGenericEquipment(parent, pos, 0x4444ff, 'Platform'); }
+        function createTorqueTools(parent, pos) { createGenericEquipment(parent, pos, 0xffff44, 'Tools'); }
+        function createTestingStation(parent, pos) { createGenericEquipment(parent, pos, 0x44ffff, 'Testing'); }
+        function createMeasurementArm(parent, pos) { createGenericEquipment(parent, pos, 0xff44ff, 'Arm'); }
+        function create3DScanner(parent, pos) { createGenericEquipment(parent, pos, 0x88ffff, '3D Scanner'); }
+        function createRackingSystem(parent, pos) { createGenericEquipment(parent, pos, 0xffaa44, 'Racking'); }
+        function createAGVRobot(parent, pos) { createGenericEquipment(parent, pos, 0xaa44ff, 'AGV'); }
+        function createInventoryScanner(parent, pos) { createGenericEquipment(parent, pos, 0x44aaff, 'Inventory'); }
+        function createLoadingDock(parent, pos) { createGenericEquipment(parent, pos, 0xff88aa, 'Dock'); }
+        function createPackagingStation(parent, pos) { createGenericEquipment(parent, pos, 0xaaffaa, 'Packaging'); }
+        function createShippingScanner(parent, pos) { createGenericEquipment(parent, pos, 0xffaaff, 'Shipping'); }
+        
+        function createGenericEquipment(parent, position, color, name) {
+            const equipment = new THREE.Group();
+            
+            const geometry = new THREE.BoxGeometry(0.8, 1, 0.8);
+            const material = new THREE.MeshLambertMaterial({ color: color });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.y = 0.5;
+            equipment.add(mesh);
+            
+            equipment.position.set(...position);
+            equipment.userData = { type: 'equipment', name: name };
+            parent.add(equipment);
+            
+            return equipment;
+        }
+        
         function createParticleSystem() {
-            const particleCount = 500;
+            const particleCount = 100; // Reducido de 500 a 100 para mejor rendimiento
             const positions = new Float32Array(particleCount * 3);
             const velocities = new Float32Array(particleCount * 3);
             
             for (let i = 0; i < particleCount; i++) {
-                positions[i * 3] = (Math.random() - 0.5) * 100;
-                positions[i * 3 + 1] = Math.random() * 20;
-                positions[i * 3 + 2] = (Math.random() - 0.5) * 80;
+                positions[i * 3] = (Math.random() - 0.5) * 60; // Área más pequeña
+                positions[i * 3 + 1] = Math.random() * 15;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 40;
                 
-                velocities[i * 3] = (Math.random() - 0.5) * 0.02;
-                velocities[i * 3 + 1] = Math.random() * 0.01;
-                velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
+                velocities[i * 3] = (Math.random() - 0.5) * 0.01;
+                velocities[i * 3 + 1] = Math.random() * 0.005;
+                velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.01;
             }
             
             const particleGeometry = new THREE.BufferGeometry();
@@ -1515,6 +2385,11 @@
         function animate() {
             requestAnimationFrame(animate);
             
+            // Update TWEEN if it exists
+            if (typeof TWEEN !== 'undefined') {
+                TWEEN.update();
+            }
+            
             // Update controls
             controls.update();
             
@@ -1536,15 +2411,113 @@
                 system.geometry.attributes.position.needsUpdate = true;
             });
             
-            // Animate factory sections with pulsing effect
-            factorySections.forEach((section, index) => {
+            // Animate factory sections and equipment
+            factorySections.forEach((sectionGroup, sectionIndex) => {
                 const time = Date.now() * 0.001;
-                const pulse = Math.sin(time + index) * 0.1 + 1;
-                section.scale.y = pulse;
-                section.material.opacity = 0.6 + Math.sin(time + index) * 0.2;
+                
+                // Animate the building itself
+                const building = sectionGroup.children.find(child => 
+                    child.geometry && child.geometry.type === 'BoxGeometry' && child.position.y > 2
+                );
+                if (building) {
+                    const pulse = Math.sin(time + sectionIndex) * 0.05 + 1;
+                    building.scale.y = pulse;
+                    building.material.opacity = 0.7 + Math.sin(time + sectionIndex) * 0.1;
+                }
+                
+                // Animate equipment within the section
+                sectionGroup.traverse((child) => {
+                    if (child.userData && child.userData.type === 'equipment' && child.userData.animated) {
+                        animateEquipment(child, time);
+                    }
+                });
+            });
+            
+            // Animate guide characters
+            const time = Date.now() * 0.001;
+            Object.values(guideCharacters).forEach(guide => {
+                if (guide && guide.userData && guide.visible) {
+                    // Bobbing animation
+                    guide.position.y = guide.userData.initialY + Math.sin(time * 2) * 0.1;
+                    
+                    // Subtle rotation
+                    guide.rotation.y = Math.sin(time * 0.5) * 0.2;
+                    
+                    // Animate arms (waving) - buscar por CylinderGeometry ahora
+                    const leftArm = guide.children.find(child => child.position.x < 0 && child.geometry && child.geometry.type === 'CylinderGeometry' && child.position.y > 1);
+                    const rightArm = guide.children.find(child => child.position.x > 0 && child.geometry && child.geometry.type === 'CylinderGeometry' && child.position.y > 1);
+                    
+                    if (leftArm) {
+                        leftArm.rotation.z = Math.PI / 6 + Math.sin(time * 3) * 0.3;
+                    }
+                    if (rightArm) {
+                        rightArm.rotation.z = -Math.PI / 6 - Math.sin(time * 3) * 0.3;
+                    }
+                }
             });
             
             renderer.render(scene, camera);
+        }
+        
+        // Equipment animation function
+        function animateEquipment(equipment, time) {
+            const userData = equipment.userData;
+            
+            switch(userData.animationType) {
+                case 'welding':
+                    // Animate welding robot arms
+                    if (userData.arms) {
+                        userData.arms[0].rotation.y = Math.sin(time * 0.5) * 0.3;
+                        userData.arms[1].rotation.z = Math.PI / 4 + Math.sin(time * 0.8) * 0.2;
+                    }
+                    // Animate sparks
+                    if (userData.sparks) {
+                        userData.sparks.forEach((spark, i) => {
+                            spark.material.opacity = 0.3 + Math.sin(time * 3 + i) * 0.5;
+                            spark.position.y += Math.sin(time * 4 + i) * 0.01;
+                        });
+                    }
+                    break;
+                    
+                case 'painting':
+                    // Animate paint mist
+                    if (userData.mist) {
+                        userData.mist.forEach((particle, i) => {
+                            particle.position.y += Math.sin(time * 2 + i) * 0.005;
+                            particle.material.opacity = 0.2 + Math.sin(time * 3 + i) * 0.2;
+                        });
+                    }
+                    break;
+                    
+                case 'conveyor':
+                    // Animate conveyor belt items
+                    if (userData.items) {
+                        userData.items.forEach((item, i) => {
+                            item.position.x = -2 + ((time * 0.5 + i * 2) % 4);
+                            if (item.position.x > 2.5) {
+                                item.position.x = -2.5;
+                            }
+                        });
+                    }
+                    // Rotate rollers
+                    if (userData.rollers) {
+                        userData.rollers.forEach(roller => {
+                            roller.rotation.y += 0.05;
+                        });
+                    }
+                    break;
+                    
+                default:
+                    // Generic rotation animation for other equipment
+                    if (userData.wheels) {
+                        userData.wheels.forEach(wheel => {
+                            wheel.rotation.y += 0.02;
+                        });
+                    } else {
+                        equipment.rotation.y = Math.sin(time * 0.3) * 0.1;
+                    }
+                    break;
+            }
         }
         
         function onCanvasClick(event) {
@@ -1592,118 +2565,344 @@
         
         // 3D Showcase functions
         function startCinematicTour() {
+            // Activate fullscreen immersive mode
+            document.body.classList.add('cinematic-mode-active');
+            
+            // Request fullscreen for a more immersive experience
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => {
+                    console.warn(`Error al intentar entrar en pantalla completa: ${err.message} (${err.name})`);
+                });
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+
+            // Verificar que Three.js y las dependencias estén cargadas
+            if (typeof THREE === 'undefined') {
+                alert('⚠️ Three.js no está cargado. Cargando bibliotecas...');
+                loadThreeJS();
+                return;
+            }
+            
+            if (typeof TWEEN === 'undefined') {
+                alert('⚠️ Sistema de animaciones no disponible. Usando tour básico...');
+                startBasicTour();
+                return;
+            }
+            
+            console.log('Iniciando tour cinemático...');
             cinematicMode = true;
             controls.enabled = false; // Disable user controls during tour
             
-            // Create drone-style tour path visiting each station
+            // Create drone-style tour path visiting each station - WITH BIRD'S EYE VIEW TRANSITIONS
             const tourPath = [
-                // Start: High overview of entire factory
+                // Start: Epic establishing shot from high above
                 { 
-                    pos: [0, 35, 40], 
+                    pos: [0, 50, 60], 
+                    target: [0, 0, 0], 
+                    duration: 4000,
+                    title: "VISTA GENERAL",
+                    description: "Bienvenido a Teixidó Factory. Un complejo industrial donde la innovación y la eficiencia definen el futuro de la manufactura.",
+                    type: 'establishing',
+                    pauseAfter: 1000
+                },
+                
+                // === RECEPCIÓN ===
+                // Bird's eye view - localizando Recepción
+                { 
+                    pos: [-22.5, 25, -15], 
+                    target: [-22.5, 0, -15], 
+                    duration: 3000,
+                    title: "LOCALIZANDO: RECEPCIÓN",
+                    description: "Aproximándose al área de recepción de materiales...",
+                    type: 'birdsEye',
+                    pauseAfter: 10 // Reducido para transición fluida
+                },
+                // Interior de Recepción
+                { 
+                    pos: [-22.5, 2.5, -10], 
+                    target: [-22.5, 1.2, -16], 
+                    duration: 4000,
+                    title: "RECEPCIÓN",
+                    description: "Los AGV transportan componentes de forma autónoma. Cada pieza es rastreada mediante códigos QR y sensores RFID en tiempo real.",
+                    type: 'interior',
+                    guide: "María López - Jefa de Logística",
+                    guidePos: [-24, 0.8, -14],
+                    pauseAfter: 2000
+                },
+                
+                // === CARROCERÍA ===
+                // Bird's eye view - localizando Carrocería
+                { 
+                    pos: [0, 30, -10], 
+                    target: [0, 0, -15], 
+                    duration: 3000,
+                    title: "LOCALIZANDO: CARROCERÍA",
+                    description: "Dirigiéndose a la sección de ensamblaje de carrocería...",
+                    type: 'birdsEye',
+                    pauseAfter: 10 // Reducido para transición fluida
+                },
+                // Interior de Carrocería
+                { 
+                    pos: [2, 3.5, -11], 
+                    target: [-2, 1.8, -15], 
+                    duration: 4000,
+                    title: "CARROCERÍA",
+                    description: "Robots ABB trabajan en sincronía perfecta. Cada soldadura es inspeccionada por sensores láser que garantizan tolerancias de 0.1mm.",
+                    type: 'interior',
+                    guide: "Carlos Rodríguez - Ingeniero de Producción",
+                    guidePos: [-1, 0.8, -13],
+                    pauseAfter: 2000
+                },
+                
+                // === PINTURA ===
+                // Bird's eye view - localizando Pintura
+                { 
+                    pos: [22.5, 28, -10], 
+                    target: [22.5, 0, -15], 
+                    duration: 3000,
+                    title: "LOCALIZANDO: PINTURA",
+                    description: "Aproximándose a las cabinas de pintura...",
+                    type: 'birdsEye',
+                    pauseAfter: 10 // Reducido para transición fluida
+                },
+                // Interior de Pintura
+                { 
+                    pos: [22.5, 3.8, -10], 
+                    target: [22.5, 2.2, -16], 
+                    duration: 4000,
+                    title: "PINTURA",
+                    description: "Capas de imprimación, color y barniz UV son aplicadas. Hornos infrarrojos curan cada capa en solo 8 minutos.",
+                    type: 'interior',
+                    guide: "Ana Martín - Especialista en Acabados",
+                    guidePos: [21, 0.8, -13],
+                    pauseAfter: 2000
+                },
+                
+                // === TRANSITION FLIGHT ===
+                { 
+                    pos: [45, 35, 5], 
+                    target: [0, 2, 0], 
+                    duration: 4000,
+                    title: "VISTA PANORÁMICA",
+                    description: "Sobrevolando las áreas de producción. La arquitectura modular permite reconfigurar líneas en menos de 24 horas.",
+                    type: 'transition',
+                    pauseAfter: 1000
+                },
+                
+                // === POWERTRAIN ===
+                // Bird's eye view - localizando Powertrain
+                { 
+                    pos: [-22.5, 25, 5], 
+                    target: [-22.5, 0, 0], 
+                    duration: 3000,
+                    title: "LOCALIZANDO: POWERTRAIN",
+                    description: "Descendiendo al área de ensamblaje de motores...",
+                    type: 'birdsEye',
+                    pauseAfter: 10 // Reducido para transición fluida
+                },
+                // Interior de Powertrain
+                { 
+                    pos: [-20.5, 3.2, 1], 
+                    target: [-24, 1.8, -1], 
+                    duration: 4000,
+                    title: "POWERTRAIN",
+                    description: "Cada motor se prueba en bancos dinamométricos. Medimos 247 parámetros para asegurar rendimiento óptimo y cero defectos.",
+                    type: 'interior',
+                    guide: "Pedro Sánchez - Técnico de Powertrain",
+                    guidePos: [-23, 0.8, 1],
+                    pauseAfter: 2000
+                },
+                
+                // === ENSAMBLAJE ===
+                // Bird's eye view - localizando Ensamblaje
+                { 
+                    pos: [0, 30, 5], 
                     target: [0, 0, 0], 
                     duration: 3000,
-                    description: "Vista general de la planta industrial"
+                    title: "LOCALIZANDO: ENSAMBLAJE FINAL",
+                    description: "Acercándose a la línea de ensamblaje principal...",
+                    type: 'birdsEye',
+                    pauseAfter: 10 // Reducido para transición fluida
                 },
-                // Station 1: Recepción - Approach from side
+                // Interior de Ensamblaje
                 { 
-                    pos: [-25, 12, -5], 
-                    target: [-15, 2, -10], 
-                    duration: 2500,
-                    description: "Área de Recepción - Entrada de materias primas"
+                    pos: [2.5, 3, 2], 
+                    target: [-2, 1.5, -1], 
+                    duration: 4500,
+                    title: "ENSAMBLAJE FINAL",
+                    description: "Operarios especializados y robots colaborativos trabajan juntos. Cada vehículo pasa por 87 estaciones de trabajo.",
+                    type: 'interior',
+                    guide: "Laura Gómez - Supervisora de Ensamblaje",
+                    guidePos: [0, 0.8, 1],
+                    pauseAfter: 2000
                 },
-                // Station 2: Carrocería - Fly over and circle
+                
+                // === CALIDAD ===
+                // Bird's eye view - localizando Calidad
                 { 
-                    pos: [-5, 15, -15], 
-                    target: [0, 2, -10], 
-                    duration: 2500,
-                    description: "Sección Carrocería - Fabricación de chasis"
+                    pos: [22.5, 25, 5], 
+                    target: [22.5, 0, 0], 
+                    duration: 3000,
+                    title: "LOCALIZANDO: CONTROL DE CALIDAD",
+                    description: "Accediendo al área de inspección final...",
+                    type: 'birdsEye',
+                    pauseAfter: 10 // Reducido para transición fluida
                 },
-                // Station 3: Pintura - Side approach with tilt
+                // Interior de Calidad
                 { 
-                    pos: [25, 10, -15], 
-                    target: [15, 2, -10], 
-                    duration: 2500,
-                    description: "Cabina de Pintura - Acabados de calidad"
+                    pos: [24, 3, 1], 
+                    target: [21, 1.8, -1], 
+                    duration: 4000,
+                    title: "CONTROL DE CALIDAD",
+                    description: "Visión artificial, escáneres 3D y pruebas funcionales. Solo vehículos perfectos salen de esta estación.",
+                    type: 'interior',
+                    guide: "Roberto Díaz - Inspector de Calidad",
+                    guidePos: [22, 0.8, 0],
+                    pauseAfter: 2000
                 },
-                // Transition flight - sweep across factory
+                
+                // === ALMACÉN ===
+                // Bird's eye view - localizando Almacén
                 { 
-                    pos: [20, 20, 5], 
-                    target: [-10, 0, 0], 
-                    duration: 2000,
-                    description: "Transición entre áreas de producción"
+                    pos: [-22.5, 28, 20], 
+                    target: [-22.5, 0, 15], 
+                    duration: 3000,
+                    title: "LOCALIZANDO: ALMACÉN",
+                    description: "Volando hacia el almacén automatizado...",
+                    type: 'birdsEye',
+                    pauseAfter: 10 // Reducido para transición fluida
                 },
-                // Station 4: Powertrain - Low approach
+                // Interior de Almacén
                 { 
-                    pos: [-25, 8, 5], 
-                    target: [-15, 2, 0], 
-                    duration: 2500,
-                    description: "Powertrain - Motores y transmisiones"
+                    pos: [-20, 3.5, 16], 
+                    target: [-24.5, 2, 13], 
+                    duration: 4000,
+                    title: "ALMACÉN INTELIGENTE",
+                    description: "Robots AGV navegan de forma autónoma usando IA. El sistema predice necesidades y optimiza rutas en tiempo real.",
+                    type: 'interior',
+                    guide: "Isabel Torres - Gerente de Almacén",
+                    guidePos: [-23, 0.8, 15],
+                    pauseAfter: 2000
                 },
-                // Station 5: Ensamblaje - Central overhead
+                
+                // === EXPEDICIÓN ===
+                // Bird's eye view - localizando Expedición
                 { 
-                    pos: [0, 18, 8], 
-                    target: [0, 2, 0], 
-                    duration: 2500,
-                    description: "Ensamblaje Final - Montaje principal"
+                    pos: [22.5, 25, 20], 
+                    target: [22.5, 0, 15], 
+                    duration: 3000,
+                    title: "LOCALIZANDO: EXPEDICIÓN",
+                    description: "Aproximándose al área de envíos...",
+                    type: 'birdsEye',
+                    pauseAfter: 10 // Reducido para transición fluida
                 },
-                // Station 6: Control Calidad - Precision approach
+                // Interior de Expedición
                 { 
-                    pos: [25, 12, 8], 
-                    target: [15, 2, 0], 
-                    duration: 2500,
-                    description: "Control de Calidad - Inspección y testing"
+                    pos: [24, 2.5, 17], 
+                    target: [21, 1.5, 13], 
+                    duration: 4000,
+                    title: "EXPEDICIÓN",
+                    description: "Última revisión, documentación digital y carga optimizada. Cada vehículo es rastreado hasta su destino final.",
+                    type: 'interior',
+                    guide: "Miguel Fernández - Coordinador de Envíos",
+                    guidePos: [22, 0.8, 15],
+                    pauseAfter: 2000
                 },
-                // Station 7: Almacén - Wide angle
+                
+                // === GRAND FINALE ===
                 { 
-                    pos: [-20, 15, 20], 
-                    target: [-15, 2, 10], 
-                    duration: 2500,
-                    description: "Almacén - Gestión de inventario"
-                },
-                // Station 8: Expedición - Final approach
-                { 
-                    pos: [25, 10, 20], 
-                    target: [15, 2, 10], 
-                    duration: 2500,
-                    description: "Expedición - Productos terminados"
-                },
-                // Final: Spectacular pullback overview
-                { 
-                    pos: [35, 45, 35], 
+                    pos: [60, 60, 70], 
                     target: [0, 0, 0], 
-                    duration: 3500,
-                    description: "Vista completa del complejo industrial"
+                    duration: 5000,
+                    title: "TEIXIDÓ FACTORY",
+                    description: "Donde la innovación, la precisión y la pasión se unen para construir el futuro de la movilidad.",
+                    type: 'finale',
+                    pauseAfter: 2500
+                },
+                { 
+                    pos: [35, 35, 45], 
+                    target: [0, 5, 0], 
+                    duration: 4000,
+                    title: "EL FUTURO, HOY",
+                    description: "Gracias por visitar Teixidó Factory Explorer Pro.",
+                    type: 'finale',
+                    pauseAfter: 1500
                 }
             ];
             
             let currentSegment = 0;
-            let tourInfo = document.createElement('div');
-            tourInfo.id = 'tourInfo';
+            let tourInfo = document.getElementById('tourInfo');
+            if (!tourInfo) {
+                tourInfo = document.createElement('div');
+                tourInfo.id = 'tourInfo';
+                document.body.appendChild(tourInfo);
+            }
             tourInfo.style.cssText = `
                 position: fixed;
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(0,0,0,0.8);
+                top: 20px;
+                right: 20px;
+                background: rgba(10, 14, 39, 0.85);
                 color: white;
-                padding: 1rem 2rem;
-                border-radius: 25px;
+                padding: 1rem;
+                border-radius: 15px;
                 border: 1px solid var(--primary);
-                backdrop-filter: blur(10px);
-                font-size: 1.1rem;
-                text-align: center;
+                backdrop-filter: blur(12px);
                 z-index: 1000;
-                max-width: 400px;
+                width: 320px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                transition: opacity 0.5s ease;
             `;
-            document.body.appendChild(tourInfo);
             
+            const explanationOverlay = document.getElementById('explanationOverlay');
+            const explanationTitle = document.getElementById('explanationTitle');
+            const explanationText = document.getElementById('explanationText');
+            const guideInfo = document.getElementById('guideInfo');
+            let typeWriterInterval = null;
+
+            function typeWriterEffect(element, text, speed = 25) {
+                let i = 0;
+                element.innerHTML = "";
+                if (typeWriterInterval) clearInterval(typeWriterInterval);
+                
+                typeWriterInterval = setInterval(() => {
+                    if (i < text.length) {
+                        element.innerHTML += text.charAt(i);
+                        i++;
+                    } else {
+                        clearInterval(typeWriterInterval);
+                    }
+                }, speed);
+            }
+
             function animateToNextStation() {
                 if (currentSegment >= tourPath.length) {
                     // Tour completed - cleanup and return control
                     cinematicMode = false;
                     controls.enabled = true;
-                    document.body.removeChild(tourInfo);
+                    tourInfo.style.opacity = '0';
                     
+                    // Deactivate fullscreen immersive mode
+                    document.body.classList.remove('cinematic-mode-active');
+                    
+                    explanationOverlay.classList.add('fade-out');
+                    guideInfo.classList.remove('visible');
+                    setTimeout(() => {
+                        explanationOverlay.classList.remove('visible', 'fade-out');
+                    }, 500);
+
+                    // Exit fullscreen
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) { /* Safari */
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) { /* IE11 */
+                        document.msExitFullscreen();
+                    }
+
                     // Show completion message
                     setTimeout(() => {
                         alert('🎬 Tour cinemático completado!\n\nHas visitado todas las estaciones de la planta industrial.');
@@ -1712,89 +2911,276 @@
                 }
                 
                 const segment = tourPath[currentSegment];
+
+                // Show/hide central explanation based on segment type
+                if (segment.type === 'birdsEye') {
+                    // Bird's eye view - hide text and reduce fog to see the factory clearly
+                    explanationOverlay.classList.add('fade-out');
+                    explanationOverlay.classList.remove('visible');
+                    guideInfo.classList.remove('visible');
+                    scene.fog.near = 80; // Aumentar para reducir niebla
+                    scene.fog.far = 200; // Aumentar para reducir niebla
+                } else if (segment.type === 'interior' || segment.type === 'finale' || segment.type === 'establishing') {
+                    explanationTitle.textContent = segment.title;
+                    typeWriterEffect(explanationText, segment.description);
+                    explanationOverlay.classList.remove('fade-out');
+                    explanationOverlay.classList.add('visible');
+                    
+                    // Show guide info and spawn 3D character if available
+                    if (segment.guide && segment.type === 'interior' && segment.guidePos) {
+                        guideInfo.textContent = segment.guide;
+                        guideInfo.classList.add('visible');
+                        
+                        // Create or show guide character
+                        const guideKey = `guide_${currentSegment}`;
+                        if (!guideCharacters[guideKey]) {
+                            guideCharacters[guideKey] = createGuideCharacter(segment.guidePos, segment.guide);
+                        } else {
+                            guideCharacters[guideKey].visible = true;
+                        }
+                        
+                        // Hide all other guides
+                        Object.keys(guideCharacters).forEach(key => {
+                            if (key !== guideKey && guideCharacters[key]) {
+                                guideCharacters[key].visible = false;
+                            }
+                        });
+                    } else {
+                        guideInfo.classList.remove('visible');
+                        // Hide all guides
+                        Object.values(guideCharacters).forEach(guide => {
+                            if (guide) guide.visible = false;
+                        });
+                    }
+                } else {
+                    explanationOverlay.classList.add('fade-out');
+                    guideInfo.classList.remove('visible');
+                    setTimeout(() => {
+                        explanationOverlay.classList.remove('visible');
+                    }, 500);
+                    // Hide all guides
+                    Object.values(guideCharacters).forEach(guide => {
+                        if (guide) guide.visible = false;
+                    });
+                }
                 
-                // Update tour info display
+                // Update tour info display with cinematic styling
+                const segmentTypeIcons = {
+                    'establishing': '🎬',
+                    'approach': '✈️',
+                    'interior': '🏠',
+                    'transition': '🌟',
+                    'finale': '🏆'
+                };
+                
+                const segmentTypeNames = {
+                    'establishing': 'Vista General',
+                    'approach': 'Aproximación',
+                    'interior': 'Vista Interior',
+                    'transition': 'Transición',
+                    'finale': 'Gran Final'
+                };
+                
+                const icon = segmentTypeIcons[segment.type] || '📍';
+                const typeName = segmentTypeNames[segment.type] || 'Tour';
+                
                 tourInfo.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 1rem;">
-                        <div style="background: var(--primary); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold;">
-                            ${currentSegment + 1}
+                        <div style="background: linear-gradient(135deg, var(--primary), #667eea); border-radius: 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);">
+                            ${icon}
                         </div>
-                        <div>
-                            <div style="font-weight: bold; margin-bottom: 0.25rem;">Estación ${currentSegment + 1}/${tourPath.length}</div>
-                            <div style="font-size: 0.9rem; color: var(--text-muted);">${segment.description}</div>
+                        <div style="flex: 1; overflow: hidden;">
+                            <div style="font-weight: bold; font-size: 0.9rem; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${typeName} (${currentSegment + 1}/${tourPath.length})</div>
+                            <div style="font-size: 0.85rem; color: #e0e0e0; line-height: 1.3; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${segment.description}</div>
                         </div>
+                    </div>
+                    <div style="margin-top: 0.75rem; background: rgba(0, 212, 255, 0.1); border-radius: 10px; height: 6px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, var(--primary), #667eea); height: 100%; width: ${((currentSegment + 1) / tourPath.length) * 100}%; transition: width 0.5s ease; box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);"></div>
                     </div>
                 `;
                 
-                // Highlight current section being visited
-                factorySections.forEach((section, index) => {
-                    section.material.emissive.setHex(0x000000);
+                // Apply cinematic effects based on shot type
+                applyCinematicEffects(segment);
+                
+                // Highlight current section being visited with dramatic lighting
+                factorySections.forEach((sectionGroup, index) => {
+                    sectionGroup.traverse((child) => {
+                        if (child.material && child.material.emissive) {
+                            child.material.emissive.setHex(0x000000);
+                        }
+                    });
                 });
                 
-                // Find and highlight the section we're approaching
-                if (currentSegment >= 1 && currentSegment <= 8) {
-                    const sectionIndex = currentSegment - 1;
-                    if (factorySections[sectionIndex]) {
-                        factorySections[sectionIndex].material.emissive.setHex(0x003366);
-                    }
+                // Find and dramatically highlight the section we're focusing on
+                const focusedSectionIndex = Math.floor((currentSegment - 1) / 2);
+                if (focusedSectionIndex >= 0 && focusedSectionIndex < factorySections.length) {
+                    const focusedSection = factorySections[focusedSectionIndex];
+                    focusedSection.traverse((child) => {
+                        if (child.material && child.material.emissive) {
+                            if (segment.type === 'interior') {
+                                child.material.emissive.setHex(0x004488);  // Stronger glow for interior shots
+                            } else {
+                                child.material.emissive.setHex(0x002244);  // Subtle glow for other shots
+                            }
+                        }
+                    });
                 }
                 
-                // Create smooth drone-like camera movement
-                const startPos = { 
-                    x: camera.position.x, 
-                    y: camera.position.y, 
-                    z: camera.position.z 
-                };
-                const startTarget = { 
-                    x: controls.target.x, 
-                    y: controls.target.y, 
-                    z: controls.target.z 
-                };
+                // Create smooth cinematic camera movement using orbital paths
+                const startPos = camera.position.clone();
+                const startTarget = controls.target.clone();
                 
-                // Animate camera position with drone-like easing
-                new TWEEN.Tween(startPos)
-                    .to({ 
-                        x: segment.pos[0], 
-                        y: segment.pos[1], 
-                        z: segment.pos[2] 
-                    }, segment.duration)
+                const endPos = new THREE.Vector3(...segment.pos);
+                const endTarget = new THREE.Vector3(...segment.target);
+
+                // Intermediate point for orbital movement
+                const midPoint = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
+                midPoint.y += 15; // Elevate the midpoint for a nice arc
+
+                // Animate camera and target
+                const tween = new TWEEN.Tween({ t: 0 })
+                    .to({ t: 1 }, segment.duration)
                     .easing(TWEEN.Easing.Cubic.InOut)
-                    .onUpdate(() => {
-                        camera.position.set(startPos.x, startPos.y, startPos.z);
-                    })
-                    .start();
-                
-                // Animate camera target (where it's looking)
-                new TWEEN.Tween(startTarget)
-                    .to({ 
-                        x: segment.target[0], 
-                        y: segment.target[1], 
-                        z: segment.target[2] 
-                    }, segment.duration)
-                    .easing(TWEEN.Easing.Cubic.InOut)
-                    .onUpdate(() => {
-                        controls.target.set(startTarget.x, startTarget.y, startTarget.z);
+                    .onUpdate(({ t }) => {
+                        // Quadratic Bezier curve for camera position (orbital path)
+                        const p0 = startPos;
+                        const p1 = midPoint;
+                        const p2 = endPos;
+                        const newPos = new THREE.Vector3().copy(p0).multiplyScalar(Math.pow(1 - t, 2))
+                            .add(p1.clone().multiplyScalar(2 * (1 - t) * t))
+                            .add(p2.clone().multiplyScalar(Math.pow(t, 2)));
+                        
+                        camera.position.copy(newPos);
+
+                        // Linear interpolation for camera target
+                        const newTarget = new THREE.Vector3().lerpVectors(startTarget, endTarget, t);
+                        controls.target.copy(newTarget);
                         controls.update();
                     })
                     .onComplete(() => {
                         currentSegment++;
-                        // Pause briefly at each station for observation
-                        setTimeout(animateToNextStation, currentSegment === tourPath.length ? 0 : 1500);
+                        console.log(`✅ Completado segmento ${currentSegment - 1}, avanzando a ${currentSegment}`);
+                        
+                        // Use custom pause duration from segment if available
+                        const pauseDuration = segment.pauseAfter !== undefined ? segment.pauseAfter : 1500;
+                        
+                        setTimeout(() => {
+                            animateToNextStation();
+                        }, pauseDuration);
                     })
                     .start();
+                
+                console.log(`🎬 Iniciando segmento ${currentSegment}: ${segment.title} - Duración: ${segment.duration}ms, Pausa después: ${segment.pauseAfter}ms`);
             }
             
             // Start the tour
             animateToNextStation();
+        }
+        
+        // Apply cinematic effects based on the shot type
+        function applyCinematicEffects(segment) {
+            switch(segment.type) {
+                case 'establishing':
+                    // Add fog and atmospheric effects for wide shots
+                    scene.fog.near = 30;
+                    scene.fog.far = 100;
+                    break;
+                    
+                case 'interior':
+                    // Reduce fog for interior shots to see detail
+                    scene.fog.near = 5;
+                    scene.fog.far = 15;
+                    // Intensify interior lighting
+                    scene.traverse((child) => {
+                        if (child.type === 'PointLight') {
+                            child.intensity = Math.min(child.intensity * 1.3, 2);
+                        }
+                    });
+                    break;
+                    
+                case 'approach':
+                    // Medium fog for approach shots
+                    scene.fog.near = 15;
+                    scene.fog.far = 50;
+                    break;
+                    
+                case 'transition':
+                    // Very atmospheric for transition shots
+                    scene.fog.near = 40;
+                    scene.fog.far = 120;
+                    break;
+                    
+                case 'finale':
+                    // Clear and majestic for finale
+                    scene.fog.near = 50;
+                    scene.fog.far = 200;
+                    break;
+            }
+            
+            // Add camera shake for dramatic effect on certain shot types
+            if (segment.type === 'interior' || segment.type === 'approach') {
+                addCameraShake();
+            }
+        }
+        
+        // Subtle camera shake for immersion
+        function addCameraShake() {
+            let shakeIntensity = 0.02;
+            let shakeDecay = 0.95;
+            
+            function shake() {
+                if (cinematicMode && shakeIntensity > 0.001) {
+                    camera.position.x += (Math.random() - 0.5) * shakeIntensity;
+                    camera.position.y += (Math.random() - 0.5) * shakeIntensity * 0.5;
+                    camera.position.z += (Math.random() - 0.5) * shakeIntensity;
+                    
+                    shakeIntensity *= shakeDecay;
+                    requestAnimationFrame(shake);
+                }
+            }
+            shake();
             
             // Update TWEEN animations
             function updateTweens() {
                 if (cinematicMode) {
-                    TWEEN.update();
                     requestAnimationFrame(updateTweens);
                 }
             }
             updateTweens();
+        }
+        
+        // Tour básico sin animaciones complejas como respaldo
+        function startBasicTour() {
+            cinematicMode = true;
+            controls.enabled = false;
+            
+            let currentIndex = 0;
+            const basicPositions = [
+                { pos: [0, 35, 40], target: [0, 0, 0] },
+                { pos: [-15, 8, -5], target: [-15, 2, -10] },
+                { pos: [0, 8, -5], target: [0, 2, -10] },
+                { pos: [15, 8, -5], target: [15, 2, -10] },
+                { pos: [0, 25, 15], target: [0, 0, 0] }
+            ];
+            
+            function moveToNext() {
+                if (currentIndex >= basicPositions.length) {
+                    cinematicMode = false;
+                    controls.enabled = true;
+                    alert('Tour básico completado');
+                    return;
+                }
+                
+                const pos = basicPositions[currentIndex];
+                camera.position.set(...pos.pos);
+                controls.target.set(...pos.target);
+                controls.update();
+                
+                currentIndex++;
+                setTimeout(moveToNext, 3000);
+            }
+            
+            moveToNext();
         }
         
         function enableFreeCamera() {
@@ -1822,25 +3208,65 @@
         // Load Three.js when 3D tab is shown
         function loadThreeJS() {
             if (typeof THREE === 'undefined') {
+                console.log('Cargando Three.js...');
                 const script = document.createElement('script');
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
                 script.onload = () => {
+                    console.log('Three.js cargado');
                     const controlsScript = document.createElement('script');
                     controlsScript.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
                     controlsScript.onload = () => {
+                        console.log('OrbitControls cargado');
                         const tweenScript = document.createElement('script');
                         tweenScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js';
                         tweenScript.onload = () => {
-                            setTimeout(init3DScene, 500);
+                            console.log('Tween.js cargado');
+                            setTimeout(() => {
+                                console.log('Inicializando escena 3D...');
+                                init3DScene();
+                            }, 800);
+                        };
+                        tweenScript.onerror = () => {
+                            console.error('Error cargando Tween.js');
+                            // Intentar cargar una versión alternativa
+                            loadAlternativeTween();
                         };
                         document.head.appendChild(tweenScript);
                     };
+                    controlsScript.onerror = () => {
+                        console.error('Error cargando OrbitControls');
+                    };
                     document.head.appendChild(controlsScript);
+                };
+                script.onerror = () => {
+                    console.error('Error cargando Three.js');
                 };
                 document.head.appendChild(script);
             } else {
+                console.log('Three.js ya está cargado');
                 init3DScene();
             }
+        }
+        
+        // Cargar versión alternativa de Tween si falla la primera
+        function loadAlternativeTween() {
+            const tweenScript = document.createElement('script');
+            tweenScript.src = 'https://unpkg.com/@tweenjs/tween.js@18.6.4/dist/tween.umd.js';
+            tweenScript.onload = () => {
+                console.log('Tween.js alternativo cargado');
+                window.TWEEN = window.TWEEN || Tween;
+                setTimeout(() => {
+                    console.log('Inicializando escena 3D...');
+                    init3DScene();
+                }, 800);
+            };
+            tweenScript.onerror = () => {
+                console.error('Error con Tween alternativo, continuando sin animaciones');
+                setTimeout(() => {
+                    init3DScene();
+                }, 500);
+            };
+            document.head.appendChild(tweenScript);
         }
     </script>
     </div> <!-- Close live tracking tab -->
@@ -1879,13 +3305,78 @@
                     mainApp.classList.add('show');
                     
                     // Initialize main app after splash
-                    updateDisplay();
-                    simulateGPSTracking();
-                    updateTimer();
-                    setInterval(updateTimer, 1000);
+                    initializeApp();
                 }, 1000);
             }, 4500); // Total splash duration: 4.5 seconds
         });
+        
+        // Función de inicialización principal
+        function initializeApp() {
+            console.log('🚀 Inicializando aplicación...');
+            
+            // Asegurar estado inicial correcto
+            tourActive = false;
+            currentSection = 'carroceria';
+            visitedSections = ['recepcion', 'carroceria'];
+            tourStartTime = Date.now();
+            
+            // Inicializar displays
+            updateDisplay();
+            simulateGPSTracking();
+            updateTimer();
+            setInterval(updateTimer, 1000);
+            
+            // Verificar que los botones estén en estado correcto
+            const autoTourBtn = document.getElementById('autoTourBtn');
+            if (autoTourBtn) {
+                const iconEl = autoTourBtn.querySelector('.btn-icon');
+                const textEl = autoTourBtn.querySelector('.btn-text');
+                if (iconEl) iconEl.textContent = '▶️';
+                if (textEl) textEl.textContent = 'Iniciar Tour Automático';
+                autoTourBtn.classList.remove('active');
+            }
+            
+            console.log('✅ Aplicación inicializada correctamente');
+            
+            // Diagnóstico inicial
+            diagnoseSystem();
+        }
+        
+        // Función de diagnóstico del sistema
+        function diagnoseSystem() {
+            console.log('🔍 === DIAGNÓSTICO DEL SISTEMA ===');
+            console.log(`Tour activo: ${tourActive}`);
+            console.log(`Sección actual: ${currentSection}`);
+            console.log(`Secciones visitadas: ${visitedSections.join(', ')}`);
+            console.log(`Total secciones disponibles: ${sections.length}`);
+            
+            // Verificar elementos DOM
+            const autoTourBtn = document.getElementById('autoTourBtn');
+            console.log(`Botón tour automático encontrado: ${!!autoTourBtn}`);
+            if (autoTourBtn) {
+                const iconEl = autoTourBtn.querySelector('.btn-icon');
+                const textEl = autoTourBtn.querySelector('.btn-text');
+                console.log(`Icono del botón: "${iconEl ? iconEl.textContent : 'N/A'}"`);
+                console.log(`Texto del botón: "${textEl ? textEl.textContent : 'N/A'}"`);
+                console.log(`Clases del botón: ${autoTourBtn.className}`);
+            }
+            
+            // Verificar secciones en DOM
+            const sectionElements = document.querySelectorAll('.section');
+            console.log(`Elementos de sección en DOM: ${sectionElements.length}`);
+            
+            sectionElements.forEach((el, i) => {
+                console.log(`Sección ${i + 1}: ID=${el.id}, Dataset=${el.dataset.section}, Clases=${el.className}`);
+            });
+            
+            console.log('🔍 === FIN DIAGNÓSTICO ===');
+        }
+        
+        // Función manual para testear el tour (usar en consola)
+        function testTour() {
+            console.log('🧪 Iniciando test del tour automático...');
+            startAutoTour();
+        }
     </script>
 </body>
 </html>
