@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factory Digital Twin - Minimalista</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0e1a;
+            --bg-card: #141824;
+            --text-primary: #e4e7eb;
+            --text-secondary: #9ca3af;
+            --accent: #3b82f6;
+            --success: #10b981;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Contenedor principal */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Panel lateral izquierdo */
+        .sidebar {
+            width: 320px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: none; /* OCULTO */
+            flex-direction: column;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-header p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Estaciones */
+        .stations-list {
+            flex: 1;
+            padding: 16px;
+        }
+
+        .station-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .station-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        .station-card.active {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent);
+        }
+
+        .station-name {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .station-status {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .station-kpis {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .kpi-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .kpi-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Visor 3D */
+        .viewer-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+
+        #canvas3d {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Controles flotantes */
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .btn {
+            background: rgba(20, 24, 36, 0.9);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--accent);
+        }
+
+        .btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* Indicador de carga */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 20;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Info flotante */
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(20, 24, 36, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            min-width: 250px;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            pointer-events: none;
+        }
+
+        .info-panel.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .info-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .info-stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .info-stat-label {
+            color: var(--text-secondary);
+        }
+
+        .info-stat-value {
+            font-weight: 600;
+            color: var(--success);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Panel lateral -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Factory Digital Twin</h1>
+                <p>Vista minimalista · 8 estaciones</p>
+            </div>
+            <div class="stations-list" id="stationsList">
+                <!-- Se llenará dinámicamente -->
+            </div>
+        </aside>
+
+        <!-- Visor 3D -->
+        <main class="viewer-container">
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <p>Cargando fábrica...</p>
+            </div>
+
+            <canvas id="canvas3d"></canvas>
+
+            <div class="controls">
+                <button class="btn active" id="btnTour">🎬 Tour Automático</button>
+                <button class="btn" id="btnFreeView">🖱️ Vista Libre</button>
+                <button class="btn" id="btnTopView">🗺️ Vista Aérea</button>
+            </div>
+
+            <div class="info-panel" id="infoPanel">
+                <div class="info-title" id="infoTitle">Estación</div>
+                <div id="infoStats">
+                    <!-- Estadísticas dinámicas -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+
+    <script>
+        // ==================== CONFIGURACIÓN ====================
+        let scene, camera, renderer, controls;
+        let stations = [];
+        let currentStation = null;
+        let tourMode = true;
+        let tourIndex = 0;
+        let animationId;
+        let is360Mode = false;
+        let rotation360Angle = 0;
+        let selected360Station = null;
+
+        // Raycaster para detectar clicks
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        // Datos de las estaciones - MÁS SEPARADAS
+        const stationsData = [
+            { 
+                name: 'Recepción', 
+                pos: [-50, 0, -25], 
+                color: 0x3b82f6,
+                kpis: [
+                    { label: 'Entregas', value: '45/día', icon: '📦' },
+                    { label: 'Tiempo medio', value: '12 min', icon: '⏱️' },
+                    { label: 'Conformidad', value: '98%', icon: '✓' }
+                ]
+            },
+            { 
+                name: 'Carrocería', 
+                pos: [-30, 0, -25], 
+                color: 0x10b981,
+                kpis: [
+                    { label: 'Soldaduras', value: '2,450', icon: '⚡' },
+                    { label: 'Calidad', value: '99.2%', icon: '✓' },
+                    { label: 'Ciclo', value: '45 seg', icon: '⏱️' }
+                ]
+            },
+            { 
+                name: 'Pintura', 
+                pos: [-10, 0, -25], 
+                color: 0xf59e0b,
+                kpis: [
+                    { label: 'Capas', value: '4', icon: '🎨' },
+                    { label: 'Espesor', value: '120 μm', icon: '📏' },
+                    { label: 'Defectos', value: '0.3%', icon: '✓' }
+                ]
+            },
+            { 
+                name: 'Powertrain', 
+                pos: [10, 0, -25], 
+                color: 0xa78bfa,
+                kpis: [
+                    { label: 'Motores', value: '85/día', icon: '🔧' },
+                    { label: 'Potencia', value: '150 kW', icon: '⚡' },
+                    { label: 'Torque', value: '320 Nm', icon: '🔩' }
+                ]
+            },
+            { 
+                name: 'Ensamblaje', 
+                pos: [30, 0, -25], 
+                color: 0xef4444,
+                kpis: [
+                    { label: 'Vehículos', value: '92/día', icon: '🚗' },
+                    { label: 'Precisión', value: '99.8%', icon: '✓' },
+                    { label: 'Ciclo', value: '8.5 min', icon: '⏱️' }
+                ]
+            },
+            { 
+                name: 'Control Calidad', 
+                pos: [50, 0, -25], 
+                color: 0x06d6a0,
+                kpis: [
+                    { label: 'Inspecciones', value: '100%', icon: '🔍' },
+                    { label: 'Aprobación', value: '97.5%', icon: '✓' },
+                    { label: 'Tiempo', value: '22 min', icon: '⏱️' }
+                ]
+            },
+            { 
+                name: 'Almacén', 
+                pos: [50, 0, 10], 
+                color: 0xfbbf24,
+                kpis: [
+                    { label: 'SKUs', value: '8,500', icon: '📦' },
+                    { label: 'Rotación', value: '2.4x/mes', icon: '🔄' },
+                    { label: 'Ocupación', value: '76%', icon: '📊' }
+                ]
+            },
+            { 
+                name: 'Expedición', 
+                pos: [-50, 0, 10], 
+                color: 0x818cf8,
+                kpis: [
+                    { label: 'Envíos', value: '95/día', icon: '📤' },
+                    { label: 'Puntualidad', value: '98%', icon: '✓' },
+                    { label: 'Tiempo carga', value: '18 min', icon: '⏱️' }
+                ]
+            }
+        ];
+
+        // ==================== INICIALIZACIÓN ====================
+        function init() {
+            // Escena
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0e1a);
+            scene.fog = new THREE.Fog(0x0a0e1a, 40, 100);
+
+            // Cámara
+            const container = document.getElementById('canvas3d');
+            camera = new THREE.PerspectiveCamera(
+                50,
+                container.clientWidth / container.clientHeight,
+                0.1,
+                200
+            );
+            camera.position.set(0, 35, 40);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: container, 
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            // Controles
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 15;
+            controls.maxDistance = 120;
+            controls.maxPolarAngle = Math.PI / 2.2;
+            controls.enabled = false; // Deshabilitado en tour mode
+
+            // Iluminación minimalista
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            mainLight.position.set(30, 50, 30);
+            mainLight.castShadow = true;
+            mainLight.shadow.camera.left = -60;
+            mainLight.shadow.camera.right = 60;
+            mainLight.shadow.camera.top = 60;
+            mainLight.shadow.camera.bottom = -60;
+            mainLight.shadow.mapSize.width = 2048;
+            mainLight.shadow.mapSize.height = 2048;
+            scene.add(mainLight);
+
+            const fillLight = new THREE.DirectionalLight(0x7ba7ff, 0.3);
+            fillLight.position.set(-30, 20, -30);
+            scene.add(fillLight);
+
+            // Crear fábrica
+            createFactory();
+            createGround();
+
+            // UI
+            populateStationsList();
+            setupEventListeners();
+
+            // Ocultar loading
+            document.getElementById('loading').style.display = 'none';
+
+            // Iniciar tour
+            startTour();
+
+            // Animación
+            animate();
+        }
+
+        // ==================== CREACIÓN DE FÁBRICA ====================
+        function createFactory() {
+            // Cargar textura del logo para las paredes
+            const textureLoader = new THREE.TextureLoader();
+            
+            stationsData.forEach((data, index) => {
+                const group = new THREE.Group();
+                
+                // Cargar logo de AIRBUS para las paredes
+                textureLoader.load(
+                    'AIRBUS_Blue.jpg',
+                    (texture) => {
+                        // Logo centrado sin repetir
+                        texture.wrapS = THREE.ClampToEdgeWrapping;
+                        texture.wrapT = THREE.ClampToEdgeWrapping;
+                        
+                        // Textura cargada, actualizar material del edificio
+                        const building = group.children.find(child => child.userData.isBuilding);
+                        if (building) {
+                            building.material.map = texture;
+                            building.material.needsUpdate = true;
+                            console.log(`✅ Logo aplicado a ${data.name}`);
+                        }
+                    },
+                    undefined,
+                    (error) => {
+                        console.warn(`⚠️ No se pudo cargar logo para ${data.name}`);
+                    }
+                );
+                
+                // Edificio principal con paredes blancas y logo
+                const buildingGeometry = new THREE.BoxGeometry(10, 8, 10);
+                const buildingMaterial = new THREE.MeshStandardMaterial({
+                    color: 0xffffff, // Blanco puro
+                    metalness: 0.1,
+                    roughness: 0.5,
+                    transparent: false,
+                    opacity: 1.0
+                });
+                const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+                building.position.y = 4;
+                building.castShadow = true;
+                building.receiveShadow = true;
+                building.userData.isBuilding = true;
+                group.add(building);
+
+                // Bordes de color de la estación
+                const edges = new THREE.EdgesGeometry(buildingGeometry);
+                const lineMaterial = new THREE.LineBasicMaterial({ 
+                    color: data.color,
+                    transparent: true,
+                    opacity: 0.8,
+                    linewidth: 2
+                });
+                const wireframe = new THREE.LineSegments(edges, lineMaterial);
+                wireframe.position.copy(building.position);
+                group.add(wireframe);
+
+                // Base/plataforma
+                const platformGeometry = new THREE.CylinderGeometry(6, 6.5, 0.5, 32);
+                const platformMaterial = new THREE.MeshStandardMaterial({
+                    color: data.color,
+                    metalness: 0.6,
+                    roughness: 0.4,
+                    emissive: data.color,
+                    emissiveIntensity: 0.1
+                });
+                const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+                platform.position.y = 0.25;
+                platform.castShadow = true;
+                platform.receiveShadow = true;
+                group.add(platform);
+
+                // Etiqueta flotante con KPIs
+                createStationLabel(group, data);
+
+                // Luz de estación
+                const spotLight = new THREE.SpotLight(data.color, 1.5);
+                spotLight.position.set(data.pos[0], 15, data.pos[2]);
+                spotLight.angle = Math.PI / 6;
+                spotLight.penumbra = 0.5;
+                spotLight.castShadow = false;
+                scene.add(spotLight);
+
+                // Posicionar grupo
+                group.position.set(data.pos[0], data.pos[1], data.pos[2]);
+                group.userData = data;
+                scene.add(group);
+                stations.push(group);
+            });
+        }
+
+        function createStationLabel(parent, data) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // Fondo
+            ctx.fillStyle = 'rgba(10, 14, 26, 0.95)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Borde
+            ctx.strokeStyle = `#${data.color.toString(16).padStart(6, '0')}`;
+            ctx.lineWidth = 4;
+            ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+
+            // Título
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 36px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(data.name, canvas.width / 2, 50);
+
+            // Línea
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(40, 75);
+            ctx.lineTo(canvas.width - 40, 75);
+            ctx.stroke();
+
+            // KPIs
+            let yPos = 115;
+            data.kpis.forEach(kpi => {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(`${kpi.icon} ${kpi.label}`, 50, yPos);
+
+                ctx.fillStyle = '#10b981';
+                ctx.font = 'bold 22px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(kpi.value, canvas.width - 50, yPos);
+
+                yPos += 40;
+            });
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+
+            const geometry = new THREE.PlaneGeometry(10, 5);
+            const label = new THREE.Mesh(geometry, material);
+            label.position.y = 12;
+            label.userData.isLabel = true;
+            parent.add(label);
+        }
+
+        function createGround() {
+            // Cargar imagen de AIRBUS para el suelo COMPLETO (una sola imagen grande)
+            const textureLoader = new THREE.TextureLoader();
+            
+            textureLoader.load(
+                'AIRBUS_Blue.jpg',
+                (texture) => {
+                    // UNA SOLA IMAGEN cubriendo todo el suelo, sin repetir
+                    texture.wrapS = THREE.ClampToEdgeWrapping;
+                    texture.wrapT = THREE.ClampToEdgeWrapping;
+                    // No usar repeat, la imagen se estira para cubrir todo
+                    
+                    // Aplicar textura al suelo
+                    const groundGeometry = new THREE.PlaneGeometry(150, 80);
+                    const groundMaterial = new THREE.MeshStandardMaterial({
+                        map: texture,
+                        metalness: 0.05,
+                        roughness: 0.95
+                    });
+                    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                    ground.rotation.x = -Math.PI / 2;
+                    ground.receiveShadow = true;
+                    scene.add(ground);
+                    
+                    console.log('✅ Logo AIRBUS aplicado al suelo completo');
+                },
+                undefined,
+                (error) => {
+                    console.warn('⚠️ No se pudo cargar AIRBUS_Blue.jpg para el suelo');
+                    // Fallback sin textura
+                    const groundGeometry = new THREE.PlaneGeometry(150, 80);
+                    const groundMaterial = new THREE.MeshStandardMaterial({
+                        color: 0x1a1f2e,
+                        metalness: 0.2,
+                        roughness: 0.8
+                    });
+                    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                    ground.rotation.x = -Math.PI / 2;
+                    ground.receiveShadow = true;
+                    scene.add(ground);
+                }
+            );
+
+            // Grid MUY sutil para no tapar el logo
+            const gridHelper = new THREE.GridHelper(150, 60, 0x2a3142, 0x1a1f2e);
+            gridHelper.material.transparent = true;
+            gridHelper.material.opacity = 0.05; // Casi invisible
+            gridHelper.position.y = 0.01;
+            scene.add(gridHelper);
+        }
+
+        // ==================== TOUR AUTOMÁTICO MEJORADO ====================
+        let tourTimeout;
+        let currentTourPhase = 0;
+        
+        function startTour() {
+            tourMode = true;
+            tourIndex = 0;
+            currentTourPhase = 0;
+            executeTourSequence();
+        }
+
+        function executeTourSequence() {
+            if (!tourMode) return;
+            
+            const station = stations[tourIndex];
+            const data = station.userData;
+            
+            // Actualizar UI
+            updateStationInfo(data);
+            highlightStationInList(tourIndex);
+            
+            // Secuencia cinematográfica de 4 fases
+            switch(currentTourPhase) {
+                case 0:
+                    // Fase 1: Aproximación desde lejos (vista panorámica)
+                    moveCameraToPosition(
+                        { x: data.pos[0] + 35, y: 25, z: data.pos[2] + 35 },
+                        { x: data.pos[0], y: 4, z: data.pos[2] },
+                        2500
+                    );
+                    tourTimeout = setTimeout(() => {
+                        currentTourPhase = 1;
+                        executeTourSequence();
+                    }, 3000);
+                    break;
+                    
+                case 1:
+                    // Fase 2: Vista frontal cercana
+                    moveCameraToPosition(
+                        { x: data.pos[0], y: 10, z: data.pos[2] + 20 },
+                        { x: data.pos[0], y: 5, z: data.pos[2] },
+                        2000
+                    );
+                    tourTimeout = setTimeout(() => {
+                        currentTourPhase = 2;
+                        executeTourSequence();
+                    }, 2500);
+                    break;
+                    
+                case 2:
+                    // Fase 3: Orbitar alrededor (vista de 3/4)
+                    moveCameraToPosition(
+                        { x: data.pos[0] + 18, y: 12, z: data.pos[2] - 12 },
+                        { x: data.pos[0], y: 6, z: data.pos[2] },
+                        2000
+                    );
+                    tourTimeout = setTimeout(() => {
+                        currentTourPhase = 3;
+                        executeTourSequence();
+                    }, 2500);
+                    break;
+                    
+                case 3:
+                    // Fase 4: Vista lateral detalle
+                    moveCameraToPosition(
+                        { x: data.pos[0] - 15, y: 8, z: data.pos[2] },
+                        { x: data.pos[0], y: 4, z: data.pos[2] },
+                        1800
+                    );
+                    tourTimeout = setTimeout(() => {
+                        // Siguiente estación
+                        tourIndex = (tourIndex + 1) % stations.length;
+                        currentTourPhase = 0;
+                        executeTourSequence();
+                    }, 2200);
+                    break;
+            }
+        }
+
+        function moveCameraToPosition(pos, lookAt, duration) {
+            new TWEEN.Tween(camera.position)
+                .to(pos, duration)
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .start();
+
+            new TWEEN.Tween(controls.target)
+                .to(lookAt, duration)
+                .easing(TWEEN.Easing.Cubic.InOut)
+                .onUpdate(() => {
+                    controls.update();
+                })
+                .start();
+        }
+        
+        function stopTour() {
+            tourMode = false;
+            if (tourTimeout) {
+                clearTimeout(tourTimeout);
+            }
+        }
+
+        // ==================== UI ====================
+        function populateStationsList() {
+            const list = document.getElementById('stationsList');
+            stationsData.forEach((data, index) => {
+                const card = document.createElement('div');
+                card.className = 'station-card';
+                card.innerHTML = `
+                    <div class="station-name">
+                        <span class="station-status"></span>
+                        ${data.name}
+                    </div>
+                    <div class="station-kpis">
+                        ${data.kpis.map(kpi => `
+                            <div class="kpi-row">
+                                <span>${kpi.icon} ${kpi.label}</span>
+                                <span class="kpi-value">${kpi.value}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                card.addEventListener('click', () => {
+                    stopTour();
+                    stop360View(); // Detener 360° si está activo
+                    controls.enabled = false;
+                    tourIndex = index;
+                    currentTourPhase = 1;
+                    
+                    // Ir directamente a vista frontal de la estación
+                    const data = stationsData[index];
+                    updateStationInfo(data);
+                    highlightStationInList(index);
+                    
+                    moveCameraToPosition(
+                        { x: data.pos[0], y: 10, z: data.pos[2] + 20 },
+                        { x: data.pos[0], y: 5, z: data.pos[2] },
+                        1500
+                    );
+                    
+                    document.getElementById('btnTour').classList.remove('active');
+                    document.getElementById('btnFreeView').classList.add('active');
+                    
+                    // Habilitar controles después de la animación
+                    setTimeout(() => {
+                        controls.enabled = true;
+                    }, 1500);
+                });
+                list.appendChild(card);
+            });
+        }
+
+        function highlightStationInList(index) {
+            const cards = document.querySelectorAll('.station-card');
+            cards.forEach((card, i) => {
+                card.classList.toggle('active', i === index);
+            });
+        }
+
+        function updateStationInfo(data) {
+            const panel = document.getElementById('infoPanel');
+            const title = document.getElementById('infoTitle');
+            const stats = document.getElementById('infoStats');
+            
+            title.textContent = data.name;
+            stats.innerHTML = data.kpis.map(kpi => `
+                <div class="info-stat">
+                    <span class="info-stat-label">${kpi.icon} ${kpi.label}</span>
+                    <span class="info-stat-value">${kpi.value}</span>
+                </div>
+            `).join('');
+            
+            panel.classList.add('visible');
+        }
+
+        function setupEventListeners() {
+            // Tour automático
+            document.getElementById('btnTour').addEventListener('click', () => {
+                controls.enabled = false;
+                document.getElementById('btnTour').classList.add('active');
+                document.getElementById('btnFreeView').classList.remove('active');
+                startTour();
+            });
+
+            // Vista libre
+            document.getElementById('btnFreeView').addEventListener('click', () => {
+                stopTour();
+                stop360View(); // Detener 360° si está activo
+                controls.enabled = true;
+                document.getElementById('btnFreeView').classList.add('active');
+                document.getElementById('btnTour').classList.remove('active');
+            });
+
+            // Vista aérea
+            document.getElementById('btnTopView').addEventListener('click', () => {
+                stopTour();
+                stop360View(); // Detener 360° si está activo
+                controls.enabled = true;
+                
+                new TWEEN.Tween(camera.position)
+                    .to({ x: 0, y: 70, z: -7 }, 2500)
+                    .easing(TWEEN.Easing.Cubic.InOut)
+                    .start();
+
+                new TWEEN.Tween(controls.target)
+                    .to({ x: 0, y: 0, z: -7 }, 2500)
+                    .easing(TWEEN.Easing.Cubic.InOut)
+                    .start();
+
+                document.getElementById('btnFreeView').classList.add('active');
+                document.getElementById('btnTour').classList.remove('active');
+            });
+
+            // Resize
+            window.addEventListener('resize', () => {
+                const container = document.getElementById('canvas3d');
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+
+            // Click en estaciones (modo 360°)
+            const canvas = document.getElementById('canvas3d');
+            canvas.addEventListener('click', onCanvasClick, false);
+            canvas.addEventListener('mousemove', onCanvasMouseMove, false);
+
+            // Billboard effect (etiquetas siempre mirando a la cámara)
+            scene.traverse((object) => {
+                if (object.userData.isLabel) {
+                    object.lookAt(camera.position);
+                }
+            });
+        }
+
+        // ==================== INTERACCIÓN CON MOUSE ====================
+        function onCanvasClick(event) {
+            // Solo funciona en modo libre
+            if (!controls.enabled) return;
+
+            const canvas = document.getElementById('canvas3d');
+            const rect = canvas.getBoundingClientRect();
+            
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // Detectar intersecciones con edificios
+            const intersects = raycaster.intersectObjects(scene.children, true);
+
+            for (let intersect of intersects) {
+                let object = intersect.object;
+                
+                // Buscar el grupo padre que es una estación
+                while (object.parent && !object.userData.isBuilding) {
+                    object = object.parent;
+                }
+
+                // Si encontramos un edificio, iniciar 360°
+                const stationGroup = stations.find(s => s.children.some(child => child === object));
+                if (stationGroup) {
+                    start360View(stationGroup);
+                    break;
+                }
+            }
+        }
+
+        function onCanvasMouseMove(event) {
+            // Solo funciona en modo libre
+            if (!controls.enabled) return;
+
+            const canvas = document.getElementById('canvas3d');
+            const rect = canvas.getBoundingClientRect();
+            
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // Detectar hover sobre edificios
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            
+            let hoveringStation = null;
+            for (let intersect of intersects) {
+                let object = intersect.object;
+                
+                while (object.parent && !object.userData.isBuilding) {
+                    object = object.parent;
+                }
+
+                if (object.userData.isBuilding) {
+                    // Buscar el grupo de la estación
+                    hoveringStation = stations.find(s => s.children.includes(object));
+                    break;
+                }
+            }
+
+            // Resaltar ligeramente la estación en hover
+            stations.forEach(station => {
+                station.children.forEach(child => {
+                    if (child.userData.isBuilding) {
+                        if (station === hoveringStation) {
+                            child.material.emissive = new THREE.Color(station.userData.color);
+                            child.material.emissiveIntensity = 0.15;
+                        } else if (!is360Mode || station !== selected360Station) {
+                            child.material.emissive = new THREE.Color(0x000000);
+                            child.material.emissiveIntensity = 0;
+                        }
+                    }
+                });
+            });
+
+            canvas.style.cursor = hoveringStation ? 'pointer' : 'default';
+        }
+
+        function start360View(stationGroup) {
+            const data = stationGroup.userData;
+            
+            console.log(`🎥 Iniciando vista 360° de ${data.name}`);
+            
+            is360Mode = true;
+            selected360Station = stationGroup;
+            rotation360Angle = 0;
+            controls.enabled = false;
+            
+            // RESALTAR LA ESTACIÓN SELECCIONADA
+            highlightStation(stationGroup, true);
+            
+            // Actualizar UI
+            updateStationInfo(data);
+            const stationIndex = stations.indexOf(stationGroup);
+            highlightStationInList(stationIndex);
+            
+            // Info panel visible
+            document.getElementById('infoPanel').classList.add('visible');
+        }
+
+        function stop360View() {
+            // Quitar resaltado de la estación
+            if (selected360Station) {
+                highlightStation(selected360Station, false);
+            }
+            
+            is360Mode = false;
+            selected360Station = null;
+            controls.enabled = true;
+        }
+
+        function highlightStation(stationGroup, highlight) {
+            stationGroup.children.forEach(child => {
+                // Resaltar el edificio
+                if (child.userData.isBuilding) {
+                    if (highlight) {
+                        // Aumentar brillo y añadir emisión
+                        child.material.emissive = new THREE.Color(stationGroup.userData.color);
+                        child.material.emissiveIntensity = 0.4;
+                        child.material.opacity = 1.0;
+                        
+                        // Animar escala (efecto pulse)
+                        new TWEEN.Tween(child.scale)
+                            .to({ x: 1.05, y: 1.05, z: 1.05 }, 300)
+                            .easing(TWEEN.Easing.Cubic.Out)
+                            .start();
+                    } else {
+                        // Volver al estado normal
+                        child.material.emissive = new THREE.Color(0x000000);
+                        child.material.emissiveIntensity = 0;
+                        child.material.opacity = 0.95;
+                        
+                        // Volver a escala normal
+                        new TWEEN.Tween(child.scale)
+                            .to({ x: 1, y: 1, z: 1 }, 300)
+                            .easing(TWEEN.Easing.Cubic.Out)
+                            .start();
+                    }
+                }
+                
+                // Resaltar los bordes (wireframe)
+                if (child instanceof THREE.LineSegments) {
+                    if (highlight) {
+                        child.material.opacity = 1.0;
+                        child.material.linewidth = 4;
+                    } else {
+                        child.material.opacity = 0.8;
+                        child.material.linewidth = 2;
+                    }
+                }
+                
+                // Resaltar la plataforma
+                if (child.geometry && child.geometry.type === 'CylinderGeometry') {
+                    if (highlight) {
+                        child.material.emissive = new THREE.Color(stationGroup.userData.color);
+                        child.material.emissiveIntensity = 0.3;
+                    } else {
+                        child.material.emissive = new THREE.Color(stationGroup.userData.color);
+                        child.material.emissiveIntensity = 0.1;
+                    }
+                }
+            });
+        }
+
+        // ==================== ANIMACIÓN ====================
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            
+            TWEEN.update();
+            controls.update();
+            
+            // Vista 360° automática
+            if (is360Mode && selected360Station) {
+                const data = selected360Station.userData;
+                const radius = 28; // Aumentado de 18 a 28 (más lejos)
+                const height = 14; // Aumentado de 10 a 14 (más alto)
+                const speed = 0.005; // Velocidad de rotación
+                
+                rotation360Angle += speed;
+                
+                // Posición circular alrededor de la estación
+                camera.position.x = data.pos[0] + Math.cos(rotation360Angle) * radius;
+                camera.position.z = data.pos[2] + Math.sin(rotation360Angle) * radius;
+                camera.position.y = height;
+                
+                // Mirar al centro de la estación
+                camera.lookAt(data.pos[0], 5, data.pos[2]);
+                controls.target.set(data.pos[0], 5, data.pos[2]);
+                
+                // Salir del modo 360° con ESC o después de una vuelta completa
+                if (rotation360Angle > Math.PI * 2) {
+                    console.log('✅ Vista 360° completada');
+                    stop360View();
+                }
+            }
+            
+            // Billboard effect
+            stations.forEach(station => {
+                station.children.forEach(child => {
+                    if (child.userData.isLabel) {
+                        child.lookAt(camera.position);
+                    }
+                });
+            });
+            
+            renderer.render(scene, camera);
+        }
+
+        // ==================== INICIO ====================
+        window.addEventListener('DOMContentLoaded', init);
+        
+        // Salir del modo 360° con ESC
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && is360Mode) {
+                console.log('⏹️ Saliendo del modo 360°');
+                stop360View();
+            }
+        });
+    </script>
+</body>
+</html>

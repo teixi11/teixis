@@ -1,0 +1,22 @@
+Estación,KPI,Valor,Unidad
+Recepción,Eficiencia,92,%
+Recepción,Materiales Procesados,245,unidades
+Recepción,Tiempo Medio,12,min
+Carrocería,Eficiencia,95,%
+Carrocería,Soldaduras Completadas,180,unidades
+Carrocería,Defectos,2,%
+Pintura,Eficiencia,88,%
+Pintura,Capas Aplicadas,450,unidades
+Pintura,Tiempo de Secado,45,min
+Powertrain,Eficiencia,91,%
+Powertrain,Motores Ensamblados,85,unidades
+Powertrain,Tests Aprobados,97,%
+Ensamblaje,Eficiencia,94,%
+Ensamblaje,Vehículos Completados,42,unidades
+Ensamblaje,Tiempo Ciclo,85,min
+Control Calidad,Eficiencia,97,%
+Control Calidad,Inspecciones Realizadas,128,unidades
+Control Calidad,Tasa Aprobación,94,%
+Expedición,Eficiencia,93,%
+Expedición,Envíos Completados,38,unidades
+Expedición,Tiempo Carga,18,min
