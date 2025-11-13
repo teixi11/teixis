@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Armario de Herramientas 3D</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        #ui-panel h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .drawer-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .drawer-section h3 {
+            margin-bottom: 10px;
+            color: #667eea;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 8px;
+            border-radius: 5px;
+        }
+
+        .drawer-section h3:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .compartment-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .compartment {
+            aspect-ratio: 1;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 5px;
+            font-size: 0.7em;
+            text-align: center;
+            position: relative;
+        }
+
+        .compartment.empty {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+        }
+
+        .compartment.filled {
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+            color: white;
+        }
+
+        .compartment:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .compartment-label {
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-bottom: 2px;
+        }
+
+        .tool-name {
+            font-size: 0.8em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        #stats {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            font-size: 0.9em;
+        }
+
+        #stats div {
+            margin: 5px 0;
+            color: #333;
+        }
+
+        .stat-label {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .log-entry {
+            padding: 8px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+            font-size: 0.85em;
+        }
+
+        .log-entry.pickup {
+            border-left-color: #ff6b6b;
+        }
+
+        .log-entry.return {
+            border-left-color: #51cf66;
+        }
+
+        #history-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #ddd;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+
+        <div id="controls">
+            <h3 style="margin-bottom: 10px; color: #333;">Controles</h3>
+            <button class="btn" onclick="resetCamera()">🎥 Resetear Cámara</button>
+            <button class="btn btn-secondary" onclick="importShapes()">📥 Importar Formas</button>
+            <button class="btn btn-secondary" onclick="exportData()">💾 Exportar Datos</button>
+            <button class="btn btn-secondary" onclick="importData()">📥 Importar Datos</button>
+            <button class="btn btn-secondary" onclick="clearHistory()">🗑️ Limpiar Historial</button>
+        </div>
+
+        <div id="stats">
+            <div><span class="stat-label">Total herramientas:</span> <span id="total-tools">0</span></div>
+            <div><span class="stat-label">Disponibles:</span> <span id="available-tools">0</span></div>
+            <div><span class="stat-label">En uso:</span> <span id="in-use-tools">0</span></div>
+        </div>
+
+        <div id="ui-panel">
+            <h2>🧰 Control de Armario</h2>
+            <div id="drawers-container"></div>
+            
+            <div id="history-section">
+                <h3 style="color: #667eea; margin-bottom: 10px;">📋 Historial Reciente</h3>
+                <div id="history-log"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar compartimento -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title">Editar Compartimento</h3>
+            <div class="form-group">
+                <label for="tool-name">Nombre de la herramienta:</label>
+                <input type="text" id="tool-name" placeholder="Ej: Destornillador Phillips #2">
+            </div>
+            <div class="form-group">
+                <label for="tool-description">Descripción (opcional):</label>
+                <textarea id="tool-description" rows="3" placeholder="Detalles adicionales..."></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn" onclick="saveCompartment()">💾 Guardar</button>
+                <button class="btn btn-secondary" onclick="toggleTool()">🔄 Coger/Devolver</button>
+                <button class="btn btn-secondary" onclick="closeModal()">❌ Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Configuración del sistema
+        const CONFIG = {
+            drawers: 5,
+            compartmentsPerDrawer: 10
+        };
+
+        // Estado global
+        let state = {
+            toolbox: {},
+            history: [],
+            selectedCompartment: null,
+            shapes: {
+                "D1-C1": {"points":[{"x":344,"y":94},{"x":343,"y":100},{"x":342,"y":114},{"x":340,"y":126},{"x":339,"y":136},{"x":338,"y":144},{"x":336,"y":151},{"x":334,"y":159},{"x":331,"y":177},{"x":329,"y":189},{"x":329,"y":198},{"x":329,"y":210},{"x":329,"y":222},{"x":329,"y":227},{"x":329,"y":231},{"x":329,"y":235},{"x":328,"y":244},{"x":326,"y":258},{"x":326,"y":272},{"x":326,"y":279},{"x":326,"y":283},{"x":326,"y":286},{"x":326,"y":288},{"x":326,"y":289},{"x":326,"y":290},{"x":326,"y":291},{"x":326,"y":293},{"x":326,"y":295},{"x":326,"y":296},{"x":327,"y":297},{"x":327,"y":298},{"x":327,"y":299},{"x":328,"y":300},{"x":328,"y":301},{"x":329,"y":302},{"x":329,"y":303},{"x":329,"y":304},{"x":329,"y":305},{"x":329,"y":306},{"x":329,"y":307},{"x":329,"y":308},{"x":329,"y":309},{"x":329,"y":310},{"x":329,"y":312},{"x":319,"y":314},{"x":302,"y":317},{"x":273,"y":315},{"x":258,"y":313},{"x":248,"y":313},{"x":241,"y":313},{"x":231,"y":311},{"x":226,"y":310},{"x":220,"y":310},{"x":218,"y":310},{"x":213,"y":310},{"x":211,"y":312},{"x":206,"y":319},{"x":203,"y":332},{"x":202,"y":351},{"x":204,"y":361},{"x":211,"y":372},{"x":219,"y":383},{"x":236,"y":401},{"x":253,"y":415},{"x":271,"y":434},{"x":291,"y":450},{"x":325,"y":469},{"x":347,"y":475},{"x":369,"y":481},{"x":403,"y":483},{"x":424,"y":483},{"x":443,"y":482},{"x":461,"y":477},{"x":482,"y":467},{"x":491,"y":462},{"x":501,"y":454},{"x":511,"y":444},{"x":528,"y":424},{"x":539,"y":410},{"x":545,"y":394},{"x":549,"y":381},{"x":551,"y":367},{"x":551,"y":357},{"x":550,"y":347},{"x":547,"y":340},{"x":542,"y":330},{"x":538,"y":326},{"x":534,"y":320},{"x":526,"y":310},{"x":520,"y":304},{"x":518,"y":302},{"x":513,"y":298},{"x":508,"y":295},{"x":499,"y":293},{"x":488,"y":291},{"x":483,"y":290},{"x":478,"y":290},{"x":473,"y":290},{"x":467,"y":289},{"x":465,"y":289},{"x":463,"y":289},{"x":461,"y":289},{"x":459,"y":288},{"x":458,"y":288},{"x":458,"y":287},{"x":457,"y":286},{"x":457,"y":281},{"x":457,"y":279},{"x":457,"y":275},{"x":458,"y":267},{"x":460,"y":262},{"x":461,"y":254},{"x":464,"y":249},{"x":464,"y":244},{"x":465,"y":240},{"x":466,"y":235},{"x":466,"y":233},{"x":466,"y":229},{"x":467,"y":223},{"x":467,"y":219},{"x":468,"y":213},{"x":469,"y":209},{"x":470,"y":202},{"x":470,"y":197},{"x":470,"y":191},{"x":470,"y":187},{"x":470,"y":176},{"x":470,"y":170},{"x":470,"y":166},{"x":470,"y":163},{"x":470,"y":159},{"x":470,"y":158},{"x":470,"y":155},{"x":470,"y":153},{"x":469,"y":148},{"x":469,"y":145},{"x":468,"y":140},{"x":468,"y":135},{"x":468,"y":132},{"x":467,"y":130},{"x":467,"y":129},{"x":467,"y":128},{"x":467,"y":127},{"x":467,"y":126},{"x":466,"y":125},{"x":466,"y":124},{"x":465,"y":123},{"x":464,"y":122},{"x":462,"y":121},{"x":461,"y":119},{"x":456,"y":116},{"x":455,"y":115},{"x":449,"y":113},{"x":446,"y":112},{"x":441,"y":110},{"x":438,"y":109},{"x":433,"y":108},{"x":428,"y":107},{"x":422,"y":105},{"x":414,"y":105},{"x":408,"y":104},{"x":404,"y":104},{"x":399,"y":104},{"x":397,"y":102},{"x":395,"y":102},{"x":392,"y":101},{"x":389,"y":100},{"x":387,"y":100},{"x":384,"y":100},{"x":382,"y":100},{"x":379,"y":99},{"x":375,"y":98},{"x":374,"y":98},{"x":373,"y":98},{"x":371,"y":98},{"x":369,"y":97},{"x":368,"y":97},{"x":367,"y":97},{"x":365,"y":96},{"x":363,"y":96},{"x":362,"y":96},{"x":361,"y":96},{"x":359,"y":95},{"x":357,"y":95},{"x":356,"y":95},{"x":355,"y":95},{"x":354,"y":95},{"x":353,"y":94},{"x":352,"y":94},{"x":351,"y":94}],"color":"#667eea"},
+                "D1-C2": {"points":[{"x":244,"y":127},{"x":244,"y":137},{"x":244,"y":154},{"x":248,"y":195},{"x":249,"y":218},{"x":250,"y":233},{"x":251,"y":249},{"x":251,"y":273},{"x":251,"y":292},{"x":251,"y":310},{"x":252,"y":326},{"x":252,"y":348},{"x":253,"y":356},{"x":254,"y":366},{"x":254,"y":376},{"x":256,"y":393},{"x":257,"y":400},{"x":257,"y":404},{"x":257,"y":407},{"x":257,"y":408},{"x":257,"y":411},{"x":258,"y":413},{"x":259,"y":419},{"x":259,"y":428},{"x":259,"y":429},{"x":259,"y":431},{"x":259,"y":432},{"x":259,"y":434},{"x":259,"y":435},{"x":259,"y":436},{"x":260,"y":436},{"x":268,"y":435},{"x":282,"y":431},{"x":307,"y":424},{"x":317,"y":422},{"x":348,"y":419},{"x":370,"y":417},{"x":388,"y":417},{"x":402,"y":417},{"x":421,"y":418},{"x":432,"y":419},{"x":442,"y":420},{"x":450,"y":421},{"x":463,"y":424},{"x":470,"y":426},{"x":480,"y":428},{"x":490,"y":431},{"x":505,"y":436},{"x":514,"y":438},{"x":523,"y":441},{"x":532,"y":444},{"x":544,"y":450},{"x":551,"y":454},{"x":557,"y":456},{"x":561,"y":457},{"x":568,"y":459},{"x":571,"y":462},{"x":574,"y":462},{"x":576,"y":462},{"x":577,"y":462},{"x":578,"y":463},{"x":579,"y":463},{"x":580,"y":463},{"x":581,"y":463},{"x":582,"y":459},{"x":582,"y":455},{"x":582,"y":440},{"x":580,"y":420},{"x":578,"y":397},{"x":574,"y":373},{"x":572,"y":334},{"x":571,"y":309},{"x":569,"y":288},{"x":568,"y":271},{"x":568,"y":253},{"x":568,"y":242},{"x":568,"y":231},{"x":568,"y":216},{"x":568,"y":206},{"x":568,"y":195},{"x":568,"y":185},{"x":568,"y":167},{"x":568,"y":152},{"x":569,"y":140},{"x":569,"y":130},{"x":570,"y":123},{"x":570,"y":120},{"x":570,"y":118},{"x":570,"y":116},{"x":570,"y":115},{"x":572,"y":113},{"x":573,"y":110},{"x":574,"y":108},{"x":575,"y":105},{"x":575,"y":104},{"x":575,"y":103},{"x":575,"y":102},{"x":575,"y":101},{"x":575,"y":102},{"x":575,"y":103},{"x":575,"y":104},{"x":575,"y":105},{"x":575,"y":106},{"x":573,"y":107},{"x":572,"y":108},{"x":571,"y":109},{"x":570,"y":111},{"x":569,"y":112},{"x":569,"y":114},{"x":569,"y":115},{"x":567,"y":116},{"x":567,"y":117},{"x":567,"y":118},{"x":566,"y":118},{"x":566,"y":119}],"color":"#667eea"},
+                "D4-C1": {"points":[{"x":362,"y":178},{"x":355,"y":178},{"x":344,"y":181},{"x":323,"y":186},{"x":293,"y":200},{"x":276,"y":209},{"x":263,"y":219},{"x":253,"y":229},{"x":239,"y":256},{"x":233,"y":275},{"x":231,"y":290},{"x":229,"y":321},{"x":228,"y":340},{"x":228,"y":357},{"x":228,"y":373},{"x":228,"y":392},{"x":230,"y":402},{"x":234,"y":412},{"x":240,"y":423},{"x":253,"y":441},{"x":264,"y":452},{"x":276,"y":465},{"x":289,"y":476},{"x":301,"y":488},{"x":321,"y":503},{"x":337,"y":513},{"x":355,"y":519},{"x":375,"y":531},{"x":401,"y":545},{"x":419,"y":555},{"x":435,"y":562},{"x":448,"y":567},{"x":463,"y":573},{"x":472,"y":575},{"x":485,"y":576},{"x":494,"y":577},{"x":504,"y":577},{"x":510,"y":577},{"x":514,"y":577},{"x":519,"y":573},{"x":529,"y":565},{"x":537,"y":559},{"x":543,"y":552},{"x":555,"y":537},{"x":560,"y":528},{"x":567,"y":516},{"x":573,"y":503},{"x":577,"y":486},{"x":581,"y":477},{"x":583,"y":468},{"x":585,"y":458},{"x":591,"y":439},{"x":593,"y":426},{"x":596,"y":413},{"x":598,"y":401},{"x":602,"y":389},{"x":602,"y":383},{"x":602,"y":377},{"x":602,"y":371},{"x":603,"y":352},{"x":603,"y":336},{"x":603,"y":323},{"x":603,"y":307},{"x":603,"y":297},{"x":602,"y":290},{"x":599,"y":280},{"x":597,"y":271},{"x":594,"y":255},{"x":590,"y":246},{"x":587,"y":240},{"x":584,"y":233},{"x":581,"y":228},{"x":578,"y":225},{"x":574,"y":221},{"x":570,"y":216},{"x":563,"y":211},{"x":559,"y":207},{"x":556,"y":204},{"x":551,"y":199},{"x":549,"y":197},{"x":545,"y":195},{"x":540,"y":192},{"x":535,"y":189},{"x":526,"y":184},{"x":520,"y":182},{"x":516,"y":180},{"x":510,"y":178},{"x":505,"y":176},{"x":501,"y":175},{"x":497,"y":174},{"x":495,"y":172},{"x":489,"y":170},{"x":484,"y":169},{"x":477,"y":167},{"x":476,"y":166},{"x":472,"y":166},{"x":470,"y":166},{"x":468,"y":165},{"x":463,"y":164},{"x":459,"y":163},{"x":453,"y":163},{"x":444,"y":163},{"x":439,"y":163},{"x":432,"y":163},{"x":429,"y":163},{"x":425,"y":163},{"x":423,"y":163},{"x":420,"y":163},{"x":419,"y":163},{"x":418,"y":163},{"x":417,"y":163},{"x":416,"y":163}],"color":"#667eea"}
+            }
+        };
+
+        // Inicializar datos
+        function initializeData() {
+            // GUARDAR las formas integradas en el código PRIMERO
+            const integratedShapes = {
+                "D1-C1": {"points":[{"x":344,"y":94},{"x":343,"y":100},{"x":342,"y":114},{"x":340,"y":126},{"x":339,"y":136},{"x":338,"y":144},{"x":336,"y":151},{"x":334,"y":159},{"x":331,"y":177},{"x":329,"y":189},{"x":329,"y":198},{"x":329,"y":210},{"x":329,"y":222},{"x":329,"y":227},{"x":329,"y":231},{"x":329,"y":235},{"x":328,"y":244},{"x":326,"y":258},{"x":326,"y":272},{"x":326,"y":279},{"x":326,"y":283},{"x":326,"y":286},{"x":326,"y":288},{"x":326,"y":289},{"x":326,"y":290},{"x":326,"y":291},{"x":326,"y":293},{"x":326,"y":295},{"x":326,"y":296},{"x":327,"y":297},{"x":327,"y":298},{"x":327,"y":299},{"x":328,"y":300},{"x":328,"y":301},{"x":329,"y":302},{"x":329,"y":303},{"x":329,"y":304},{"x":329,"y":305},{"x":329,"y":306},{"x":329,"y":307},{"x":329,"y":308},{"x":329,"y":309},{"x":329,"y":310},{"x":329,"y":312},{"x":319,"y":314},{"x":302,"y":317},{"x":273,"y":315},{"x":258,"y":313},{"x":248,"y":313},{"x":241,"y":313},{"x":231,"y":311},{"x":226,"y":310},{"x":220,"y":310},{"x":218,"y":310},{"x":213,"y":310},{"x":211,"y":312},{"x":206,"y":319},{"x":203,"y":332},{"x":202,"y":351},{"x":204,"y":361},{"x":211,"y":372},{"x":219,"y":383},{"x":236,"y":401},{"x":253,"y":415},{"x":271,"y":434},{"x":291,"y":450},{"x":325,"y":469},{"x":347,"y":475},{"x":369,"y":481},{"x":403,"y":483},{"x":424,"y":483},{"x":443,"y":482},{"x":461,"y":477},{"x":482,"y":467},{"x":491,"y":462},{"x":501,"y":454},{"x":511,"y":444},{"x":528,"y":424},{"x":539,"y":410},{"x":545,"y":394},{"x":549,"y":381},{"x":551,"y":367},{"x":551,"y":357},{"x":550,"y":347},{"x":547,"y":340},{"x":542,"y":330},{"x":538,"y":326},{"x":534,"y":320},{"x":526,"y":310},{"x":520,"y":304},{"x":518,"y":302},{"x":513,"y":298},{"x":508,"y":295},{"x":499,"y":293},{"x":488,"y":291},{"x":483,"y":290},{"x":478,"y":290},{"x":473,"y":290},{"x":467,"y":289},{"x":465,"y":289},{"x":463,"y":289},{"x":461,"y":289},{"x":459,"y":288},{"x":458,"y":288},{"x":458,"y":287},{"x":457,"y":286},{"x":457,"y":281},{"x":457,"y":279},{"x":457,"y":275},{"x":458,"y":267},{"x":460,"y":262},{"x":461,"y":254},{"x":464,"y":249},{"x":464,"y":244},{"x":465,"y":240},{"x":466,"y":235},{"x":466,"y":233},{"x":466,"y":229},{"x":467,"y":223},{"x":467,"y":219},{"x":468,"y":213},{"x":469,"y":209},{"x":470,"y":202},{"x":470,"y":197},{"x":470,"y":191},{"x":470,"y":187},{"x":470,"y":176},{"x":470,"y":170},{"x":470,"y":166},{"x":470,"y":163},{"x":470,"y":159},{"x":470,"y":158},{"x":470,"y":155},{"x":470,"y":153},{"x":469,"y":148},{"x":469,"y":145},{"x":468,"y":140},{"x":468,"y":135},{"x":468,"y":132},{"x":467,"y":130},{"x":467,"y":129},{"x":467,"y":128},{"x":467,"y":127},{"x":467,"y":126},{"x":466,"y":125},{"x":466,"y":124},{"x":465,"y":123},{"x":464,"y":122},{"x":462,"y":121},{"x":461,"y":119},{"x":456,"y":116},{"x":455,"y":115},{"x":449,"y":113},{"x":446,"y":112},{"x":441,"y":110},{"x":438,"y":109},{"x":433,"y":108},{"x":428,"y":107},{"x":422,"y":105},{"x":414,"y":105},{"x":408,"y":104},{"x":404,"y":104},{"x":399,"y":104},{"x":397,"y":102},{"x":395,"y":102},{"x":392,"y":101},{"x":389,"y":100},{"x":387,"y":100},{"x":384,"y":100},{"x":382,"y":100},{"x":379,"y":99},{"x":375,"y":98},{"x":374,"y":98},{"x":373,"y":98},{"x":371,"y":98},{"x":369,"y":97},{"x":368,"y":97},{"x":367,"y":97},{"x":365,"y":96},{"x":363,"y":96},{"x":362,"y":96},{"x":361,"y":96},{"x":359,"y":95},{"x":357,"y":95},{"x":356,"y":95},{"x":355,"y":95},{"x":354,"y":95},{"x":353,"y":94},{"x":352,"y":94},{"x":351,"y":94}],"color":"#667eea"},
+                "D1-C2": {"points":[{"x":244,"y":127},{"x":244,"y":137},{"x":244,"y":154},{"x":248,"y":195},{"x":249,"y":218},{"x":250,"y":233},{"x":251,"y":249},{"x":251,"y":273},{"x":251,"y":292},{"x":251,"y":310},{"x":252,"y":326},{"x":252,"y":348},{"x":253,"y":356},{"x":254,"y":366},{"x":254,"y":376},{"x":256,"y":393},{"x":257,"y":400},{"x":257,"y":404},{"x":257,"y":407},{"x":257,"y":408},{"x":257,"y":411},{"x":258,"y":413},{"x":259,"y":419},{"x":259,"y":428},{"x":259,"y":429},{"x":259,"y":431},{"x":259,"y":432},{"x":259,"y":434},{"x":259,"y":435},{"x":259,"y":436},{"x":260,"y":436},{"x":268,"y":435},{"x":282,"y":431},{"x":307,"y":424},{"x":317,"y":422},{"x":348,"y":419},{"x":370,"y":417},{"x":388,"y":417},{"x":402,"y":417},{"x":421,"y":418},{"x":432,"y":419},{"x":442,"y":420},{"x":450,"y":421},{"x":463,"y":424},{"x":470,"y":426},{"x":480,"y":428},{"x":490,"y":431},{"x":505,"y":436},{"x":514,"y":438},{"x":523,"y":441},{"x":532,"y":444},{"x":544,"y":450},{"x":551,"y":454},{"x":557,"y":456},{"x":561,"y":457},{"x":568,"y":459},{"x":571,"y":462},{"x":574,"y":462},{"x":576,"y":462},{"x":577,"y":462},{"x":578,"y":463},{"x":579,"y":463},{"x":580,"y":463},{"x":581,"y":463},{"x":582,"y":459},{"x":582,"y":455},{"x":582,"y":440},{"x":580,"y":420},{"x":578,"y":397},{"x":574,"y":373},{"x":572,"y":334},{"x":571,"y":309},{"x":569,"y":288},{"x":568,"y":271},{"x":568,"y":253},{"x":568,"y":242},{"x":568,"y":231},{"x":568,"y":216},{"x":568,"y":206},{"x":568,"y":195},{"x":568,"y":185},{"x":568,"y":167},{"x":568,"y":152},{"x":569,"y":140},{"x":569,"y":130},{"x":570,"y":123},{"x":570,"y":120},{"x":570,"y":118},{"x":570,"y":116},{"x":570,"y":115},{"x":572,"y":113},{"x":573,"y":110},{"x":574,"y":108},{"x":575,"y":105},{"x":575,"y":104},{"x":575,"y":103},{"x":575,"y":102},{"x":575,"y":101},{"x":575,"y":102},{"x":575,"y":103},{"x":575,"y":104},{"x":575,"y":105},{"x":575,"y":106},{"x":573,"y":107},{"x":572,"y":108},{"x":571,"y":109},{"x":570,"y":111},{"x":569,"y":112},{"x":569,"y":114},{"x":569,"y":115},{"x":567,"y":116},{"x":567,"y":117},{"x":567,"y":118},{"x":566,"y":118},{"x":566,"y":119}],"color":"#667eea"},
+                "D4-C1": {"points":[{"x":362,"y":178},{"x":355,"y":178},{"x":344,"y":181},{"x":323,"y":186},{"x":293,"y":200},{"x":276,"y":209},{"x":263,"y":219},{"x":253,"y":229},{"x":239,"y":256},{"x":233,"y":275},{"x":231,"y":290},{"x":229,"y":321},{"x":228,"y":340},{"x":228,"y":357},{"x":228,"y":373},{"x":228,"y":392},{"x":230,"y":402},{"x":234,"y":412},{"x":240,"y":423},{"x":253,"y":441},{"x":264,"y":452},{"x":276,"y":465},{"x":289,"y":476},{"x":301,"y":488},{"x":321,"y":503},{"x":337,"y":513},{"x":355,"y":519},{"x":375,"y":531},{"x":401,"y":545},{"x":419,"y":555},{"x":435,"y":562},{"x":448,"y":567},{"x":463,"y":573},{"x":472,"y":575},{"x":485,"y":576},{"x":494,"y":577},{"x":504,"y":577},{"x":510,"y":577},{"x":514,"y":577},{"x":519,"y":573},{"x":529,"y":565},{"x":537,"y":559},{"x":543,"y":552},{"x":555,"y":537},{"x":560,"y":528},{"x":567,"y":516},{"x":573,"y":503},{"x":577,"y":486},{"x":581,"y":477},{"x":583,"y":468},{"x":585,"y":458},{"x":591,"y":439},{"x":593,"y":426},{"x":596,"y":413},{"x":598,"y":401},{"x":602,"y":389},{"x":602,"y":383},{"x":602,"y":377},{"x":602,"y":371},{"x":603,"y":352},{"x":603,"y":336},{"x":603,"y":323},{"x":603,"y":307},{"x":603,"y":297},{"x":602,"y":290},{"x":599,"y":280},{"x":597,"y":271},{"x":594,"y":255},{"x":590,"y":246},{"x":587,"y":240},{"x":584,"y":233},{"x":581,"y":228},{"x":578,"y":225},{"x":574,"y":221},{"x":570,"y":216},{"x":563,"y":211},{"x":559,"y":207},{"x":556,"y":204},{"x":551,"y":199},{"x":549,"y":197},{"x":545,"y":195},{"x":540,"y":192},{"x":535,"y":189},{"x":526,"y":184},{"x":520,"y":182},{"x":516,"y":180},{"x":510,"y":178},{"x":505,"y":176},{"x":501,"y":175},{"x":497,"y":174},{"x":495,"y":172},{"x":489,"y":170},{"x":484,"y":169},{"x":477,"y":167},{"x":476,"y":166},{"x":472,"y":166},{"x":470,"y":166},{"x":468,"y":165},{"x":463,"y":164},{"x":459,"y":163},{"x":453,"y":163},{"x":444,"y":163},{"x":439,"y":163},{"x":432,"y":163},{"x":429,"y":163},{"x":425,"y":163},{"x":423,"y":163},{"x":420,"y":163},{"x":419,"y":163},{"x":418,"y":163},{"x":417,"y":163},{"x":416,"y":163}],"color":"#667eea"}
+            };
+            
+            const saved = localStorage.getItem('toolbox-data');
+            if (saved) {
+                state = JSON.parse(saved);
+                // Asegurar que shapes existe y SIEMPRE tiene las formas integradas
+                state.shapes = {...integratedShapes, ...(state.shapes || {})};
+            } else {
+                // Crear estructura inicial
+                for (let d = 1; d <= CONFIG.drawers; d++) {
+                    for (let c = 1; c <= CONFIG.compartmentsPerDrawer; c++) {
+                        const key = `D${d}-C${c}`;
+                        state.toolbox[key] = {
+                            drawer: d,
+                            compartment: c,
+                            toolName: '',
+                            description: '',
+                            isPresent: true,
+                            lastAction: null
+                        };
+                    }
+                }
+                state.history = [];
+                state.shapes = integratedShapes;
+                saveData();
+            }
+            
+            console.log('🎨 Formas cargadas:', Object.keys(state.shapes));
+        }
+
+        function saveData() {
+            localStorage.setItem('toolbox-data', JSON.stringify(state));
+            updateUI();
+            updateStats();
+        }
+
+        // Three.js Scene Setup
+        let scene, camera, renderer, cabinet, drawers = [];
+        let selectedDrawer = null;
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xffffff);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 5, 15);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            
+            // Lights - iluminación limpia
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(8, 12, 8);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.camera.left = -15;
+            directionalLight.shadow.camera.right = 15;
+            directionalLight.shadow.camera.top = 15;
+            directionalLight.shadow.camera.bottom = -15;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Create Cabinet
+            createCabinet();
+            
+            // Mouse controls
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            container.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMousePosition.x;
+                    const deltaY = e.clientY - previousMousePosition.y;
+                    
+                    // Rotación libre del armario
+                    cabinet.rotation.y += deltaX * 0.01;
+                    
+                    // Movimiento libre de la cámara en Y
+                    camera.position.y += deltaY * 0.05;
+                    
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                } else {
+                    // Highlight compartments on hover
+                    const rect = container.getBoundingClientRect();
+                    const mouse = new THREE.Vector2(
+                        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+                        -((e.clientY - rect.top) / rect.height) * 2 + 1
+                    );
+                    
+                    const raycaster = new THREE.Raycaster();
+                    raycaster.setFromCamera(mouse, camera);
+                    
+                    // Reset all highlights
+                    drawers.forEach(drawer => {
+                        if (drawer.userData.compartments) {
+                            drawer.userData.compartments.forEach(comp => {
+                                comp.traverse(child => {
+                                    if (child.isMesh && child.userData.compartmentKey) {
+                                        child.scale.set(1, 1, 1);
+                                    }
+                                });
+                            });
+                        }
+                    });
+                    
+                    // Highlight hovered compartment
+                    drawers.forEach(drawer => {
+                        if (drawer.userData.isOpen && drawer.userData.compartments) {
+                            const compartmentMeshes = [];
+                            drawer.userData.compartments.forEach(comp => {
+                                comp.traverse(child => {
+                                    if (child.isMesh && child.userData.compartmentKey) {
+                                        compartmentMeshes.push(child);
+                                    }
+                                });
+                            });
+                            
+                            const compIntersects = raycaster.intersectObjects(compartmentMeshes);
+                            if (compIntersects.length > 0) {
+                                compIntersects[0].object.scale.set(1.1, 1.1, 1.1);
+                                container.style.cursor = 'pointer';
+                                return;
+                            }
+                        }
+                    });
+                    
+                    container.style.cursor = 'default';
+                }
+            });
+            
+            container.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            container.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                camera.position.z += e.deltaY * 0.01;
+                camera.position.z = Math.max(8, Math.min(25, camera.position.z));
+            });
+            
+            // Click to select drawer or compartment
+            container.addEventListener('click', (e) => {
+                if (isDragging) return;
+                
+                const rect = container.getBoundingClientRect();
+                const mouse = new THREE.Vector2(
+                    ((e.clientX - rect.left) / rect.width) * 2 - 1,
+                    -((e.clientY - rect.top) / rect.height) * 2 + 1
+                );
+                
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(mouse, camera);
+                
+                // Primero buscar compartimentos en cajones abiertos
+                let clickedCompartment = false;
+                drawers.forEach(drawer => {
+                    if (drawer.userData.isOpen && drawer.userData.compartments) {
+                        const compartmentMeshes = [];
+                        drawer.userData.compartments.forEach(comp => {
+                            comp.traverse(child => {
+                                if (child.isMesh && child.userData.compartmentKey) {
+                                    compartmentMeshes.push(child);
+                                }
+                            });
+                        });
+                        
+                        const compIntersects = raycaster.intersectObjects(compartmentMeshes);
+                        if (compIntersects.length > 0) {
+                            const key = compIntersects[0].object.userData.compartmentKey;
+                            openModal(key);
+                            clickedCompartment = true;
+                        }
+                    }
+                });
+                
+                // Si no clickeó un compartimento, buscar el frente del cajón
+                if (!clickedCompartment) {
+                    const drawerFronts = [];
+                    drawers.forEach(drawer => {
+                        drawer.traverse(child => {
+                            if (child.isMesh && child.userData.isFront) {
+                                drawerFronts.push(child);
+                            }
+                        });
+                    });
+                    
+                    const intersects = raycaster.intersectObjects(drawerFronts);
+                    if (intersects.length > 0) {
+                        const drawerFront = intersects[0].object;
+                        const drawer = drawerFront.parent;
+                        toggleDrawer(drawer);
+                    }
+                }
+            });
+            
+            // Animation loop
+            animate();
+        }
+
+        function createCabinet() {
+            cabinet = new THREE.Group();
+            
+            // Cabinet body - Azul marino
+            const bodyGeometry = new THREE.BoxGeometry(8, 10, 4);
+            const bodyMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1e3a5f,
+                metalness: 0.2,
+                roughness: 0.5
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            cabinet.add(body);
+            
+            // Marco exterior - azul más oscuro
+            const frameGeometry = new THREE.BoxGeometry(8.3, 10.3, 4.2);
+            const frameMaterial = new THREE.MeshStandardMaterial({
+                color: 0x0f1f3d,
+                metalness: 0.3,
+                roughness: 0.6
+            });
+            const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+            frame.position.z = -0.15;
+            cabinet.add(frame);
+            
+            // Molduras decorativas superiores
+            const moldingGeometry = new THREE.BoxGeometry(8.5, 0.3, 0.3);
+            const moldingMaterial = new THREE.MeshStandardMaterial({
+                color: 0x2c4f7c,
+                metalness: 0.3,
+                roughness: 0.5
+            });
+            
+            const topMolding1 = new THREE.Mesh(moldingGeometry, moldingMaterial);
+            topMolding1.position.set(0, 5.3, 2.2);
+            cabinet.add(topMolding1);
+            
+            const topMolding2 = new THREE.Mesh(moldingGeometry, moldingMaterial);
+            topMolding2.position.set(0, 5.5, 2.2);
+            cabinet.add(topMolding2);
+            
+            // Patas decorativas
+            const legGeometry = new THREE.CylinderGeometry(0.2, 0.25, 0.8, 16);
+            const legMaterial = new THREE.MeshStandardMaterial({
+                color: 0x0f1f3d,
+                metalness: 0.3,
+                roughness: 0.6
+            });
+            
+            const positions = [
+                [-3.5, -5.4, 1.5],
+                [3.5, -5.4, 1.5],
+                [-3.5, -5.4, -1.5],
+                [3.5, -5.4, -1.5]
+            ];
+            
+            positions.forEach(pos => {
+                const leg = new THREE.Mesh(legGeometry, legMaterial);
+                leg.position.set(...pos);
+                cabinet.add(leg);
+            });
+            
+            // Create drawers
+            const drawerHeight = 1.8;
+            const drawerSpacing = 0.2;
+            const startY = 4;
+            
+            for (let i = 0; i < CONFIG.drawers; i++) {
+                const drawer = createDrawer(i + 1);
+                drawer.position.y = startY - i * (drawerHeight + drawerSpacing);
+                drawer.userData.drawerNumber = i + 1;
+                drawer.userData.isOpen = false;
+                drawer.userData.targetZ = 0;
+                drawers.push(drawer);
+                cabinet.add(drawer);
+            }
+            
+            scene.add(cabinet);
+        }
+
+        function createDrawer(number) {
+            const group = new THREE.Group();
+            
+            // Tonos de azul variados para cada cajón
+            const blueColors = [0x1e3a5f, 0x2c4f7c, 0x3a5f8f, 0x1a3352, 0x234566];
+            const drawerColor = blueColors[number - 1];
+            
+            // Drawer box - paredes azules (SEPARADAS para evitar z-fighting)
+            const backGeometry = new THREE.BoxGeometry(7.5, 1.6, 0.15);
+            const sideMaterial = new THREE.MeshStandardMaterial({
+                color: drawerColor,
+                metalness: 0.2,
+                roughness: 0.6
+            });
+            const back = new THREE.Mesh(backGeometry, sideMaterial);
+            back.position.z = -1.75;
+            back.castShadow = true;
+            group.add(back);
+            
+            // Paredes laterales
+            const sideGeometry = new THREE.BoxGeometry(0.15, 1.6, 3.5);
+            const leftWall = new THREE.Mesh(sideGeometry, sideMaterial);
+            leftWall.position.x = -3.675;
+            leftWall.castShadow = true;
+            group.add(leftWall);
+            
+            const rightWall = new THREE.Mesh(sideGeometry, sideMaterial);
+            rightWall.position.x = 3.675;
+            rightWall.castShadow = true;
+            group.add(rightWall);
+            
+            // Fondo del cajón
+            const bottomGeometry = new THREE.BoxGeometry(7.35, 0.15, 3.35);
+            const bottomMaterial = new THREE.MeshStandardMaterial({
+                color: 0x4a6fa5,
+                metalness: 0.2,
+                roughness: 0.5
+            });
+            const bottom = new THREE.Mesh(bottomGeometry, bottomMaterial);
+            bottom.position.y = -0.725;
+            bottom.receiveShadow = true;
+            group.add(bottom);
+            
+            // Drawer front - azul (SIN superposiciones)
+            const frontGeometry = new THREE.BoxGeometry(7.5, 1.6, 0.25);
+            const frontMaterial = new THREE.MeshStandardMaterial({
+                color: drawerColor,
+                metalness: 0.3,
+                roughness: 0.5
+            });
+            const front = new THREE.Mesh(frontGeometry, frontMaterial);
+            front.position.z = 1.875;
+            front.castShadow = true;
+            front.userData.isFront = true;
+            group.add(front);
+            
+            // Marco decorativo del frente - azul más oscuro (SIN overlap)
+            const frameMaterial = new THREE.MeshStandardMaterial({
+                color: 0x0f1f3d,
+                metalness: 0.3,
+                roughness: 0.6
+            });
+            
+            const frameWidth = 0.12;
+            
+            // Bordes horizontales
+            const hFrameGeom = new THREE.BoxGeometry(7.5, frameWidth, 0.05);
+            const topFrame = new THREE.Mesh(hFrameGeom, frameMaterial);
+            topFrame.position.set(0, 0.74, 2.025);
+            group.add(topFrame);
+            
+            const bottomFrame = new THREE.Mesh(hFrameGeom, frameMaterial);
+            bottomFrame.position.set(0, -0.74, 2.025);
+            group.add(bottomFrame);
+            
+            // Bordes verticales
+            const vFrameGeom = new THREE.BoxGeometry(frameWidth, 1.36, 0.05);
+            const leftFrame = new THREE.Mesh(vFrameGeom, frameMaterial);
+            leftFrame.position.set(-3.69, 0, 2.025);
+            group.add(leftFrame);
+            
+            const rightFrame = new THREE.Mesh(vFrameGeom, frameMaterial);
+            rightFrame.position.set(3.69, 0, 2.025);
+            group.add(rightFrame);
+            
+            // Handle cromado
+            const handleBase = new THREE.CylinderGeometry(0.08, 0.08, 1.8, 16);
+            const handleMaterial = new THREE.MeshStandardMaterial({
+                color: 0xcccccc,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            const handle = new THREE.Mesh(handleBase, handleMaterial);
+            handle.rotation.z = Math.PI / 2;
+            handle.position.set(0, 0, 2.1);
+            handle.castShadow = true;
+            group.add(handle);
+            
+            // Extremos del tirador
+            const knobGeometry = new THREE.SphereGeometry(0.12, 16, 16);
+            const knobLeft = new THREE.Mesh(knobGeometry, handleMaterial);
+            knobLeft.position.set(-0.9, 0, 2.1);
+            group.add(knobLeft);
+            
+            const knobRight = new THREE.Mesh(knobGeometry, handleMaterial);
+            knobRight.position.set(0.9, 0, 2.1);
+            group.add(knobRight);
+            
+            // Placa con número
+            const plateGeometry = new THREE.BoxGeometry(0.6, 0.6, 0.04);
+            const plateMaterial = new THREE.MeshStandardMaterial({
+                color: 0x888888,
+                metalness: 0.7,
+                roughness: 0.3
+            });
+            const plate = new THREE.Mesh(plateGeometry, plateMaterial);
+            plate.position.set(0, -0.5, 2.11);
+            group.add(plate);
+            
+            // Label - número
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#666666';
+            ctx.fillRect(0, 0, 256, 256);
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 140px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${number}`, 128, 128);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const labelGeometry = new THREE.PlaneGeometry(0.5, 0.5);
+            const labelMaterial = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: false
+            });
+            const label = new THREE.Mesh(labelGeometry, labelMaterial);
+            label.position.set(0, -0.5, 2.13);
+            group.add(label);
+            
+            // COMPARTIMENTOS - azul claro
+            const compartments = [];
+            const compWidth = 1.3;
+            const compDepth = 1.5;
+            const compHeight = 0.6;
+            const startX = -2.6;
+            
+            for (let row = 0; row < 2; row++) {
+                for (let col = 0; col < 5; col++) {
+                    const compIndex = row * 5 + col + 1;
+                    const key = `D${number}-C${compIndex}`;
+                    
+                    const compGroup = new THREE.Group();
+                    
+                    // SOLO FONDO PLANO - sin cubos
+                    const floorGeometry = new THREE.PlaneGeometry(compWidth, compDepth);
+                    const floorMaterial = new THREE.MeshStandardMaterial({
+                        color: 0x4a6fa5,
+                        metalness: 0.2,
+                        roughness: 0.5
+                    });
+                    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+                    floor.rotation.x = -Math.PI / 2;
+                    floor.position.y = -compHeight / 2;
+                    floor.receiveShadow = true;
+                    floor.userData.compartmentKey = key;
+                    floor.userData.drawerNumber = number;
+                    floor.userData.compartmentNumber = compIndex;
+                    compGroup.add(floor);
+                    
+                    // Divisores verticales (solo líneas)
+                    if (col < 4) {
+                        const dividerGeometry = new THREE.BoxGeometry(0.05, 0.3, compDepth);
+                        const dividerMaterial = new THREE.MeshStandardMaterial({
+                            color: 0x2c4f7c,
+                            metalness: 0.3,
+                            roughness: 0.6
+                        });
+                        const divider = new THREE.Mesh(dividerGeometry, dividerMaterial);
+                        divider.position.x = compWidth / 2 + 0.025;
+                        divider.position.y = -compHeight / 2 + 0.15;
+                        compGroup.add(divider);
+                    }
+                    
+                    // Posicionar compartimento
+                    compGroup.position.x = startX + col * (compWidth + 0.1);
+                    compGroup.position.y = row === 0 ? 0.3 : -0.3;
+                    compGroup.position.z = -0.5;
+                    
+                    // AÑADIR FORMA 2D EN BLANCO (siempre visible, encima del fondo)
+                    const shapeKey = `D${number}-C${compIndex}`;
+                    console.log(`Buscando forma: ${shapeKey}, existe:`, !!state.shapes[shapeKey]);
+                    
+                    if (state.shapes && state.shapes[shapeKey]) {
+                        console.log('✓ Creando forma para', shapeKey, 'con puntos:', state.shapes[shapeKey].points?.length);
+                        const shapeTexture = createShapeTexture(state.shapes[shapeKey]);
+                        if (shapeTexture) {
+                            // Hacer el plano MÁS GRANDE - casi todo el compartimento
+                            const planeGeometry = new THREE.PlaneGeometry(compWidth * 0.98, compDepth * 0.98);
+                            const planeMaterial = new THREE.MeshBasicMaterial({
+                                map: shapeTexture,
+                                transparent: false, // NO transparente para que se vea bien
+                                side: THREE.DoubleSide,
+                                depthWrite: true
+                            });
+                            const shapePlane = new THREE.Mesh(planeGeometry, planeMaterial);
+                            shapePlane.rotation.x = -Math.PI / 2;
+                            shapePlane.position.y = -compHeight / 2 + 0.1; // Más arriba para que se vea
+                            shapePlane.renderOrder = 999; // Renderizar encima de todo
+                            compGroup.add(shapePlane);
+                            console.log('✓ Forma añadida para', shapeKey, 'en posición:', compGroup.position);
+                        } else {
+                            console.log('✗ No se pudo crear textura para', shapeKey);
+                        }
+                    }
+                    
+                    compartments.push(compGroup);
+                    group.add(compGroup);
+                }
+            }
+            
+            group.userData.compartments = compartments;
+            
+            return group;
+        }
+
+        // Crear textura 2D desde puntos dibujados
+        function createShapeTexture(shapeData) {
+            if (!shapeData || !shapeData.points || shapeData.points.length < 3) {
+                console.log('✗ No hay puntos suficientes');
+                return null;
+            }
+            
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+                
+                // Fondo NEGRO para contraste
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillRect(0, 0, 512, 512);
+                
+                const points = shapeData.points;
+                
+                // Encontrar dimensiones de la forma original
+                const minX = Math.min(...points.map(p => p.x));
+                const maxX = Math.max(...points.map(p => p.x));
+                const minY = Math.min(...points.map(p => p.y));
+                const maxY = Math.max(...points.map(p => p.y));
+                const width = maxX - minX;
+                const height = maxY - minY;
+                
+                console.log('Forma:', { minX, maxX, minY, maxY, width, height, totalPuntos: points.length });
+                
+                // Escalar para ajustar al canvas manteniendo aspecto
+                const scale = Math.min(480 / width, 480 / height);
+                const offsetX = (512 - width * scale) / 2;
+                const offsetY = (512 - height * scale) / 2;
+                
+                // Dibujar la forma EN BLANCO
+                ctx.beginPath();
+                points.forEach((point, i) => {
+                    const x = (point.x - minX) * scale + offsetX;
+                    const y = (point.y - minY) * scale + offsetY;
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+                ctx.closePath();
+                
+                // BLANCO PURO para máxima visibilidad
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fill();
+                ctx.strokeStyle = '#FFFF00'; // Borde amarillo para resaltar
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.needsUpdate = true;
+                
+                console.log('✓ Textura creada exitosamente');
+                return texture;
+                
+            } catch (error) {
+                console.error('✗ Error creando textura 2D:', error);
+                return null;
+            }
+        }
+
+        function toggleDrawer(drawer) {
+            if (drawer.userData.isOpen) {
+                drawer.userData.targetZ = 0;
+                drawer.userData.isOpen = false;
+                
+                // Volver a vista normal
+                resetCamera();
+            } else {
+                // Close other drawers
+                drawers.forEach(d => {
+                    if (d !== drawer) {
+                        d.userData.targetZ = 0;
+                        d.userData.isOpen = false;
+                    }
+                });
+                drawer.userData.targetZ = 4.5; // Abre más el cajón
+                drawer.userData.isOpen = true;
+                
+                // Vista aérea enfocando el cajón abierto
+                const drawerWorldY = drawer.position.y;
+                animateCameraToAerialView(drawerWorldY);
+            }
+        }
+        
+        function animateCameraToAerialView(drawerY, duration = 1000) {
+            const startPos = {
+                x: camera.position.x,
+                y: camera.position.y,
+                z: camera.position.z
+            };
+            const startRotation = cabinet.rotation.y;
+            
+            // Vista con ángulo de 45 grados - más atrás para ver todo el cajón
+            const targetPos = {
+                x: 0,
+                y: drawerY + 10, // Un poco más alto
+                z: 8 // Más atrás para vista completa
+            };
+            
+            const startTime = Date.now();
+            
+            function update() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = easeInOutCubic(progress);
+                
+                camera.position.x = startPos.x + (targetPos.x - startPos.x) * eased;
+                camera.position.y = startPos.y + (targetPos.y - startPos.y) * eased;
+                camera.position.z = startPos.z + (targetPos.z - startPos.z) * eased;
+                
+                // Alinear el armario a rotación 0 (vista frontal perfecta)
+                cabinet.rotation.y = startRotation + (0 - startRotation) * eased;
+                
+                // Mirar al centro del cajón con ángulo de 45° (diagonal)
+                camera.lookAt(0, drawerY, -0.5);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            
+            update();
+        }
+        
+        function easeInOutCubic(t) {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Animate drawers
+            drawers.forEach(drawer => {
+                const diff = drawer.userData.targetZ - drawer.position.z;
+                drawer.position.z += diff * 0.1;
+                
+                // Actualizar colores de compartimentos según estado
+                if (drawer.userData.compartments) {
+                    drawer.userData.compartments.forEach(compGroup => {
+                        compGroup.traverse(child => {
+                            if (child.isMesh && child.userData.compartmentKey) {
+                                const key = child.userData.compartmentKey;
+                                const data = state.toolbox[key];
+                                
+                                if (data && data.toolName) {
+                                    if (data.isPresent) {
+                                        child.material.color.setHex(0x51cf66); // Verde
+                                        child.material.emissive.setHex(0x2f9e44);
+                                        child.material.emissiveIntensity = 0.3;
+                                    } else {
+                                        child.material.color.setHex(0xff6b6b); // Rojo
+                                        child.material.emissive.setHex(0xc92a2a);
+                                        child.material.emissiveIntensity = 0.3;
+                                    }
+                                } else {
+                                    child.material.color.setHex(0x4a5568); // Gris (vacío)
+                                    child.material.emissive.setHex(0x000000);
+                                    child.material.emissiveIntensity = 0;
+                                }
+                            }
+                        });
+                    });
+                }
+            });
+            
+            renderer.render(scene, camera);
+        }
+
+        function resetCamera() {
+            const startPos = {
+                x: camera.position.x,
+                y: camera.position.y,
+                z: camera.position.z
+            };
+            const startRotation = cabinet.rotation.y;
+            const targetPos = { x: 0, y: 5, z: 15 };
+            const duration = 1000;
+            const startTime = Date.now();
+            
+            function update() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = easeInOutCubic(progress);
+                
+                camera.position.x = startPos.x + (targetPos.x - startPos.x) * eased;
+                camera.position.y = startPos.y + (targetPos.y - startPos.y) * eased;
+                camera.position.z = startPos.z + (targetPos.z - startPos.z) * eased;
+                
+                // También resetear rotación del armario
+                cabinet.rotation.y = startRotation + (0 - startRotation) * eased;
+                
+                camera.lookAt(0, 0, 0);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            
+            update();
+        }
+
+        // UI Functions
+        function updateUI() {
+            const container = document.getElementById('drawers-container');
+            container.innerHTML = '';
+            
+            for (let d = 1; d <= CONFIG.drawers; d++) {
+                const section = document.createElement('div');
+                section.className = 'drawer-section';
+                
+                const title = document.createElement('h3');
+                title.textContent = `📦 Cajón ${d}`;
+                title.onclick = () => openDrawerFromPanel(d);
+                title.title = 'Click para abrir el cajón en 3D';
+                section.appendChild(title);
+                
+                const grid = document.createElement('div');
+                grid.className = 'compartment-grid';
+                
+                for (let c = 1; c <= CONFIG.compartmentsPerDrawer; c++) {
+                    const key = `D${d}-C${c}`;
+                    const data = state.toolbox[key];
+                    
+                    const comp = document.createElement('div');
+                    comp.className = `compartment ${data.toolName ? (data.isPresent ? 'filled' : 'empty') : 'empty'}`;
+                    comp.onclick = () => openModal(key);
+                    
+                    const label = document.createElement('div');
+                    label.className = 'compartment-label';
+                    label.textContent = `${c}`;
+                    comp.appendChild(label);
+                    
+                    if (data.toolName) {
+                        const toolName = document.createElement('div');
+                        toolName.className = 'tool-name';
+                        toolName.textContent = data.toolName;
+                        toolName.title = data.toolName;
+                        comp.appendChild(toolName);
+                    }
+                    
+                    grid.appendChild(comp);
+                }
+                
+                section.appendChild(grid);
+                container.appendChild(section);
+            }
+            
+            updateHistory();
+        }
+
+        function openDrawerFromPanel(drawerNumber) {
+            const drawer = drawers[drawerNumber - 1];
+            if (drawer) {
+                // Si ya está abierto, cerrarlo
+                if (drawer.userData.isOpen) {
+                    drawer.userData.targetZ = 0;
+                    drawer.userData.isOpen = false;
+                    resetCamera();
+                } else {
+                    // Cerrar otros y abrir este
+                    drawers.forEach(d => {
+                        d.userData.targetZ = 0;
+                        d.userData.isOpen = false;
+                    });
+                    drawer.userData.targetZ = 4.5;
+                    drawer.userData.isOpen = true;
+                    
+                    const drawerWorldY = drawer.position.y;
+                    animateCameraToAerialView(drawerWorldY);
+                }
+            }
+        }
+
+        function updateHistory() {
+            const log = document.getElementById('history-log');
+            log.innerHTML = '';
+            
+            const recent = state.history.slice(-10).reverse();
+            recent.forEach(entry => {
+                const div = document.createElement('div');
+                div.className = `log-entry ${entry.action}`;
+                const time = new Date(entry.timestamp).toLocaleTimeString('es-ES');
+                div.innerHTML = `<strong>${time}</strong> - ${entry.location}: ${entry.toolName} (${entry.action === 'pickup' ? 'Cogida' : 'Devuelta'})`;
+                log.appendChild(div);
+            });
+        }
+
+        function updateStats() {
+            let total = 0;
+            let available = 0;
+            let inUse = 0;
+            
+            Object.values(state.toolbox).forEach(item => {
+                if (item.toolName) {
+                    total++;
+                    if (item.isPresent) available++;
+                    else inUse++;
+                }
+            });
+            
+            document.getElementById('total-tools').textContent = total;
+            document.getElementById('available-tools').textContent = available;
+            document.getElementById('in-use-tools').textContent = inUse;
+        }
+
+        // Modal functions
+        function openModal(key) {
+            state.selectedCompartment = key;
+            const data = state.toolbox[key];
+            
+            // Extraer número de cajón del key (D1-C5 -> cajón 1)
+            const drawerNumber = parseInt(key.split('-')[0].substring(1));
+            
+            // Abrir el cajón correspondiente si no está abierto
+            const drawer = drawers[drawerNumber - 1];
+            if (drawer && !drawer.userData.isOpen) {
+                openDrawerFromPanel(drawerNumber);
+            }
+            
+            document.getElementById('modal-title').textContent = `Compartimento ${key}`;
+            document.getElementById('tool-name').value = data.toolName || '';
+            document.getElementById('tool-description').value = data.description || '';
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('edit-modal').classList.remove('active');
+            state.selectedCompartment = null;
+        }
+
+        function saveCompartment() {
+            const key = state.selectedCompartment;
+            const toolName = document.getElementById('tool-name').value.trim();
+            const description = document.getElementById('tool-description').value.trim();
+            
+            if (toolName) {
+                state.toolbox[key].toolName = toolName;
+                state.toolbox[key].description = description;
+                saveData();
+            }
+            
+            closeModal();
+        }
+
+        function toggleTool() {
+            const key = state.selectedCompartment;
+            const data = state.toolbox[key];
+            
+            if (!data.toolName) {
+                alert('Primero asigna un nombre a la herramienta');
+                return;
+            }
+            
+            data.isPresent = !data.isPresent;
+            data.lastAction = new Date().toISOString();
+            
+            // Add to history
+            state.history.push({
+                timestamp: data.lastAction,
+                location: key,
+                toolName: data.toolName,
+                action: data.isPresent ? 'return' : 'pickup'
+            });
+            
+            saveData();
+            closeModal();
+        }
+
+        // Export/Import
+        function exportData() {
+            const dataStr = JSON.stringify(state, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `toolbox-backup-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        state = JSON.parse(event.target.result);
+                        saveData();
+                        alert('Datos importados correctamente');
+                    } catch (error) {
+                        alert('Error al importar datos');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function clearHistory() {
+            if (confirm('¿Seguro que quieres limpiar el historial?')) {
+                state.history = [];
+                saveData();
+            }
+        }
+
+        function importShapes() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        state.shapes = imported;
+                        saveData();
+                        
+                        // Recrear escena para mostrar las formas
+                        scene.remove(cabinet);
+                        drawers = [];
+                        createCabinet();
+                        
+                        alert(`✅ ${Object.keys(imported).length} formas importadas!`);
+                    } catch (error) {
+                        alert('❌ Error al importar las formas');
+                        console.error(error);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+        
+        // Inicialize
+        window.addEventListener('load', () => {
+            initializeData();
+            initThreeJS();
+            updateUI();
+        });        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
