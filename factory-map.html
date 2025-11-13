@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Fábrica - Control de Estaciones</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a1628 0%, #1a2847 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            color: #fff;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            animation: fadeIn 1s ease-in;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(52, 152, 219, 0.5);
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #95a5a6;
+            font-size: 1em;
+        }
+
+        .factory-container {
+            background: linear-gradient(145deg, #1e3a5f 0%, #2c5282 100%);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            max-width: 1400px;
+            width: 100%;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .factory-map {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            padding: 40px;
+            background: linear-gradient(145deg, #0f1f35, #1a2b45);
+            border-radius: 15px;
+            border: 4px solid #3498db;
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .factory-map::before {
+            content: '🏭 NAVE DE PRODUCCIÓN';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #3498db;
+            font-weight: bold;
+            font-size: 1.2em;
+            text-shadow: 0 0 10px rgba(52, 152, 219, 0.8);
+        }
+
+        .station {
+            position: absolute;
+            background: linear-gradient(145deg, #2c5282, #1e3a5f);
+            border: 3px solid #3498db;
+            border-radius: 12px;
+            padding: 8px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Posiciones específicas de cada estación */
+        /* Estación 1 */
+        .station:nth-child(1) {
+            top: 0px;
+            left: 785px;
+            width: 137px;
+            height: 110px;
+        }
+
+        /* Estación 2 */
+        .station:nth-child(2) {
+            top: 130px;
+            left: 533px;
+            width: 256px;
+            height: 110px;
+        }
+
+        /* Estación 3 */
+        .station:nth-child(3) {
+            top: 310px;
+            left: 931px;
+            width: 300px;
+            height: 110px;
+        }
+
+        /* Estación 4 */
+        .station:nth-child(4) {
+            top: 310px;
+            left: 4px;
+            width: 133px;
+            height: 110px;
+        }
+
+        /* Estación 5 */
+        .station:nth-child(5) {
+            top: 310px;
+            left: 144px;
+            width: 132px;
+            height: 110px;
+        }
+
+        /* Estación 6 */
+        .station:nth-child(6) {
+            top: 130px;
+            left: 279px;
+            width: 248px;
+            height: 110px;
+        }
+
+        /* Estación 7 */
+        .station:nth-child(7) {
+            top: 444px;
+            left: 866px;
+            width: 129px;
+            height: 110px;
+        }
+
+        /* Estación 8 */
+        .station:nth-child(8) {
+            top: 310px;
+            left: 614px;
+            width: 300px;
+            height: 110px;
+        }
+
+        /* Estación 9 */
+        .station:nth-child(9) {
+            top: 310px;
+            left: 297px;
+            width: 279px;
+            height: 110px;
+        }
+
+        .station::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(52, 152, 219, 0.1), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .station:hover::before {
+            transform: translateX(100%);
+        }
+
+        .station:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(52, 152, 219, 0.4),
+                        0 0 30px rgba(52, 152, 219, 0.3);
+            border-color: #5dade2;
+            background: linear-gradient(145deg, #3498db, #2c5282);
+        }
+
+        .station.active {
+            border-color: #2ecc71;
+            box-shadow: 0 0 30px rgba(46, 204, 113, 0.5);
+        }
+
+        .station-number {
+            font-size: 1em;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 3px;
+            text-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+        }
+
+        .station-name {
+            font-size: 0.7em;
+            color: #ecf0f1;
+            margin-bottom: 3px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .station-icon {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+            filter: drop-shadow(0 0 10px rgba(52, 152, 219, 0.5));
+        }
+
+        .station-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 15px;
+            font-size: 0.6em;
+            margin-top: 3px;
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+            border: 1px solid #2ecc71;
+        }
+
+        .info-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(145deg, #1e3a5f, #2c5282);
+            border: 3px solid #3498db;
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 500px;
+            max-height: 85vh;
+            width: 90%;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .info-panel.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .info-panel h2 {
+            color: #3498db;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            text-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+        }
+
+        .info-panel .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .info-item {
+            background: rgba(10, 22, 40, 0.5);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+
+        .info-item label {
+            color: #95a5a6;
+            font-size: 0.8em;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .info-item value {
+            color: #ecf0f1;
+            font-size: 1.1em;
+            font-weight: bold;
+            display: block;
+        }
+
+        .close-btn {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+            width: 100%;
+        }
+
+        .close-btn:hover {
+            background: linear-gradient(145deg, #c0392b, #e74c3c);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.5);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 999;
+            display: none;
+            backdrop-filter: blur(5px);
+        }
+
+        .overlay.show {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(10, 22, 40, 0.4);
+            border-radius: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #ecf0f1;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            border: 2px solid;
+        }
+
+        .legend-color.active {
+            background: rgba(46, 204, 113, 0.3);
+            border-color: #2ecc71;
+        }
+
+        .legend-color.idle {
+            background: rgba(241, 196, 15, 0.3);
+            border-color: #f1c40f;
+        }
+
+        .legend-color.offline {
+            background: rgba(231, 76, 60, 0.3);
+            border-color: #e74c3c;
+        }
+
+        @media (max-width: 1200px) {
+            .factory-map {
+                height: 800px;
+            }
+            
+            .station {
+                width: 140px;
+                height: 160px;
+            }
+            
+            .station:nth-child(1) { top: 50px; left: 20px; }
+            .station:nth-child(2) { top: 50px; left: 180px; }
+            .station:nth-child(3) { top: 50px; right: 180px; }
+            .station:nth-child(4) { top: 50px; right: 20px; }
+            .station:nth-child(5) { bottom: 300px; left: 50%; transform: translateX(-50%); }
+            .station:nth-child(6) { bottom: 120px; left: 80px; }
+            .station:nth-child(7) { bottom: 120px; right: 80px; }
+        }
+
+        @media (max-width: 768px) {
+            .factory-map {
+                height: 900px;
+            }
+            
+            .station {
+                width: 120px;
+                height: 140px;
+            }
+            
+            .station:nth-child(1) { top: 50px; left: 15px; }
+            .station:nth-child(2) { top: 50px; right: 15px; }
+            .station:nth-child(3) { top: 230px; left: 15px; }
+            .station:nth-child(4) { top: 230px; right: 15px; }
+            .station:nth-child(5) { top: 410px; left: 50%; transform: translateX(-50%); }
+            .station:nth-child(6) { bottom: 50px; left: 15px; }
+            .station:nth-child(7) { bottom: 50px; right: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏭 Control de Fábrica</h1>
+        <p>Mapa de Estaciones de Producción</p>
+    </div>
+
+    <div class="factory-container">
+        <div class="factory-map" id="factoryMap">
+            <!-- Las estaciones se generarán dinámicamente -->
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color active"></div>
+                <span>Operativa</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color idle"></div>
+                <span>En Espera</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color offline"></div>
+                <span>Fuera de Servicio</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="info-panel" id="infoPanel">
+        <h2 id="panelTitle">Estación 1</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Estado</label>
+                <value id="panelStatus">Operativa</value>
+            </div>
+            <div class="info-item">
+                <label>Producción</label>
+                <value id="panelProduction">0</value>
+            </div>
+            <div class="info-item">
+                <label>Eficiencia</label>
+                <value id="panelEfficiency">0%</value>
+            </div>
+            <div class="info-item">
+                <label>Operarios</label>
+                <value id="panelOperators">0</value>
+            </div>
+            <div class="info-item">
+                <label>Temperatura</label>
+                <value id="panelTemp">0°C</value>
+            </div>
+            <div class="info-item">
+                <label>Última Revisión</label>
+                <value id="panelLastCheck">-</value>
+            </div>
+        </div>
+        <div style="margin-top: 15px; padding: 12px; background: rgba(10, 22, 40, 0.5); border-radius: 8px; border: 1px solid rgba(52, 152, 219, 0.3);">
+            <label style="color: #95a5a6; font-size: 0.8em; display: block; margin-bottom: 5px;">Descripción</label>
+            <p id="panelDescription" style="color: #ecf0f1; line-height: 1.5; font-size: 0.9em;"></p>
+        </div>
+        <button class="close-btn" onclick="closePanel()">Cerrar</button>
+    </div>
+
+    <script>
+        const stations = [
+            {
+                id: 1,
+                name: "Recepción",
+                icon: "📦",
+                status: "Operativa",
+                production: 145,
+                efficiency: 95,
+                operators: 3,
+                temp: 22,
+                lastCheck: "10:30",
+                description: "Área de recepción de materias primas. Control de calidad inicial y registro de entrada de materiales."
+            },
+            {
+                id: 2,
+                name: "Preparación",
+                icon: "🔧",
+                status: "Operativa",
+                production: 132,
+                efficiency: 88,
+                operators: 4,
+                temp: 24,
+                lastCheck: "11:15",
+                description: "Zona de preparación y acondicionamiento de materiales para el proceso de fabricación."
+            },
+            {
+                id: 3,
+                name: "Ensamblaje",
+                icon: "⚙️",
+                status: "Operativa",
+                production: 98,
+                efficiency: 92,
+                operators: 6,
+                temp: 23,
+                lastCheck: "09:45",
+                description: "Línea principal de ensamblaje. Montaje y construcción de componentes principales del producto."
+            },
+            {
+                id: 4,
+                name: "Soldadura",
+                icon: "🔥",
+                status: "En Espera",
+                production: 0,
+                efficiency: 0,
+                operators: 2,
+                temp: 45,
+                lastCheck: "12:00",
+                description: "Estación de soldadura automatizada. Unión de piezas metálicas mediante procesos de alta precisión."
+            },
+            {
+                id: 5,
+                name: "Pintura",
+                icon: "🎨",
+                status: "Operativa",
+                production: 87,
+                efficiency: 85,
+                operators: 3,
+                temp: 21,
+                lastCheck: "10:00",
+                description: "Cabina de pintura y acabado superficial. Aplicación de recubrimientos protectores y estéticos."
+            },
+            {
+                id: 6,
+                name: "Control Calidad",
+                icon: "✓",
+                status: "Operativa",
+                production: 156,
+                efficiency: 97,
+                operators: 5,
+                temp: 22,
+                lastCheck: "11:30",
+                description: "Inspección exhaustiva de calidad. Verificación de especificaciones y estándares de producto."
+            },
+            {
+                id: 7,
+                name: "Empaquetado",
+                icon: "📤",
+                status: "Operativa",
+                production: 143,
+                efficiency: 91,
+                operators: 4,
+                temp: 20,
+                lastCheck: "10:45",
+                description: "Área de empaquetado final y preparación para envío. Etiquetado y documentación de productos terminados."
+            },
+            {
+                id: 8,
+                name: "Corte CNC",
+                icon: "✂️",
+                status: "Operativa",
+                production: 112,
+                efficiency: 89,
+                operators: 3,
+                temp: 26,
+                lastCheck: "09:30",
+                description: "Estación de corte automatizado CNC. Procesamiento de precisión de materiales según especificaciones."
+            },
+            {
+                id: 9,
+                name: "Montaje Final",
+                icon: "🔩",
+                status: "Operativa",
+                production: 95,
+                efficiency: 93,
+                operators: 5,
+                temp: 23,
+                lastCheck: "11:00",
+                description: "Área de montaje final. Integración de todos los componentes y verificación de funcionamiento."
+            }
+        ];
+
+        function createStations() {
+            const mapContainer = document.getElementById('factoryMap');
+            
+            stations.forEach(station => {
+                const stationDiv = document.createElement('div');
+                stationDiv.className = 'station';
+                if (station.status === 'Operativa') {
+                    stationDiv.classList.add('active');
+                }
+                
+                stationDiv.innerHTML = `
+                    <div class="station-icon">${station.icon}</div>
+                    <div class="station-number">${station.id}</div>
+                    <div class="station-name">${station.name}</div>
+                    <div class="station-status">${station.status}</div>
+                `;
+                
+                stationDiv.onclick = () => showInfo(station);
+                mapContainer.appendChild(stationDiv);
+            });
+        }
+
+        function showInfo(station) {
+            document.getElementById('panelTitle').textContent = `${station.icon} Estación ${station.id}: ${station.name}`;
+            document.getElementById('panelStatus').textContent = station.status;
+            document.getElementById('panelProduction').textContent = `${station.production} uds/h`;
+            document.getElementById('panelEfficiency').textContent = `${station.efficiency}%`;
+            document.getElementById('panelOperators').textContent = station.operators;
+            document.getElementById('panelTemp').textContent = `${station.temp}°C`;
+            document.getElementById('panelLastCheck').textContent = station.lastCheck;
+            document.getElementById('panelDescription').textContent = station.description;
+            
+            document.getElementById('overlay').classList.add('show');
+            document.getElementById('infoPanel').classList.add('show');
+        }
+
+        function closePanel() {
+            document.getElementById('overlay').classList.remove('show');
+            document.getElementById('infoPanel').classList.remove('show');
+        }
+
+        document.getElementById('overlay').onclick = closePanel;
+
+        // Inicializar estaciones al cargar la página
+        createStations();
+
+        // Simulación de actualización en tiempo real
+        setInterval(() => {
+            stations.forEach(station => {
+                if (station.status === 'Operativa') {
+                    station.production = Math.floor(Math.random() * 50) + 80;
+                    station.efficiency = Math.floor(Math.random() * 15) + 85;
+                }
+            });
+        }, 5000);
+    </script>
+</body>
+</html>
